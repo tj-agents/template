@@ -1,0 +1,6 @@
+{
+  "name": "{{marketplace}}",
+  "interface": {
+    "displayName": "{{display_name}}"
+  }
+}

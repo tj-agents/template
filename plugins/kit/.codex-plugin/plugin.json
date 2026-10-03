@@ -1,0 +1,25 @@
+{
+  "name": "kit",
+  "version": "1.0.0",
+  "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
+  "author": {
+    "name": "Tommy Seery"
+  },
+  "repository": "https://github.com/tj-agents/kit",
+  "skills": "./skills/",
+  "keywords": [
+    "plugins",
+    "scaffold",
+    "standards",
+    "generator"
+  ],
+  "interface": {
+    "displayName": "Kit",
+    "shortDescription": "Create and keep plugin repositories in one layout.",
+    "longDescription": "Creates stack, tool and utility plugin repositories in one shared layout, with the generator, CI and conformance files vendored from kit and pinned to a release.",
+    "developerName": "Tommy Seery",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Create a new plugin repository for a stack."
+  }
+}

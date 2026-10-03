@@ -1,0 +1,7 @@
+{
+  "name": "kit-agents",
+  "description": "Meta-scaffolder for plugin repositories, distributed as load-on-demand skills.",
+  "owner": {
+    "name": "Tommy Seery"
+  }
+}

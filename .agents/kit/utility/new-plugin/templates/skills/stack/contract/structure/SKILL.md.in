@@ -1,0 +1,22 @@
+---
+name: structure
+description: {{learner}}'s agreed {{Stack}} project structure — repository and module layout, visibility and wiring. Read before writing or reviewing {{Stack}} that touches it; nothing applies until it is recorded here.
+kind: contract
+domain: {{namespace}}
+profile: core
+applicability: {{Stack}} projects
+requires: {{namespace}}
+provenance: house
+---
+
+# {{Stack}} structure
+
+Owns the repository and module layout, visibility, and where dependencies are wired.
+
+## Agreed
+
+_Nothing yet._ Propose a rule through `{{namespace}}:learning`'s convention procedure.
+
+## File structure
+
+_Nothing yet._ Once agreed, this is the tree `{{namespace}}:scaffold` creates.

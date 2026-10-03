@@ -1,0 +1,16 @@
+{
+  "name": "kit",
+  "displayName": "Kit",
+  "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
+  "author": {
+    "name": "Tommy Seery"
+  },
+  "repository": "https://github.com/tj-agents/kit",
+  "skills": "./skills/",
+  "keywords": [
+    "plugins",
+    "scaffold",
+    "standards",
+    "generator"
+  ]
+}

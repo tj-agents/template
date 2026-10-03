@@ -1,0 +1,65 @@
+name: plugin-ci
+
+on:
+  workflow_call:
+    inputs:
+      kit_ref:
+        description: The kit release the calling repository pins, such as v1.0.0.
+        required: true
+        type: string
+    secrets:
+      read_token:
+        description: A token that can read the organization's kit and core repositories.
+        required: true
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/core
+          path: .core
+          token: ${{ secrets.read_token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: generated files are current
+        shell: pwsh
+        run: ./.agents/sync-generated.ps1 -Check
+      - name: repository tests
+        shell: pwsh
+        run: |
+          if (Test-Path .agents/tests/test_*.py) {
+            python -B -m unittest discover -s .agents/tests -p "test_*.py"
+            exit $LASTEXITCODE
+          }
+      - name: tier payloads conform to the shipped shape
+        shell: pwsh
+        run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
+
+  hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install the pinned host CLIs
+        run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
+      - name: Claude Code and Codex accept the marketplace and plugins
+        run: python -B .kit/.github/scripts/validate_hosts.py --root .

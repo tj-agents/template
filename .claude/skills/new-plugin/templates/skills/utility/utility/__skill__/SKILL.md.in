@@ -1,0 +1,15 @@
+---
+name: {{skill}}
+description: {{description}}
+kind: utility
+domain: {{namespace}}
+profile: core
+applicability: {{Stack}}
+requires: {{namespace}}
+provenance: house
+---
+
+# {{skill}}
+
+_Nothing yet._ Describe what this utility does, how to run it, and how its output is validated. Its scripts and
+templates sit beside this file.
