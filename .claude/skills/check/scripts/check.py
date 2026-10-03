@@ -129,6 +129,37 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
     return problems
 
 
+def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -> list[str]:
+    problems = []
+    for plugin, skills in plugins.items():
+        exempt = set(aliases.get(plugin, {}))
+        flat: dict[tuple[str, str], set[str]] = {}
+        families: set[tuple[str, str]] = set()
+        for skill in skills.values():
+            if skill["name"] in exempt:
+                continue
+            parts = skill["directory"].split("/")[3:]
+            if parts[0] == plugin or parts[0].startswith(f"{plugin}-"):
+                problems.append(f"{skill['directory']}: a skill name does not repeat its namespace {plugin}")
+            for index, part in enumerate(parts[1:], 1):
+                for family in parts[:index]:
+                    if part == family or part.startswith(f"{family}-") or part.endswith(f"-{family}"):
+                        problems.append(f"{skill['directory']}: {part} repeats its family {family}")
+            if len(parts) > 1:
+                families.add((skill["kind"], parts[0]))
+            elif "-" in parts[0]:
+                words = parts[0].split("-")
+                for word in {words[0], words[-1]}:
+                    flat.setdefault((skill["kind"], word), set()).add(parts[0])
+        for (kind, word), names in sorted(flat.items()):
+            if len(names) > 1 or (kind, word) in families:
+                problems.append(
+                    f".agents/{plugin}/{kind}: {', '.join(sorted(names))} share `{word}`; "
+                    f"fold them into the family folder {word}/<member>/"
+                )
+    return problems
+
+
 def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
@@ -149,6 +180,12 @@ def check(root: Path) -> list[str]:
         return problems + [str(error)]
     problems += check_agents_entries(root, set(plugins))
     problems += check_standard(root, kind, namespace, plugins)
+    payloads_path = root / ".agents/plugins/payloads.json"
+    try:
+        aliases = json.loads(text(payloads_path)).get("compatibilitySkillAliases", {}) if payloads_path.is_file() else {}
+    except (json.JSONDecodeError, AttributeError) as error:
+        return problems + [f".agents/plugins/payloads.json: not a JSON object ({error})"]
+    problems += check_names(plugins, aliases)
     return problems
 
 

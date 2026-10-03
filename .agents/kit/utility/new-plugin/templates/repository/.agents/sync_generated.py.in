@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.0.0"
+KIT_VERSION = "1.1.0"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
@@ -121,7 +121,11 @@ def metadata(body: str, source: str) -> dict[str, str]:
     return values
 
 
-def load_skill(root: Path, plugin: str, kind: str, directory: Path, namespace: str) -> dict:
+def is_skill_folder(path: Path) -> bool:
+    return path.is_dir() and not ignored(path) and not is_link_or_junction(path) and (path / "SKILL.md").is_file()
+
+
+def load_skill(root: Path, plugin: str, kind: str, directory: Path, name: str, namespace: str) -> dict:
     path = directory / "SKILL.md"
     relative = path.relative_to(root).as_posix()
     raw = path.read_bytes()
@@ -129,16 +133,17 @@ def load_skill(root: Path, plugin: str, kind: str, directory: Path, namespace: s
         raise ValueError(f"{relative}: embedded UTF-8 BOM")
     body = raw.decode("utf-8").replace("\r\n", "\n")
     values = metadata(body, relative)
-    if values["name"] != directory.name:
-        raise ValueError(f"{relative}: name must equal its folder")
+    if values["name"] != name:
+        raise ValueError(f"{relative}: name must be {name}, its folder path below the kind folder joined by hyphens")
     if values["kind"] != kind:
         raise ValueError(f"{relative}: kind must equal its kind folder")
     if values["domain"] != namespace:
         raise ValueError(f"{relative}: domain must be {namespace}")
+    members = {item.name for item in directory.iterdir() if is_skill_folder(item)}
     files: list[str] = []
     for item in sorted(directory.rglob("*")):
         part = item.relative_to(directory)
-        if ignored(part):
+        if ignored(part) or part.parts[0] in members:
             continue
         if is_link_or_junction(item):
             raise ValueError(f"{item.relative_to(root).as_posix()}: links are not shipped")
@@ -155,6 +160,29 @@ def load_skill(root: Path, plugin: str, kind: str, directory: Path, namespace: s
     }
 
 
+def collect_skills(
+    root: Path, plugin: str, kind: str, directory: Path, family: tuple[str, ...], namespace: str, skills: dict[str, dict]
+) -> None:
+    location = directory.relative_to(root).as_posix()
+    if is_link_or_junction(directory):
+        raise ValueError(f"{location}: links are not shipped")
+    if not directory.is_dir() or not NAME.fullmatch(directory.name):
+        raise ValueError(f"{location}: kind and family folders hold only skill folders and family folders")
+    parts = (*family, directory.name)
+    if (directory / "SKILL.md").is_file():
+        skill = load_skill(root, plugin, kind, directory, "-".join(parts), namespace)
+        if skill["name"] in skills:
+            raise ValueError(f"{plugin}: duplicate skill {skill['name']}")
+        skills[skill["name"]] = skill
+        members = [item for item in sorted(directory.iterdir()) if is_skill_folder(item)]
+    else:
+        members = sorted(path for path in directory.iterdir() if not ignored(path))
+        if not members:
+            raise ValueError(f"{location}: a family folder holds skill folders")
+    for member in members:
+        collect_skills(root, plugin, kind, member, parts, namespace, skills)
+
+
 def discover(root: Path, namespace: str) -> dict[str, dict[str, dict]]:
     agents = root / ".agents"
     plugins: dict[str, dict[str, dict]] = {}
@@ -168,16 +196,8 @@ def discover(root: Path, namespace: str) -> dict[str, dict[str, dict]]:
         for kind_dir in sorted(path for path in plugin_dir.iterdir() if not ignored(path)):
             if not kind_dir.is_dir() or not NAME.fullmatch(kind_dir.name):
                 raise ValueError(f".agents/{plugin}/{kind_dir.name}: only kind folders belong in a plugin folder")
-            for skill_dir in sorted(path for path in kind_dir.iterdir() if not ignored(path)):
-                if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").is_file():
-                    raise ValueError(
-                        f".agents/{plugin}/{kind_dir.name}/{skill_dir.name}: a kind folder holds only skill folders "
-                        "with a SKILL.md"
-                    )
-                skill = load_skill(root, plugin, kind_dir.name, skill_dir, namespace)
-                if skill["name"] in skills:
-                    raise ValueError(f"{plugin}: duplicate skill {skill['name']}")
-                skills[skill["name"]] = skill
+            for entry in sorted(path for path in kind_dir.iterdir() if not ignored(path)):
+                collect_skills(root, plugin, kind_dir.name, entry, (), namespace, skills)
         if not skills:
             raise ValueError(f".agents/{plugin}: a plugin folder needs at least one skill")
         plugins[plugin] = skills
@@ -377,7 +397,13 @@ def build(root: Path) -> dict[str, bytes]:
         for file in skill["files"]:
             emit(f"{directory}/{file}", (root / skill["directory"] / file).read_bytes())
 
-    repository_index = [f"# {namespace} capabilities", "", "Generated from `.agents/<plugin>/<kind>/<name>/SKILL.md`.", ""]
+    repository_index = [
+        f"# {namespace} capabilities",
+        "",
+        "Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's name is its folder path below "
+        "the kind folder joined by hyphens.",
+        "",
+    ]
     for plugin, skills in plugins.items():
         ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
         plugin_aliases = aliases.get(plugin, {})
