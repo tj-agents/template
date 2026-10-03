@@ -46,4 +46,4 @@ agreed File structure.
 ## Validation
 
 The script fails if the new repository does not generate cleanly. Before the first push,
-`pwsh .agents/sync-generated.ps1 -Check` passes in it; CI then runs kit's shared workflow at the pinned tag.
+`pwsh .agents/sync-generated.ps1 -Check` and `kit:check` pass in it; CI then runs both from kit at the pinned tag.

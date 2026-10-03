@@ -6,6 +6,8 @@ vendored generator and one CI workflow, all owned here.
 ## Skills
 
 - `kit:new-plugin` creates a stack, tool or utility plugin repository.
+- `kit:check` checks a plugin repository against the layout and the standard its type requires.
+- `kit:update` moves a plugin repository to this kit release.
 
 ## Repository types
 
@@ -18,7 +20,7 @@ vendored generator and one CI workflow, all owned here.
 ## Shared CI
 
 A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the kit tag it pins.
-The workflow checks the generated outputs, runs the repository's own tests, runs core's tier payload check, and
+The workflow checks the generated outputs, runs the repository's own tests, `kit:check` and core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private `kit` and
 `core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
 

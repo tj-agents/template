@@ -201,7 +201,7 @@ class RejectionTests(GeneratorTestCase):
     def test_pinned_kit_version_must_match_the_generator(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         write_json(path, {**json.loads(path.read_text()), "kit": "0.0.1"})
-        self.assert_rejected("re-vendor the generator")
+        self.assert_rejected("run kit:update")
 
     def test_byte_order_mark(self) -> None:
         path = self.root / ".agents/demo/contract/style/SKILL.md"

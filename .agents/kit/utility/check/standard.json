@@ -1,0 +1,66 @@
+{
+  "root_files": ["AGENTS.md", "README.md"],
+  "retired_files": ["SOURCE_LAYOUT.md", ".agents/plugins/sources.json"],
+  "agents_files": ["INDEX.md", "sync_generated.py", "sync-generated.ps1"],
+  "agents_folders": ["plugins", "tiers", "tests", "hooks"],
+  "plugins_entries": ["kit.json", "payloads.json", "manifests", "marketplace.json"],
+  "contract_opening": "Owns ",
+  "types": {
+    "stack": {
+      "applies": "stack-present",
+      "skills": {
+        "learning": {
+          "kind": "knowledge",
+          "profile": "knowledge",
+          "sections": [
+            "## Two modes",
+            "## Calibrate to `{namespace}:knowledge`",
+            "## Working rules",
+            "## Progress",
+            "## Agreeing a convention"
+          ]
+        },
+        "knowledge": {"kind": "knowledge", "profile": "knowledge", "sections": ["## ✅ Fluent", "## 🟡 Met, shaky", "## Log"]},
+        "direction": {
+          "kind": "knowledge",
+          "profile": "knowledge",
+          "sections": ["## The goal", "## The skill tree", "## The rule", "## References"]
+        },
+        "style": {"kind": "contract", "profile": "core", "sections": []},
+        "structure": {"kind": "contract", "profile": "core", "sections": ["## File structure"]},
+        "domain-design": {"kind": "contract", "profile": "core", "sections": []},
+        "errors": {"kind": "contract", "profile": "core", "sections": []},
+        "testing": {"kind": "contract", "profile": "core", "sections": []},
+        "build": {"kind": "contract", "profile": "core", "sections": []},
+        "libraries": {"kind": "contract", "profile": "core", "sections": []},
+        "scaffold": {
+          "kind": "utility",
+          "profile": "scaffold",
+          "anywhere": true,
+          "sections": ["## Create a project", "## Build and adapt", "## Validation and publication"]
+        }
+      }
+    },
+    "tool": {
+      "applies": "always",
+      "skills": {
+        "learning": {
+          "kind": "knowledge",
+          "profile": "knowledge",
+          "sections": ["## Calibrate to `{namespace}:knowledge`", "## Working rules", "## Progress"]
+        },
+        "knowledge": {"kind": "knowledge", "profile": "knowledge", "sections": ["## ✅ Fluent", "## 🟡 Met, shaky", "## Log"]},
+        "direction": {
+          "kind": "knowledge",
+          "profile": "knowledge",
+          "sections": ["## The goal", "## The skill tree", "## The rule", "## References"]
+        }
+      }
+    },
+    "utility": {
+      "applies": "always",
+      "only_kinds": ["utility"],
+      "skills": {}
+    }
+  }
+}
