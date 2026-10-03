@@ -33,7 +33,7 @@ def text(path: Path) -> str:
 
 
 def owns_templates(root: Path) -> bool:
-    return NEW_PLUGIN.resolve().is_relative_to(root.resolve())
+    return (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
 
 
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
@@ -88,28 +88,38 @@ def opening(body: str) -> str:
     return ""
 
 
+def skill_problems(skill: dict, name: str, rule: dict, namespace: str) -> list[str]:
+    problems = []
+    if skill["kind"] != rule["kind"] or skill["metadata"]["profile"] != rule["profile"]:
+        problems.append(f"{skill['directory']}: {name} is kind {rule['kind']}, profile {rule['profile']}")
+    present = headings(skill["body"])
+    for heading in rule["sections"]:
+        heading = heading.replace("{namespace}", namespace)
+        if heading not in present:
+            problems.append(f"{skill['directory']}/SKILL.md: missing section {heading}")
+    return problems
+
+
 def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dict[str, dict]]) -> list[str]:
     standard = STANDARD["types"][kind]
     problems = []
     if namespace not in plugins:
         return [f".agents/{namespace}: a repository's main plugin folder is named after the repository"]
-    tier = json.loads(text(root / f".agents/tiers/{namespace}.json"))
-    if tier.get("applies") != standard["applies"]:
+    tier_path = root / f".agents/tiers/{namespace}.json"
+    if not tier_path.is_file():
+        problems.append(f".agents/tiers/{namespace}.json: required")
+    elif json.loads(text(tier_path)).get("applies") != standard["applies"]:
         problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
-    everywhere = {name: skill for skills in plugins.values() for name, skill in skills.items()}
     for name, rule in standard["skills"].items():
-        skill = (everywhere if rule.get("anywhere") else plugins[namespace]).get(name)
-        where = "any plugin" if rule.get("anywhere") else f"plugin {namespace}"
-        if skill is None:
+        owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
+        candidates = [skills[name] for skills in owners if name in skills]
+        if not candidates:
+            where = "any plugin" if rule.get("anywhere") else f"plugin {namespace}"
             problems.append(f"{name}: a {kind} repository needs this {rule['kind']} skill in {where}")
             continue
-        if skill["kind"] != rule["kind"] or skill["metadata"]["profile"] != rule["profile"]:
-            problems.append(f"{skill['directory']}: {name} is kind {rule['kind']}, profile {rule['profile']}")
-        present = headings(skill["body"])
-        for heading in rule["sections"]:
-            heading = heading.replace("{namespace}", namespace)
-            if heading not in present:
-                problems.append(f"{skill['directory']}/SKILL.md: missing section {heading}")
+        found = [skill_problems(skill, name, rule, namespace) for skill in candidates]
+        if all(found):
+            problems += [problem for skill_found in found for problem in skill_found]
     for plugin, skills in plugins.items():
         for skill in skills.values():
             if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:

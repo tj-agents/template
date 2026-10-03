@@ -31,7 +31,7 @@ def update(root: Path, dry_run: bool) -> list[str]:
     config = json.loads(config_path.read_text(encoding="utf-8"))
     if not new_plugin.REPOSITORY.fullmatch(str(config.get("repository", ""))):
         raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
-    owns_templates = NEW_PLUGIN.resolve().is_relative_to(root.resolve())
+    owns_templates = (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
         if relative == ".github/workflows/ci.yml" and owns_templates:

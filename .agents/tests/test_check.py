@@ -4,6 +4,7 @@ import importlib.util
 from importlib.machinery import SourceFileLoader
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -110,6 +111,18 @@ class StackCheckTests(RenderedRepositoryTestCase):
         self.assertIn("SOURCE_LAYOUT.md: retired", problems)
         self.assertIn(".agents/docs: a plugin folder needs at least one skill", problems)
 
+    def test_ci_layout_still_compares_the_ci_caller(self) -> None:
+        nested = self.root / ".kit/.agents/kit"
+        shutil.copytree(ROOT / ".agents/kit", nested)
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.0.0", "kit_ref: v0.9.0")
+        result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
+        self.assertEqual(1, result.returncode)
+        self.assertIn(".github/workflows/ci.yml: differs from kit", result.stderr)
+
+    def test_missing_tier_is_reported(self) -> None:
+        (self.root / ".agents/tiers/zig.json").unlink()
+        self.assert_problem(".agents/tiers/zig.json: required")
+
     def test_stack_tier_must_detect_its_stack(self) -> None:
         path = self.root / ".agents/tiers/zig.json"
         tier = json.loads(path.read_text())
@@ -158,9 +171,34 @@ class UtilityCheckTests(RenderedRepositoryTestCase):
         self.assert_problem("a utility repository has only utility skills")
 
 
+class SeveralPluginsTests(RenderedRepositoryTestCase):
+    def test_a_conforming_scaffold_in_one_plugin_is_enough(self) -> None:
+        extra = self.root / ".agents/extra"
+        scaffold = (self.root / ".agents/zig/utility/scaffold/SKILL.md").read_text(encoding="utf-8")
+        (extra / "utility/scaffold").mkdir(parents=True)
+        broken = scaffold.replace("## Build and adapt\n", "")
+        (extra / "utility/scaffold/SKILL.md").write_text(broken, encoding="utf-8")
+        tier = json.loads((self.root / ".agents/tiers/zig.json").read_text())
+        (self.root / ".agents/tiers/extra.json").write_text(json.dumps({**tier, "tier": "extra"}), encoding="utf-8")
+        for host in ("claude", "codex"):
+            source = json.loads((self.root / f".agents/plugins/manifests/{host}/zig.json").read_text())
+            (self.root / f".agents/plugins/manifests/{host}/extra.json").write_text(json.dumps({**source, "name": "extra"}), encoding="utf-8")
+        payloads = {"payloads": {"zig": ["zig"], "extra": ["extra"]}}
+        (self.root / ".agents/plugins/payloads.json").write_text(json.dumps(payloads), encoding="utf-8")
+        self.regenerate()
+        self.assertEqual([], check.check(self.root))
+
+
 class KitConformsTests(unittest.TestCase):
     def test_kit_conforms_to_itself(self) -> None:
         self.assertEqual([], check.check(ROOT))
+
+    def test_kit_conforms_when_checked_from_a_nested_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            nested = Path(directory) / ".agents/kit"
+            shutil.copytree(ROOT / ".agents/kit", nested)
+            result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(ROOT))
+            self.assertEqual(0, result.returncode, result.stderr)
 
 
 if __name__ == "__main__":
