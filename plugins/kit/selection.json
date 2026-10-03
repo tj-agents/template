@@ -3,11 +3,27 @@
   "dependencies": [],
   "profiles": {
     "core": [
-      "new-plugin"
+      "check",
+      "new-plugin",
+      "update"
     ]
   },
   "compatibilitySkillAliases": {},
   "skills": [
+    {
+      "name": "check",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "plugin repositories"
+      ],
+      "requires": [
+        "python"
+      ],
+      "provenance": [
+        "house"
+      ]
+    },
     {
       "name": "new-plugin",
       "kind": "utility",
@@ -18,6 +34,20 @@
       "requires": [
         "python",
         "pwsh"
+      ],
+      "provenance": [
+        "house"
+      ]
+    },
+    {
+      "name": "update",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "plugin repositories"
+      ],
+      "requires": [
+        "python"
       ],
       "provenance": [
         "house"

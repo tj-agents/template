@@ -19,6 +19,14 @@ NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^([A-Za-z0-9_.-]+)/([a-z][a-z0-9-]*)$")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 KIT_VERSION = re.compile(r'^KIT_VERSION = "(\d+\.\d+\.\d+)"$', re.MULTILINE)
+VENDORED = (
+    ".agents/sync_generated.py",
+    ".agents/sync-generated.ps1",
+    ".gitattributes",
+    ".gitignore",
+    "CLAUDE.md",
+    ".github/workflows/ci.yml",
+)
 SKILL_SETS = {"stack": ("common", "stack"), "tool": ("common", "tool"), "utility": ("utility",)}
 KIND_HEADINGS = {"knowledge": "Knowledge", "contract": "Contracts, empty until a decision is recorded", "utility": "Utilities"}
 AGENTS_RULES = {
@@ -57,6 +65,18 @@ def render(text: str, values: dict[str, str], source: PurePosixPath) -> str:
     if leftover:
         raise ValueError(f"{source}: unknown placeholders {sorted(set(leftover))}")
     return text
+
+
+def vendored_files(repository: str) -> dict[str, str]:
+    values = {"owner": REPOSITORY.fullmatch(repository).group(1), "kit_version": kit_version()}
+    return {
+        relative: render(
+            (TEMPLATES / "repository" / f"{relative}.in").read_text(encoding="utf-8"),
+            values,
+            PurePosixPath(f"{relative}.in"),
+        )
+        for relative in VENDORED
+    }
 
 
 def destination_path(relative: PurePosixPath, values: dict[str, str]) -> str:

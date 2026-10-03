@@ -23,6 +23,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token }}
+      - uses: actions/checkout@v4
+        with:
           repository: ${{ github.repository_owner }}/core
           path: .core
           token: ${{ secrets.read_token }}
@@ -39,6 +45,9 @@ jobs:
             python -B -m unittest discover -s .agents/tests -p "test_*.py"
             exit $LASTEXITCODE
           }
+      - name: the repository conforms to its pinned kit release
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check.py --root .
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
