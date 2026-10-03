@@ -1,0 +1,21 @@
+{
+  "name": "kit-agents",
+  "description": "Meta-scaffolder for plugin repositories, distributed as load-on-demand skills.",
+  "owner": {
+    "name": "Tommy Seery"
+  },
+  "plugins": [
+    {
+      "name": "kit",
+      "source": "./plugins/kit",
+      "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
+      "category": "Productivity",
+      "keywords": [
+        "plugins",
+        "scaffold",
+        "standards",
+        "generator"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "plugin": "kit",
+  "dependencies": [],
+  "profiles": {
+    "core": [
+      "new-plugin"
+    ]
+  },
+  "compatibilitySkillAliases": {},
+  "skills": [
+    {
+      "name": "new-plugin",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "new plugin repositories"
+      ],
+      "requires": [
+        "python",
+        "pwsh"
+      ],
+      "provenance": [
+        "house"
+      ]
+    }
+  ]
+}

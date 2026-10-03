@@ -1,0 +1,20 @@
+{
+  "name": "{{namespace}}",
+  "version": "0.1.0",
+  "description": "{{description}}",
+  "author": {
+    "name": "{{author}}"
+  },
+  "repository": "https://github.com/{{repository}}",
+  "skills": "./skills/",
+  "keywords": {{keywords_json}},
+  "interface": {
+    "displayName": "{{display_name}}",
+    "shortDescription": "{{description}}",
+    "longDescription": "{{description}}",
+    "developerName": "{{author}}",
+    "category": "{{category}}",
+    "capabilities": [],
+    "defaultPrompt": "{{default_prompt}}"
+  }
+}

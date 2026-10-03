@@ -1,0 +1,20 @@
+{
+  "name": "kit-agents",
+  "interface": {
+    "displayName": "Kit"
+  },
+  "plugins": [
+    {
+      "name": "kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kit"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

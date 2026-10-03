@@ -1,0 +1,39 @@
+---
+name: learning
+description: How to teach {{learner}} {{Stack}} — read `{{namespace}}:knowledge` first, pitch the next step on the `{{namespace}}:direction` skill tree, teach a few things at a time with a hands-on drill in real work, and promote a skill only after it is proven. Use whenever {{learner}} asks how to do something in {{Stack}}, wants a lesson or drill, or says they learned or are struggling with something.
+kind: knowledge
+domain: {{namespace}}
+profile: knowledge
+applicability: {{Stack}} use and learning
+requires: {{namespace}}
+provenance: house
+---
+
+# Teaching {{learner}} {{Stack}}
+
+`{{namespace}}:knowledge` records what {{learner}} has proven they know; `{{namespace}}:direction` records where
+they are headed. Read both before teaching.
+
+## Calibrate to `{{namespace}}:knowledge`
+
+- It is the only record of what {{learner}} knows. Existing code, a doc, a past session or experience with
+  another tool is not evidence of {{Stack}} knowledge.
+- Before handing over a task, check every concept it needs against it and teach the gaps first.
+- Teach an absent or 🟡 concept before using it: name it, show a short standalone example, then use it. A
+  one-line aside is enough for a small gap.
+
+## Working rules
+
+- Teach a few things per lesson, each with a drill {{learner}} performs in real work and reports back on.
+- For "how do I X", answer with the exact steps plus one sentence of why. Offer a drill only if wanted.
+- Explain in chat. Change {{learner}}'s setup only when asked.
+
+## Progress
+
+- Promote a concept in `{{namespace}}:knowledge` only after {{learner}} proves it: they explain it back, or
+  write or use it correctly themselves. Explaining it is not them knowing it, and {{learner}} is the judge.
+  🟡 means met but shaky; ✅ means fluent.
+- A concept {{learner}} says they are struggling with goes back to 🟡.
+- Delivery mode never updates `{{namespace}}:knowledge`.
+- To update: edit `.agents/{{namespace}}/knowledge/knowledge/SKILL.md` in `{{repository}}`, run
+  `pwsh .agents/sync-generated.ps1`, then commit and push.

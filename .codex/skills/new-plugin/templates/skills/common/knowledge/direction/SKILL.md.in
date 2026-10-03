@@ -1,0 +1,34 @@
+---
+name: direction
+description: Where {{learner}} is headed with {{Stack}} — the goal, the skill tree being worked through, and the references every explanation and convention cites. Use when choosing or sequencing what to learn next, or when sourcing a {{Stack}} explanation or a proposed convention.
+kind: knowledge
+domain: {{namespace}}
+profile: knowledge
+applicability: {{Stack}} learning
+requires: {{namespace}}
+provenance: house
+---
+
+# Where {{learner}} is headed with {{Stack}}
+
+`{{namespace}}:knowledge` tracks where {{learner}} is now; this tracks where they are going.
+
+## The goal
+
+_Not set yet._ Agree it with {{learner}} before the first lesson.
+
+## The skill tree
+
+| # | Area | Status |
+|---|------|--------|
+
+Update a row's status when {{learner}} levels up an area.
+
+## The rule
+
+These projects are for learning, not output. A slower path that {{learner}} understands beats a fast one they do
+not. Check that it landed: ask them to explain it back, or to write the next piece before you show yours.
+
+## References
+
+_None agreed yet._ Explanations and conventions cite only the references listed here.
