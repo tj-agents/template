@@ -128,6 +128,65 @@ class BuildTests(GeneratorTestCase):
         self.assert_rejected("alias must forward")
 
 
+class FamilyTests(GeneratorTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        make_repository(self.root)
+
+    def test_a_family_member_publishes_its_folder_path_joined_by_hyphens(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state/server/SKILL.md", skill_text("state-server", "contract"))
+        output = self.build()
+        for name in ("state-client", "state-server"):
+            self.assertIn(f"plugins/demo/skills/{name}/SKILL.md", output)
+            self.assertIn(f".codex/skills/{name}/SKILL.md", output)
+        self.assertIn(
+            "canonical definition](../../../.agents/demo/contract/state/client/SKILL.md)",
+            output[".claude/skills/state-client/SKILL.md"].decode(),
+        )
+        self.assertIn("- `state-client` — contract — core", output["plugins/demo/INDEX.md"].decode())
+
+    def test_a_family_skill_ships_its_own_files_but_not_its_members(self) -> None:
+        write(self.root / ".agents/demo/contract/naming/SKILL.md", skill_text("naming", "contract"))
+        write(self.root / ".agents/demo/contract/naming/templates/rules.md", "rules\n")
+        write(self.root / ".agents/demo/contract/naming/collaborators/SKILL.md", skill_text("naming-collaborators", "contract"))
+        write(self.root / ".agents/demo/contract/naming/collaborators/templates/roles.md", "roles\n")
+        output = self.build()
+        self.assertIn("plugins/demo/skills/naming/templates/rules.md", output)
+        self.assertNotIn("plugins/demo/skills/naming/collaborators/SKILL.md", output)
+        self.assertIn("plugins/demo/skills/naming-collaborators/templates/roles.md", output)
+
+    def test_a_member_named_without_its_family(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("client", "contract"))
+        self.assert_rejected("name must be state-client")
+
+    def test_a_file_in_a_family_folder(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state/notes.md", "stray\n")
+        self.assert_rejected("only skill folders")
+
+    def test_a_linked_member_folder_is_not_shipped(self) -> None:
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        write(Path(outside.name) / "SKILL.md", skill_text("style-linked", "contract"))
+        link = self.root / ".agents/demo/contract/style/linked"
+        try:
+            if os.name == "nt":
+                import _winapi
+
+                _winapi.CreateJunction(outside.name, str(link))
+            else:
+                link.symlink_to(outside.name, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"cannot create a link here: {error}")
+        self.assert_rejected("links are not shipped")
+
+    def test_a_family_name_colliding_with_a_flat_skill(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state-client/SKILL.md", skill_text("state-client", "contract"))
+        self.assert_rejected("duplicate skill state-client")
+
+
 class RejectionTests(GeneratorTestCase):
     def setUp(self) -> None:
         super().setUp()
