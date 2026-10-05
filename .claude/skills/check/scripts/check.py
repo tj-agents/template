@@ -90,7 +90,8 @@ def opening(body: str) -> str:
 
 def skill_problems(skill: dict, name: str, rule: dict, namespace: str) -> list[str]:
     problems = []
-    if skill["kind"] != rule["kind"] or skill["metadata"]["profile"] != rule["profile"]:
+    allowed_kinds = {rule["kind"], *rule.get("legacy_kinds", [])}
+    if skill["kind"] not in allowed_kinds or skill["metadata"]["profile"] != rule["profile"]:
         problems.append(f"{skill['directory']}: {name} is kind {rule['kind']}, profile {rule['profile']}")
     present = headings(skill["body"])
     for heading in rule["sections"]:
@@ -124,8 +125,8 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
         for skill in skills.values():
             if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:
                 problems.append(f"{skill['directory']}: a {kind} repository has only {', '.join(standard['only_kinds'])} skills")
-            if skill["kind"] == "contract" and not opening(skill["body"]).startswith(STANDARD["contract_opening"]):
-                problems.append(f"{skill['directory']}/SKILL.md: a contract opens with an `Owns …` line after its title")
+            if skill["kind"] in ("contract", "convention") and not opening(skill["body"]).startswith(STANDARD["convention_opening"]):
+                problems.append(f"{skill['directory']}/SKILL.md: a convention opens with an `Owns …` line after its title")
     return problems
 
 

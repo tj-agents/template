@@ -16,9 +16,10 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.1.0"
+KIT_VERSION = "1.2.0"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+KIND = re.compile(r"^[a-z]+$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -115,9 +116,11 @@ def metadata(body: str, source: str) -> dict[str, str]:
     for field in REQUIRED_METADATA:
         if not values.get(field):
             raise ValueError(f"{source}: missing {field}")
-    for field in ("name", "kind", "profile"):
+    for field in ("name", "profile"):
         if not NAME.fullmatch(values[field]):
             raise ValueError(f"{source}: {field} must be a lowercase name")
+    if not KIND.fullmatch(values["kind"]):
+        raise ValueError(f"{source}: kind must be one lowercase word")
     return values
 
 

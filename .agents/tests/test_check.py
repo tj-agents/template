@@ -72,23 +72,37 @@ class StackCheckTests(RenderedRepositoryTestCase):
         self.assertEqual([], check.check(self.root))
 
     def test_missing_required_skill(self) -> None:
-        for path in sorted((self.root / ".agents/zig/contract/errors").rglob("*"), reverse=True):
+        for path in sorted((self.root / ".agents/zig/convention/errors").rglob("*"), reverse=True):
             path.unlink() if path.is_file() else path.rmdir()
-        (self.root / ".agents/zig/contract/errors").rmdir()
-        self.edit(".agents/zig/knowledge/learning/SKILL.md", "`zig:errors`, ", "")
-        self.assert_problem("errors: a stack repository needs this contract skill in plugin zig")
+        (self.root / ".agents/zig/convention/errors").rmdir()
+        self.edit(".agents/zig/policy/learning/SKILL.md", "`zig:errors`, ", "")
+        self.assert_problem("errors: a stack repository needs this convention skill in plugin zig")
 
     def test_missing_required_section(self) -> None:
-        self.edit(".agents/zig/contract/structure/SKILL.md", "## File structure", "## Layout")
+        self.edit(".agents/zig/convention/structure/SKILL.md", "## File structure", "## Layout")
         self.assert_problem("missing section ## File structure")
 
     def test_wrong_standard_profile(self) -> None:
-        self.edit(".agents/zig/contract/style/SKILL.md", "profile: core", "profile: contract")
-        self.assert_problem("style is kind contract, profile core")
+        self.edit(".agents/zig/convention/style/SKILL.md", "profile: core", "profile: contract")
+        self.assert_problem("style is kind convention, profile core")
 
-    def test_contract_without_owns_line(self) -> None:
-        self.edit(".agents/zig/contract/build/SKILL.md", "Owns the toolchain pin", "Covers the toolchain pin")
+    def test_convention_without_owns_line(self) -> None:
+        self.edit(".agents/zig/convention/build/SKILL.md", "Owns the toolchain pin", "Covers the toolchain pin")
         self.assert_problem("opens with an `Owns …` line")
+
+    def test_legacy_contract_kind_still_satisfies_the_required_skill(self) -> None:
+        destination = self.root / ".agents/zig/contract/style"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        (self.root / ".agents/zig/convention/style").rename(destination)
+        self.edit(".agents/zig/contract/style/SKILL.md", "kind: convention", "kind: contract")
+        self.assertEqual([], check.check(self.root))
+
+    def test_legacy_knowledge_kind_still_satisfies_learning(self) -> None:
+        destination = self.root / ".agents/zig/knowledge/learning"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        (self.root / ".agents/zig/policy/learning").rename(destination)
+        self.edit(".agents/zig/knowledge/learning/SKILL.md", "kind: policy", "kind: knowledge")
+        self.assertEqual([], check.check(self.root))
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
@@ -97,7 +111,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is kit 1.1.0: run kit:update")
+        self.assert_problem("pins kit 0.9.0; this check is kit 1.2.0: run kit:update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -114,7 +128,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".kit/.agents/kit"
         shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.1.0", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.2.0", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
         self.assertIn(".github/workflows/ci.yml: differs from kit", result.stderr)
@@ -151,7 +165,7 @@ class ToolCheckTests(RenderedRepositoryTestCase):
         self.assertEqual([], check.check(self.root))
 
     def test_learning_keeps_its_calibrate_section(self) -> None:
-        self.edit(".agents/helix/knowledge/learning/SKILL.md", "## Calibrate to `helix:knowledge`", "## Calibrate")
+        self.edit(".agents/helix/policy/learning/SKILL.md", "## Calibrate to `helix:knowledge`", "## Calibrate")
         self.assert_problem("missing section ## Calibrate to `helix:knowledge`")
 
 

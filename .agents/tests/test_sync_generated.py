@@ -205,6 +205,19 @@ class RejectionTests(GeneratorTestCase):
         write(self.root / ".agents/demo/knowledge/style/SKILL.md", skill_text("style", "contract"))
         self.assert_rejected("kind must equal its kind folder")
 
+    def test_kind_with_a_digit_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/contract2/style/SKILL.md", skill_text("style", "contract2"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_kind_with_a_hyphen_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/my-kind/style/SKILL.md", skill_text("style", "my-kind"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_an_unknown_lowercase_kind_is_accepted(self) -> None:
+        write(self.root / ".agents/demo/policy/learning/SKILL.md", skill_text("learning", "policy"))
+        output = self.build()
+        self.assertIn("plugins/demo/skills/learning/SKILL.md", output)
+
     def test_file_directly_under_a_plugin_folder(self) -> None:
         write(self.root / ".agents/demo/notes.md", "stray\n")
         self.assert_rejected("only kind folders")

@@ -4,13 +4,14 @@
   "agents_files": ["INDEX.md", "sync_generated.py", "sync-generated.ps1"],
   "agents_folders": ["plugins", "tiers", "tests", "hooks"],
   "plugins_entries": ["kit.json", "payloads.json", "manifests", "marketplace.json"],
-  "contract_opening": "Owns ",
+  "convention_opening": "Owns ",
   "types": {
     "stack": {
       "applies": "stack-present",
       "skills": {
         "learning": {
-          "kind": "knowledge",
+          "kind": "policy",
+          "legacy_kinds": ["knowledge"],
           "profile": "knowledge",
           "sections": [
             "## Two modes",
@@ -24,15 +25,15 @@
         "direction": {
           "kind": "knowledge",
           "profile": "knowledge",
-          "sections": ["## The goal", "## The skill tree", "## The rule", "## References"]
+          "sections": ["## The goal", "## The skill tree", "## References"]
         },
-        "style": {"kind": "contract", "profile": "core", "sections": []},
-        "structure": {"kind": "contract", "profile": "core", "sections": ["## File structure"]},
-        "domain-design": {"kind": "contract", "profile": "core", "sections": []},
-        "errors": {"kind": "contract", "profile": "core", "sections": []},
-        "testing": {"kind": "contract", "profile": "core", "sections": []},
-        "build": {"kind": "contract", "profile": "core", "sections": []},
-        "libraries": {"kind": "contract", "profile": "core", "sections": []},
+        "style": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
+        "structure": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": ["## File structure"]},
+        "domain-design": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
+        "errors": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
+        "testing": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
+        "build": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
+        "libraries": {"kind": "convention", "legacy_kinds": ["contract"], "profile": "core", "sections": []},
         "scaffold": {
           "kind": "utility",
           "profile": "scaffold",
@@ -45,7 +46,8 @@
       "applies": "always",
       "skills": {
         "learning": {
-          "kind": "knowledge",
+          "kind": "policy",
+          "legacy_kinds": ["knowledge"],
           "profile": "knowledge",
           "sections": ["## Calibrate to `{namespace}:knowledge`", "## Working rules", "## Progress"]
         },
@@ -53,7 +55,7 @@
         "direction": {
           "kind": "knowledge",
           "profile": "knowledge",
-          "sections": ["## The goal", "## The skill tree", "## The rule", "## References"]
+          "sections": ["## The goal", "## The skill tree", "## References"]
         }
       }
     },

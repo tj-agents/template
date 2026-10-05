@@ -28,10 +28,15 @@ VENDORED = (
     ".github/workflows/ci.yml",
 )
 SKILL_SETS = {"stack": ("common", "stack"), "tool": ("common", "tool"), "utility": ("utility",)}
-KIND_HEADINGS = {"knowledge": "Knowledge", "contract": "Contracts, empty until a decision is recorded", "utility": "Utilities"}
+KIND_HEADINGS = {
+    "knowledge": "Knowledge",
+    "policy": "Policies",
+    "convention": "Conventions, empty until a decision is recorded",
+    "utility": "Utilities",
+}
 AGENTS_RULES = {
     "stack": (
-        "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules. A `contract`\n"
+        "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules. A `convention`\n"
         "skill gains a rule only through `learning`'s convention procedure, after {learner} decides it."
     ),
     "tool": "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules.",
