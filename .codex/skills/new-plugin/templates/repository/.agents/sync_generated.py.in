@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.1.0"
+KIT_VERSION = "1.1.1"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
@@ -28,7 +28,7 @@ MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
 SKILL_DIRECTORY_REFERENCE = re.compile(r"<skill-directory>/([^\s`'\")\]]+)")
 REQUIRED_METADATA = ("name", "description", "kind", "domain", "profile", "applicability", "requires", "provenance")
 REPOSITORY_TYPES = ("stack", "tool", "utility")
-RESERVED_AGENT_DIRS = {"plugins", "tiers", "tests", "hooks"}
+RESERVED_AGENT_DIRS = {"continuation", "plugins", "tiers", "tests", "hooks"}
 IGNORED_PARTS = {"__pycache__"}
 IGNORED_SUFFIXES = {".pyc"}
 HOSTS = ("claude", "codex")

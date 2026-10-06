@@ -6,6 +6,8 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -301,6 +303,36 @@ class SynchronizeTests(GeneratorTestCase):
             self.skipTest(f"cannot create a link here: {error}")
         with self.assertRaisesRegex(ValueError, "link or junction"):
             self.synchronize(check=False)
+
+
+class CliTests(GeneratorTestCase):
+    def run_generator_cli(self) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-B", str(ROOT / ".agents/sync_generated.py"), "--root", str(self.root)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+
+    def test_reserves_continuation_runtime_state(self) -> None:
+        make_repository(self.root)
+        write(self.root / ".agents/continuation/owner.json", "{}\n")
+        write(self.root / ".agents/continuation/events.jsonl", "{}\n")
+        write(self.root / ".agents/continuation/locks/foreground.lock", "locked\n")
+        write(self.root / ".agents/continuation/scheduler/state.json", "{}\n")
+        result = self.run_generator_cli()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertFalse((self.root / "plugins/continuation").exists())
+        self.assertNotIn("continuation", (self.root / ".agents/INDEX.md").read_text(encoding="utf-8"))
+        self.assertNotIn("continuation", (self.root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
+
+    def test_rejects_malformed_authored_plugin_directory(self) -> None:
+        make_repository(self.root)
+        write(self.root / ".agents/authored/owner.json", "{}\n")
+        result = self.run_generator_cli()
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn(".agents/authored/owner.json: only kind folders belong in a plugin folder", result.stdout)
 
 
 class KitRepositoryTests(unittest.TestCase):
