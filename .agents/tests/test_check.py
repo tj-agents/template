@@ -71,6 +71,13 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_a_new_repository_conforms(self) -> None:
         self.assertEqual([], check.check(self.root))
 
+    def test_continuation_runtime_is_allowed(self) -> None:
+        path = self.root / ".agents/continuation/owner.json"
+        path.parent.mkdir()
+        path.write_text("{}\n", encoding="utf-8")
+        result = run(str(ROOT / ".agents/kit/utility/check/scripts/check.py"), "--root", str(self.root))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_missing_required_skill(self) -> None:
         for path in sorted((self.root / ".agents/zig/contract/errors").rglob("*"), reverse=True):
             path.unlink() if path.is_file() else path.rmdir()
@@ -97,7 +104,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is kit 1.1.0: run kit:update")
+        self.assert_problem("pins kit 0.9.0; this check is kit 1.1.1: run kit:update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -114,7 +121,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".kit/.agents/kit"
         shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.1.0", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.1.1", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
         self.assertIn(".github/workflows/ci.yml: differs from kit", result.stderr)
