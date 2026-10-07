@@ -10,6 +10,15 @@ validate_hosts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(validate_hosts)
 
 
+class PublicCorpusWorkflowTests(unittest.TestCase):
+    def test_public_inventory_does_not_require_caller_owned_stack_repositories(self):
+        workflow = (ROOT / ".github/workflows/plugin-ci.yml").read_text(encoding="utf-8")
+        repositories = [line.strip().removeprefix("repository: ") for line in workflow.splitlines()
+                        if line.strip().startswith("repository:")]
+        public_stacks = {name for name in repositories if name.endswith(("/react", "/dotnet"))}
+        self.assertEqual({"tj-agents/react", "tj-agents/dotnet"}, public_stacks)
+
+
 class ClaudeReportTests(unittest.TestCase):
     def test_only_the_omitted_version_warning_is_tolerated(self) -> None:
         report = {

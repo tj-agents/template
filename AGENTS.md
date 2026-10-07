@@ -1,7 +1,7 @@
 # kit
 
 kit creates plugin repositories and owns the parts they share: the layout, the generator, the root files and CI.
-It is itself a plugin repository in that layout, with only `utility` skills under `.agents/kit/utility/<name>/`.
+It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/kit/utility/<name>/`.
 
 The files a plugin repository vendors have one source, under `.agents/kit/utility/new-plugin/templates/repository/`.
 kit's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and

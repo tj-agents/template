@@ -1,0 +1,6 @@
+{
+  "external_skills": {
+    "concertable:persistence": "Concertable project standard, shipped by the separate Concertable/agents repository.",
+    "concertable:package-cutover": "Concertable published-package workflow, shipped by the separate Concertable/agents repository."
+  }
+}

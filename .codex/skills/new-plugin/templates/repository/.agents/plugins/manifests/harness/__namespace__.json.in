@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "plugin": "{{marketplace}}/{{namespace}}",
+  "source_roots": [".agents/{{namespace}}"],
+  "requires": {
+    "marketplaces": [{"id": "{{marketplace}}", "repository": "{{repository}}"}, {"id": "base-agents", "repository": "tj-agents/core"}],
+    "plugins": ["{{marketplace}}/{{namespace}}", "base-agents/base"],
+    "hooks": [],
+    "permissions": {"claude_allow": [], "codex_prefix_rules": []}
+  }
+}

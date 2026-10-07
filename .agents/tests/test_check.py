@@ -95,7 +95,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_contract_without_owns_line(self) -> None:
         self.edit(".agents/zig/contract/build/SKILL.md", "Owns the toolchain pin", "Covers the toolchain pin")
-        self.assert_problem("opens with an `Owns …` line")
+        self.assert_problem("opens with an `Owns â€¦` line")
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
@@ -104,7 +104,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is kit 1.1.1: run kit:update")
+        self.assert_problem("pins kit 0.9.0; this check is kit 1.2.0: run kit:update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -121,7 +121,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".kit/.agents/kit"
         shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.1.1", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.2.0", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
         self.assertIn(".github/workflows/ci.yml: differs from kit", result.stderr)
@@ -163,6 +163,20 @@ class ToolCheckTests(RenderedRepositoryTestCase):
 
 
 class UtilityCheckTests(RenderedRepositoryTestCase):
+    def test_utility_can_explicitly_gate_on_stack_present(self):
+        path = self.root / f".agents/tiers/{self.name}.json"
+        tier = json.loads(path.read_text())
+        tier.update(schema_version=3, applies="stack-present", detect={"fact": "employer"})
+        path.write_text(json.dumps(tier), encoding="utf-8")
+        self.assertEqual([], check.check(self.root))
+
+    def test_utility_rejects_unsupported_applies(self):
+        path = self.root / f".agents/tiers/{self.name}.json"
+        tier = json.loads(path.read_text())
+        tier["applies"] = "sometimes"
+        path.write_text(json.dumps(tier), encoding="utf-8")
+        self.assert_problem("a utility repository applies")
+
     kind = "utility"
     name = "tools"
 

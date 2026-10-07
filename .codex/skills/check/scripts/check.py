@@ -108,7 +108,7 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
     tier_path = root / f".agents/tiers/{namespace}.json"
     if not tier_path.is_file():
         problems.append(f".agents/tiers/{namespace}.json: required")
-    elif json.loads(text(tier_path)).get("applies") != standard["applies"]:
+    elif json.loads(text(tier_path)).get("applies") not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
         problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
     for name, rule in standard["skills"].items():
         owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
@@ -125,7 +125,7 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
             if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:
                 problems.append(f"{skill['directory']}: a {kind} repository has only {', '.join(standard['only_kinds'])} skills")
             if skill["kind"] == "contract" and not opening(skill["body"]).startswith(STANDARD["contract_opening"]):
-                problems.append(f"{skill['directory']}/SKILL.md: a contract opens with an `Owns …` line after its title")
+                problems.append(f"{skill['directory']}/SKILL.md: a contract opens with an `Owns â€¦` line after its title")
     return problems
 
 

@@ -70,6 +70,26 @@ def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
 
 
 class GeneratorTestCase(unittest.TestCase):
+    def test_external_selection_dependency_is_preserved_and_shape_checked(self):
+        make_repository(self.root)
+        path = self.root / ".agents/plugins/payloads.json"
+        payloads = json.loads(path.read_text(encoding="utf-8"))
+        payloads["dependencies"] = {"demo": ["base-agents/machine"]}
+        write_json(path, payloads)
+        self.assertEqual(["base-agents/machine"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        for invalid in ("base-agents/*", "base-agents/machine/extra", "unknown", {}):
+            payloads["dependencies"] = {"demo": [invalid]}
+            write_json(path, payloads)
+            with self.assertRaises(ValueError):
+                self.build()
+
+    def test_optional_harness_is_shipped_without_requiring_migration(self):
+        make_repository(self.root)
+        self.assertNotIn("plugins/demo/harness.json", sync_generated.build(self.root))
+        manifest = {"schema_version": 1, "plugin": "demo/demo", "source_roots": [".agents/demo"], "requires": {}}
+        write_json(self.root / ".agents/plugins/manifests/harness/demo.json", manifest)
+        self.assertEqual(json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"]), manifest)
+
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         self.root = Path(self.directory.name)
