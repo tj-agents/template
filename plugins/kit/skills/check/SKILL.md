@@ -61,7 +61,7 @@ Renaming a published skill keeps its old name as a compatibility alias until its
     `domain-design`, `errors`, `testing`, `build`, `libraries`; and a `scaffold` in any of its plugins. Its tier
     applies where the stack is present.
   - **tool**: `learning`, `knowledge`, `direction`; its tier always applies.
-  - **utility**: only skills of kind `utility`; its tier always applies.
+  - **utility**: only skills of kind `utility`; its tier declares `always` or `stack-present`. New utilities default to `always`.
 - Every skill of kind `contract` opens with an `Owns …` line after its title.
 - Skill names are foldered: no flat names in one kind folder that share a hyphen-separated first or last word,
   nor a flat name sharing a family folder's word; no member repeating its family (`state/client-state/`); no
@@ -69,3 +69,20 @@ Renaming a published skill keeps its old name as a compatibility alias until its
 
 The generator separately rejects malformed frontmatter, unresolved skill references and files that would not
 ship. Extra skills beyond the required set are allowed.
+
+## Corpus skill references
+
+Run `python <skill-directory>/scripts/check_skill_references.py --root <repository> --root <sibling>`.
+Each root inventories actual shipped `plugins/*/skills/*/SKILL.md`, including compatibility aliases.
+The checker scans active authored skills and root AGENTS.md, CLAUDE.md and README.md, including descriptions.
+It excludes historical plans, generated adapters, test fixtures and vendored templates.
+
+Known plugin namespaces resolve qualified names; unknown namespaces need explicit skill wording or an invocation.
+Bare names marked as skills resolve locally first, then uniquely across the corpus. Missing and ambiguous names fail
+with file and line evidence. `--source-root` restricts authored scanning while every `--root` supplies inventory;
+without it, every root is scanned. Public CI inventories the current repository, kit, core, react and dotnet.
+
+A repository may declare exact external identities in `.agents/plugins/skill-references.json` under
+`external_skills`, mapping each `namespace:skill` to its rationale. This covers standards shipped outside
+the supplied corpus; wildcards and empty rationales fail. Extend the supplied corpus for sibling tj-agents plugins.
+Detailed v3 tier predicates and harness requirements remain core's payload contract.

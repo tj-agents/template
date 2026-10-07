@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import json
 import subprocess
 import sys
 import tempfile
@@ -52,6 +53,11 @@ class NewPluginTests(unittest.TestCase):
 
     def assert_repository_is_current(self, name: str) -> None:
         repository = self.destination / name
+        harness = json.loads((repository / f"plugins/{name}/harness.json").read_text(encoding="utf-8"))
+        marketplaces = {entry["id"] for entry in harness["requires"]["marketplaces"]}
+        self.assertEqual(f"{name}-agents/{name}", harness["plugin"])
+        self.assertIn("base-agents/base", harness["requires"]["plugins"])
+        self.assertTrue(all(identity.split("/")[0] in marketplaces for identity in [harness["plugin"], *harness["requires"]["plugins"]]))
         result = run(str(repository / ".agents/sync_generated.py"), "--root", str(repository), "--check")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         for path in repository.rglob("*"):
@@ -90,8 +96,8 @@ class NewPluginTests(unittest.TestCase):
         for relative in VENDORED:
             self.assertEqual((ROOT / relative).read_bytes(), (repository / relative).read_bytes(), relative)
         ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.1.1", ci)
-        self.assertIn("kit_ref: v1.1.1", ci)
+        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.2.0", ci)
+        self.assertIn("kit_ref: v1.2.0", ci)
 
     def test_refuses_an_existing_repository_and_a_stack_without_markers(self) -> None:
         (self.destination / "zig").mkdir()

@@ -31,3 +31,14 @@ pwsh .agents/sync-generated.ps1
 pwsh .agents/sync-generated.ps1 -Check
 python -B -m unittest discover -s .agents/tests -p "test_*.py"
 ```
+
+Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's v3
+predicates. Core validates their detailed shape. New repositories include a self/dependency harness manifest under
+`.agents/plugins/manifests/harness/`; the generator ships any declared manifest as `plugins/<plugin>/harness.json`.
+Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
+`marketplace/plugin` identities; the generator preserves external identities for the consuming harness.
+
+`kit:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
+plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
+identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
+against kit, core, react and dotnet, using `GITHUB_TOKEN` unless an optional read token is supplied.

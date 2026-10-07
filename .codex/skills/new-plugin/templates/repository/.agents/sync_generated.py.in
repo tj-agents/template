@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.1.1"
+KIT_VERSION = "1.2.0"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
@@ -216,10 +216,10 @@ def validate_payloads(payloads: dict, plugins: dict[str, dict[str, dict]]) -> No
             + ", ".join(sorted(plugins))
         )
     for plugin, needs in payloads.get("dependencies", {}).items():
-        if plugin not in plugins or not isinstance(needs, list) or len(needs) != len(set(needs)):
+        if plugin not in plugins or not isinstance(needs, list) or not all(isinstance(need, str) for need in needs) or len(needs) != len(set(needs)):
             raise ValueError(f".agents/plugins/payloads.json: invalid dependencies for {plugin}")
         for need in needs:
-            if need not in plugins or need == plugin:
+            if (need not in plugins and not re.fullmatch(r"[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*", need)) or need == plugin:
                 raise ValueError(f".agents/plugins/payloads.json: {plugin} cannot depend on {need}")
     for plugin, aliases in payloads.get("compatibilitySkillAliases", {}).items():
         if plugin not in plugins or not isinstance(aliases, dict):
@@ -251,8 +251,8 @@ def validate_tiers(root: Path, plugins: dict, repository: str) -> None:
     for plugin in plugins:
         source = f".agents/tiers/{plugin}.json"
         tier = load(root / source)
-        if tier.get("schema_version") not in (1, 2):
-            raise ValueError(f"{source}: schema_version must be 1 or 2")
+        if tier.get("schema_version") not in (1, 2, 3):
+            raise ValueError(f"{source}: schema_version must be 1, 2 or 3")
         if tier.get("tier") != plugin:
             raise ValueError(f"{source}: tier must be {plugin}")
         owners = tier.get("owner_repository")
@@ -264,6 +264,10 @@ def validate_tiers(root: Path, plugins: dict, repository: str) -> None:
             if detect is not None:
                 raise ValueError(f"{source}: an always-applicable tier declares no detect markers")
         elif tier.get("applies") == "stack-present":
+            if tier.get("schema_version") == 3:
+                if not isinstance(detect, dict) or not detect:
+                    raise ValueError(f"{source}: a stack-present tier needs a detect predicate")
+                continue
             if not isinstance(detect, dict) or not any(detect.get(field) for field in TIER_MATCHERS):
                 raise ValueError(f"{source}: a stack-present tier needs at least one detect marker")
             if set(detect) - set(TIER_MATCHERS):
@@ -445,6 +449,10 @@ def build(root: Path) -> dict[str, bytes]:
         }
         emit(f"plugins/{plugin}/selection.json", dump(selection))
         emit(f"plugins/{plugin}/tier.json", read(root / f".agents/tiers/{plugin}.json"))
+        harness = root / MANIFEST_ROOT / "harness" / f"{plugin}.json"
+        if harness.is_file():
+            load(harness)
+            emit(f"plugins/{plugin}/harness.json", read(harness))
         for host in HOSTS:
             emit(f"plugins/{plugin}/.{host}-plugin/plugin.json", read(root / MANIFEST_ROOT / host / f"{plugin}.json"))
 

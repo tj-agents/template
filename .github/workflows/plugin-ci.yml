@@ -10,7 +10,7 @@ on:
     secrets:
       read_token:
         description: A token that can read the organization's kit and core repositories.
-        required: true
+        required: false
 
 jobs:
   verify:
@@ -26,12 +26,22 @@ jobs:
           repository: ${{ github.repository_owner }}/kit
           ref: ${{ inputs.kit_ref }}
           path: .kit
-          token: ${{ secrets.read_token }}
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/core
           path: .core
-          token: ${{ secrets.read_token }}
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/react
+          path: .react
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/dotnet
+          path: .dotnet
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,6 +58,9 @@ jobs:
       - name: the repository conforms to its pinned kit release
         shell: pwsh
         run: python -B .kit/.agents/kit/utility/check/scripts/check.py --root .
+      - name: authored skill references resolve in the public corpus
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check_skill_references.py --root . --root .kit --root .core --root .react --root .dotnet --source-root .
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
@@ -61,7 +74,7 @@ jobs:
           repository: ${{ github.repository_owner }}/kit
           ref: ${{ inputs.kit_ref }}
           path: .kit
-          token: ${{ secrets.read_token }}
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
