@@ -167,6 +167,8 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
 def validate(arguments: argparse.Namespace) -> Path:
     if not REPOSITORY.fullmatch(arguments.repository):
         raise ValueError("--repository must be owner/name with a lowercase name")
+    if arguments.repository.split("/", 1)[1] == "base":
+        raise ValueError("namespace base is reserved: base-agents/base is the required core dependency identity")
     if not arguments.description.strip():
         raise ValueError("--description is required")
     if not arguments.author:

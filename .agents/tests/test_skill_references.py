@@ -77,6 +77,32 @@ class SkillReferenceTests(unittest.TestCase):
         self.write("README.md", "Load the `contract` skill.")
         self.assertIn("missing skill contract", checker.check([self.root])[0])
 
+    def test_ordinary_plural_skill_lists_resolve_every_name(self):
+        self.skill("one", "real")
+        for body in ("Use the `real` and `missing` skills.",
+                     "Use the `real`, `missing`, and `another-missing` skills.",
+                     "Use skills `real` or `missing`.",
+                     "Use skills: `real`, `missing`."):
+            with self.subTest(body=body):
+                self.write("README.md", body)
+                problems = checker.check([self.root])
+                self.assertEqual(2 if "another-missing" in body else 1, len(problems))
+                self.assertTrue(any("missing skill missing" in item for item in problems))
+        self.write("README.md", "Use the `one:real` and `unknown:missing` skills.")
+        self.assertIn("missing skill unknown:missing", checker.check([self.root])[0])
+        self.write("README.md", "The `file` and `directory` values control output.")
+        self.assertEqual([], checker.check([self.root]))
+
+    def test_concrete_hyphenated_names_are_not_illustrative_placeholders(self):
+        self.skill("kit", "real")
+        self.write("README.md", "Use `kit:nonexistent-plugin` and skills (`missing-plugin`).")
+        problems = checker.check([self.root])
+        self.assertEqual(2, len(problems))
+        self.assertTrue(any("missing skill kit:nonexistent-plugin" in item for item in problems))
+        self.assertTrue(any("missing skill missing-plugin" in item for item in problems))
+        self.write("README.md", "Examples: `plugin:skill`, `namespace:skill`, `your-plugin:your-skill`, `kit:*`, and skills (`<skill-name>`).")
+        self.assertEqual([], checker.check([self.root]))
+
     def test_multiple_roots_and_legacy_payload_body(self):
         sibling = self.root / "sibling"
         self.skill("one", "real", "Use `two:legacy`.")

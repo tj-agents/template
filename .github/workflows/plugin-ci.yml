@@ -34,12 +34,12 @@ jobs:
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/react
+          repository: tj-agents/react
           path: .react
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/dotnet
+          repository: tj-agents/dotnet
           path: .dotnet
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5

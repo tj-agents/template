@@ -105,6 +105,15 @@ class NewPluginTests(unittest.TestCase):
         self.assertIn("needs --detect-file", self.create("odin", "stack").stderr)
         self.assertIn("only a stack", self.create("helix", "tool", "--detect-file", "x").stderr)
 
+    def test_reserved_core_dependency_namespace_fails_before_writing(self) -> None:
+        for flags in ([], ["--dry-run"]):
+            with self.subTest(flags=flags):
+                result = self.create("base", "utility", "--skill", "sweep", *flags)
+                self.assertEqual(2, result.returncode)
+                self.assertIn("namespace base is reserved", result.stderr)
+                self.assertIn("base-agents/base", result.stderr)
+                self.assertEqual([], list(self.destination.iterdir()))
+
     def test_dry_run_writes_nothing(self) -> None:
         result = self.create("helix", "tool", "--dry-run")
         self.assertEqual(0, result.returncode)

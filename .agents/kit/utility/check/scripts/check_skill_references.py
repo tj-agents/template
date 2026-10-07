@@ -13,7 +13,9 @@ QUALIFIED = re.compile(rf"(?<![\w:-])({IDENTITY}):({IDENTITY})(?![\w/-])")
 BACKTICK = re.compile(r"`([^`\n]+)`")
 BARE = re.compile(rf"(?:\bskill\s+`({IDENTITY})`|`({IDENTITY})`\s+skill\b)", re.IGNORECASE)
 LIST = re.compile(r"\bskills?\s*\(([^)\n]+)\)", re.IGNORECASE)
-PLACEHOLDER = re.compile(r"[{}<>*]|\b(?:namespace|plugin|skill-name|your-plugin|your-skill)\b")
+BACKTICK_LIST = r"`[^`\n]+`(?:\s*(?:,\s*(?:(?:and|or)\s+)?|(?:and|or)\s+)`[^`\n]+`)*"
+NAMED_LIST = re.compile(rf"(?:\bskills\s*:?\s+(?P<prefix>{BACKTICK_LIST})|(?P<suffix>{BACKTICK_LIST})\s+skills\b)", re.IGNORECASE)
+PLACEHOLDER = re.compile(r"[{}<>*]|^(?:namespace:skill|plugin:skill|your-plugin:your-skill)$")
 
 
 def inventory(roots: list[Path]) -> set[str]:
@@ -41,12 +43,14 @@ def authored(root: Path):
 def references(line: str, namespaces: set[str]):
     explicit = {match.group(1) for match in BACKTICK.finditer(line)}
     found = set()
+    listed = {match.group(1) for group in NAMED_LIST.finditer(line)
+              for match in BACKTICK.finditer(group.group("prefix") or group.group("suffix"))}
     for match in QUALIFIED.finditer(line):
         reference = match.group(0)
         containing = next((item for item in explicit if reference in item), None)
         skill_context = bool(re.search(rf"(?:skills?\s+`?{re.escape(reference)}`?|`?{re.escape(reference)}`?\s+skills?\b|[/$]{re.escape(reference)}\b|--skill\s+{re.escape(reference)}\b)", line, re.IGNORECASE))
         skill_context = skill_context or any(reference in group.group(1) for group in LIST.finditer(line))
-        if match.group(1) in namespaces or skill_context:
+        if match.group(1) in namespaces or skill_context or reference in listed:
             if containing is None or not PLACEHOLDER.search(containing):
                 found.add(reference)
     for match in BARE.finditer(line):
@@ -54,6 +58,9 @@ def references(line: str, namespaces: set[str]):
         if name in {"knowledge", "contract", "utility", "policy", "convention"} and re.search(r"\b(?:a|an)\s+$", line[:match.start()], re.IGNORECASE):
             continue
         found.add(name)
+    for name in listed:
+        if re.fullmatch(IDENTITY, name) and not PLACEHOLDER.search(name):
+            found.add(name)
     for group in LIST.finditer(line):
         for match in BACKTICK.finditer(group.group(1)):
             if re.fullmatch(IDENTITY, match.group(1)) and not PLACEHOLDER.search(match.group(1)):
