@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.2.0"
+KIT_VERSION = "1.2.1"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
