@@ -78,6 +78,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
         result = run(str(ROOT / ".agents/kit/utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_delivery_authorization_is_allowed_but_unknown_json_is_rejected(self) -> None:
+        (self.root / ".agents/delivery-authorization.json").write_text("{}\n", encoding="utf-8")
+        self.assertEqual([], check.check(self.root))
+        (self.root / ".agents/delivery-authorization-local.json").write_text("{}\n", encoding="utf-8")
+        self.assert_problem(".agents/delivery-authorization-local.json: not part")
+
     def test_missing_required_skill(self) -> None:
         for path in sorted((self.root / ".agents/zig/contract/errors").rglob("*"), reverse=True):
             path.unlink() if path.is_file() else path.rmdir()

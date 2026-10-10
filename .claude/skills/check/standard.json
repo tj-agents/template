@@ -1,7 +1,7 @@
 {
   "root_files": ["AGENTS.md", "README.md"],
   "retired_files": ["SOURCE_LAYOUT.md", ".agents/plugins/sources.json"],
-  "agents_files": ["INDEX.md", "sync_generated.py", "sync-generated.ps1"],
+  "agents_files": ["INDEX.md", "delivery-authorization.json", "sync_generated.py", "sync-generated.ps1"],
   "agents_folders": ["continuation", "plugins", "tiers", "tests", "hooks"],
   "plugins_entries": ["kit.json", "payloads.json", "manifests", "marketplace.json", "skill-references.json"],
   "contract_opening": "Owns ",
