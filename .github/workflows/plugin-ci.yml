@@ -7,6 +7,10 @@ on:
         description: The kit release the calling repository pins, such as v1.0.0.
         required: true
         type: string
+      generate_before_verify:
+        required: false
+        default: false
+        type: boolean
     secrets:
       read_token:
         description: A token that can read the organization's kit and core repositories.
@@ -46,6 +50,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -90,6 +95,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'

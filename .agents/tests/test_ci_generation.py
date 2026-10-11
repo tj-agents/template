@@ -20,14 +20,27 @@ class PluginCiGenerationTests(unittest.TestCase):
         end = workflow.index(f"  {next_name}:\n", start) if next_name else len(workflow)
         return workflow[start:end]
 
+    def step(self, job: str, name: str) -> str:
+        start = job.index(f"      - name: {name}\n")
+        end = job.find("      - ", start + 1)
+        return job[start:end] if end != -1 else job[start:]
+
     def assert_generation_precedes(self, job: str, following: str) -> None:
-        generate = job.index("- name: regenerate generated files from authored sources")
-        current = job.index("- name: generated files are current")
-        acceptance = job.index(following)
-        self.assertLess(generate, current)
-        self.assertLess(current, acceptance)
-        self.assertIn("./.agents/sync-generated.ps1\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", job)
-        self.assertIn("./.agents/sync-generated.ps1 -Check\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", job)
+        generate = self.step(job, "regenerate generated files from authored sources")
+        current = self.step(job, "generated files are current")
+        self.assertLess(job.index(generate), job.index(current))
+        self.assertLess(job.index(current), job.index(following))
+        self.assertIn("if: inputs.generate_before_verify", generate)
+        self.assertIn("./.agents/sync-generated.ps1\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", generate)
+        self.assertNotIn("if:", current)
+        self.assertIn("./.agents/sync-generated.ps1 -Check\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }", current)
+
+    def test_reusable_generation_defaults_to_off(self) -> None:
+        inputs = self.plugin_ci[:self.plugin_ci.index("    secrets:")]
+        self.assertIn(
+            "      generate_before_verify:\n        required: false\n        default: false\n        type: boolean",
+            inputs,
+        )
 
     def test_verify_and_hosts_regenerate_before_acceptance(self) -> None:
         verify = self.job("verify", self.plugin_ci, "hosts")
@@ -48,6 +61,7 @@ class PluginCiGenerationTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.sha }}", regenerate)
         self.assertIn("group: regenerate-main", regenerate)
         self.assertIn("cancel-in-progress: false", regenerate)
+        self.assertIn("generate_before_verify: true", self.job("verify", self.ci, "regenerate"))
 
     def test_write_permission_and_staging_are_limited_to_regeneration(self) -> None:
         verify = self.job("verify", self.ci, "regenerate")

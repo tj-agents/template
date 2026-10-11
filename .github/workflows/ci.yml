@@ -10,6 +10,7 @@ jobs:
     uses: ./.github/workflows/plugin-ci.yml
     with:
       kit_ref: ${{ github.sha }}
+      generate_before_verify: true
     secrets:
       read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
 
