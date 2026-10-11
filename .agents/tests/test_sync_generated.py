@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -115,9 +116,19 @@ class BuildTests(GeneratorTestCase):
     def test_ships_skill_local_files_beside_the_package_and_adapter_entries(self) -> None:
         make_repository(self.root)
         output = self.build()
-        for directory in ("plugins/demo/skills/tool", ".claude/skills/tool", ".codex/skills/tool"):
+        canonical = "plugins/demo/.agents/demo/utility/tool"
+        adapter = "plugins/demo/skills/tool"
+        self.assertEqual(
+            (self.root / ".agents/demo/utility/tool/SKILL.md").read_bytes(),
+            output[f"{canonical}/SKILL.md"],
+        )
+        for directory in (canonical, adapter, ".claude/skills/tool", ".codex/skills/tool"):
             self.assertIn(f"{directory}/scripts/run.py", output)
             self.assertIn(f"{directory}/templates/notes.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/utility/tool/SKILL.md)",
+            output[f"{adapter}/SKILL.md"].decode(),
+        )
         self.assertIn("canonical definition](../../../.agents/demo/utility/tool/SKILL.md)", output[".claude/skills/tool/SKILL.md"].decode())
 
     def test_marketplaces_and_selection_are_derived_from_manifests_and_frontmatter(self) -> None:
@@ -160,8 +171,13 @@ class FamilyTests(GeneratorTestCase):
         write(self.root / ".agents/demo/contract/state/server/SKILL.md", skill_text("state-server", "contract"))
         output = self.build()
         for name in ("state-client", "state-server"):
+            self.assertIn(f"plugins/demo/.agents/demo/contract/state/{name.removeprefix('state-')}/SKILL.md", output)
             self.assertIn(f"plugins/demo/skills/{name}/SKILL.md", output)
             self.assertIn(f".codex/skills/{name}/SKILL.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/contract/state/client/SKILL.md)",
+            output["plugins/demo/skills/state-client/SKILL.md"].decode(),
+        )
         self.assertIn(
             "canonical definition](../../../.agents/demo/contract/state/client/SKILL.md)",
             output[".claude/skills/state-client/SKILL.md"].decode(),
@@ -257,7 +273,7 @@ class RejectionTests(GeneratorTestCase):
     def test_link_that_leaves_the_package(self) -> None:
         write(self.root / "README.md", "readme\n")
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
-        self.assert_rejected("does not resolve from generated plugins/demo/skills/style")
+        self.assert_rejected("does not resolve from generated")
 
     def test_missing_skill_directory_file(self) -> None:
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "Run `<skill-directory>/scripts/missing.py`.\n"))
@@ -366,6 +382,76 @@ class CliTests(GeneratorTestCase):
         result = self.run_generator_cli()
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertIn(".agents/authored/owner.json: only kind folders belong in a plugin folder", result.stdout)
+
+
+class PackagedScriptsTests(unittest.TestCase):
+    def test_copied_package_scripts_run_from_their_adapter_resources(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory) / "kit"
+            shutil.copytree(ROOT / "plugins/kit", package)
+            new_plugin = subprocess.run(
+                [
+                    sys.executable,
+                    "-B",
+                    str(package / "skills/new-plugin/scripts/new_plugin.py"),
+                    "--repository",
+                    "owner/example",
+                    "--type",
+                    "utility",
+                    "--skill",
+                    "sweep",
+                    "--description",
+                    "Example plugin.",
+                    "--destination",
+                    directory,
+                    "--author",
+                    "Ada Lovelace",
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(0, new_plugin.returncode, new_plugin.stdout + new_plugin.stderr)
+            example = Path(directory) / "example"
+            adapter_check = package / "skills/check/scripts/check.py"
+            canonical_check = package / ".agents/kit/utility/check/scripts/check.py"
+            check = subprocess.run(
+                [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(0, check.returncode, check.stdout + check.stderr)
+            gitignore = example / ".gitignore"
+            gitignore.write_text(gitignore.read_text(encoding="utf-8") + "local/\n", encoding="utf-8")
+            drifted = subprocess.run(
+                [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(1, drifted.returncode)
+            self.assertIn(".gitignore: differs from kit", drifted.stderr)
+            update = subprocess.run(
+                [sys.executable, "-B", str(package / "skills/update/scripts/update.py"), "--root", str(example)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(0, update.returncode, update.stdout + update.stderr)
+
+            canonical = subprocess.run(
+                [sys.executable, "-B", str(canonical_check), "--root", str(example)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            self.assertEqual(0, canonical.returncode, canonical.stdout + canonical.stderr)
 
 
 class KitRepositoryTests(unittest.TestCase):

@@ -71,6 +71,42 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_a_new_repository_conforms(self) -> None:
         self.assertEqual([], check.check(self.root))
 
+    def test_generated_freshness_is_not_required(self) -> None:
+        for generated in (".claude/skills", ".codex/skills", "plugins", ".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", ".agents/INDEX.md"):
+            path = self.root / generated
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+        self.assertEqual([], check.check(self.root))
+
+    def test_generator_validation_reports_invalid_payload_manifest_tier_and_reference(self) -> None:
+        payloads = self.root / ".agents/plugins/payloads.json"
+        manifest = self.root / ".agents/plugins/manifests/codex/zig.json"
+        tier = self.root / ".agents/tiers/zig.json"
+        payloads.write_text('{"payloads": {}}\n', encoding="utf-8")
+        self.assert_problem("payloads must map each plugin folder")
+        payloads.write_text('{"payloads": {"zig": ["zig"]}}\n', encoding="utf-8")
+        manifest_body = manifest.read_text(encoding="utf-8")
+        manifest.write_text("not JSON\n", encoding="utf-8")
+        self.assert_problem("invalid JSON")
+        manifest.write_text(manifest_body, encoding="utf-8")
+        tier_body = tier.read_text(encoding="utf-8")
+        tier.write_text("not JSON\n", encoding="utf-8")
+        self.assert_problem("invalid JSON")
+        tier.write_text(tier_body, encoding="utf-8")
+        style = self.root / ".agents/zig/convention/style/SKILL.md"
+        style.write_text(style.read_text(encoding="utf-8") + "\nRun `<skill-directory>/scripts/missing.py`.\n", encoding="utf-8")
+        self.assert_problem("scripts/missing.py does not resolve")
+
+    def test_generator_validation_rejects_malformed_compatibility_aliases(self) -> None:
+        path = self.root / ".agents/plugins/payloads.json"
+        payloads = json.loads(path.read_text(encoding="utf-8"))
+        path.write_text(json.dumps({**payloads, "compatibilitySkillAliases": []}), encoding="utf-8")
+        self.assert_problem("compatibilitySkillAliases must be an object")
+        path.write_text(json.dumps({**payloads, "compatibilitySkillAliases": {"zig": []}}), encoding="utf-8")
+        self.assert_problem("invalid compatibility aliases for zig")
+
     def test_continuation_runtime_is_allowed(self) -> None:
         path = self.root / ".agents/continuation/owner.json"
         path.parent.mkdir()
@@ -123,7 +159,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is kit 1.2.2: run kit:update")
+        self.assert_problem("pins kit 0.9.0; this check is kit 1.3.0: run kit:update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -140,7 +176,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".kit/.agents/kit"
         shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.2.2", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.3.0", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
         self.assertIn(".github/workflows/ci.yml: differs from kit", result.stderr)
@@ -266,7 +302,7 @@ class SkillFamilyCheckTests(RenderedRepositoryTestCase):
 
     def test_malformed_payloads_is_reported(self) -> None:
         (self.root / ".agents/plugins/payloads.json").write_text("<<<<<<< ours\n", encoding="utf-8")
-        self.assert_problem(".agents/plugins/payloads.json: not a JSON object")
+        self.assert_problem(".agents/plugins/payloads.json: invalid JSON")
 
     def test_a_compatibility_alias_keeps_its_old_name(self) -> None:
         self.add_contract("zig-style", "zig-style")
