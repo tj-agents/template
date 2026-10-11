@@ -1,6 +1,6 @@
 # Template ownership and uniform tj-agents package structure
 
-Status: prepared for one Codex handoff; pickup not yet verified.
+Status: active; handoff accepted by native Codex session 01a12ccc-aaa2-7631-943f-7fe2947f05cd.
 Date: 2026-10-11
 Branch: Refactor/TemplateStructureContract
 Worktree: C:/Users/TommySeery/source/repos/tj-agents/kit/.worktrees/Refactor-TemplateStructureContract
@@ -38,3 +38,12 @@ The independent Core correction is C:/Users/TommySeery/source/repos/tj-agents/co
 ## Next Steps
 
 Acknowledge this handoff with the exact native session identity. Load plan-execution, lanes and the repository's source conventions. Inspect current template/check/update and consuming pins, reconcile PR #4, and record a bounded compatible template naming/structure migration in this same goal. Then implement the authorized correction in reviewable slices, run meaningful checks, independently review, deliver the PR through normal CI/merge, and complete required release/publication and scoped compatible reference migration. Keep the canonical goal current and record concrete gates rather than stopping after a proposal.
+
+## Pickup and investigation evidence
+
+- 2026-10-11: successor session 01a12ccc-aaa2-7631-943f-7fe2947f05cd read the handoff, this goal, AGENTS.md and README.md in the owning checkout. No transfer receipt was supplied by the predecessor.
+- Loaded canonical plan-execution, lanes, git-branching and handoff procedures. This repository has no installed Workflow v2 runtime; use the runtime-unavailable plan loop and this goal as the progress owner.
+- Fetched origin; HEAD d2695e79102d0d6f65e2ee181a98994368e28736 is current with origin/main 28b5513. Git tree was clean at pickup.
+- PR #4 remains OPEN at b085210d06e42c10d840cf7f969c7484b730f945, targeting main. It owns learning policy/convention taxonomy and its version 1.2.2 generator changes. Do not overwrite its checkout or publish a competing taxonomy migration.
+- Phase: compatibility and structural investigation; lane L3 because the migration alternatives remain unresolved. Applied through bounded lane_l3 reader structure_design; no implementation writes delegated yet.
+- Native gh access and Git fetch required sandbox escalation and succeeded. Continuation initialization/claim and scheduler capability are being resolved; no unattended continuation is claimed.
