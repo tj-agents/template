@@ -13,8 +13,8 @@ vendored generator and one CI workflow, all owned here.
 
 | Type | Skills created | Tier |
 |---|---|---|
-| stack | `learning`, `knowledge`, `direction`; `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries`; `scaffold` | applies where the stack is detected |
-| tool | `learning`, `knowledge`, `direction` | always |
+| stack | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | applies where the stack is detected |
+| tool | `knowledge`, `direction` (knowledge); `learning` (policy) | always |
 | utility | the utility skills it needs | always |
 
 ## Shared CI
