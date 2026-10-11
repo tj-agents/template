@@ -39,16 +39,16 @@ def owns_templates(root: Path) -> bool:
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
     running = new_plugin.kit_version()
     if pinned != running:
-        return [f".agents/plugins/kit.json pins kit {pinned}; this check is kit {running}: run kit:update"]
+        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
             continue
         path = root / relative
         if not path.is_file():
-            problems.append(f"{relative}: missing; run kit:update")
+            problems.append(f"{relative}: missing; run update")
         elif text(path) != expected:
-            problems.append(f"{relative}: differs from kit {running}; change it in kit, then run kit:update")
+            problems.append(f"{relative}: differs from release {running}; change it in the source repository, then run update")
     return problems
 
 

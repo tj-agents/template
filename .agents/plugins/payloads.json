@@ -2,6 +2,9 @@
   "payloads": {
     "kit": [
       "kit"
+    ],
+    "template": [
+      "kit"
     ]
   }
 }

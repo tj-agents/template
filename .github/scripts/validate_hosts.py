@@ -70,21 +70,41 @@ def validate_claude(root: Path) -> list[str]:
 def validate_codex(root: Path) -> list[str]:
     marketplace = json.loads((root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
     expected = {entry["name"] for entry in marketplace["plugins"]}
-    with tempfile.TemporaryDirectory() as home:
-        environment = {**os.environ, "CODEX_HOME": home}
-        steps = [["codex", "plugin", "marketplace", "add", str(root)]]
-        steps += [["codex", "plugin", "add", f"{name}@{marketplace['name']}"] for name in sorted(expected)]
-        for step in steps:
-            result = run(step, environment)
+    found = []
+    for name in sorted(expected):
+        with tempfile.TemporaryDirectory() as home:
+            environment = {**os.environ, "CODEX_HOME": home}
+            steps = [
+                ["codex", "plugin", "marketplace", "add", str(root)],
+                ["codex", "plugin", "add", f"{name}@{marketplace['name']}"],
+            ]
+            failed = False
+            for step in steps:
+                result = run(step, environment)
+                if result.returncode != 0:
+                    found.append(f"{' '.join(step)}: {result.stderr.strip() or result.stdout.strip()}")
+                    failed = True
+                    break
+            if failed:
+                continue
+            result = run(["codex", "plugin", "list", "--json"], environment)
             if result.returncode != 0:
-                return [f"{' '.join(step)}: {result.stderr.strip() or result.stdout.strip()}"]
-        listing = json.loads(run(["codex", "plugin", "list", "--json"], environment).stdout)
-    installed = {
-        entry["name"]
-        for entry in listing.get("installed", [])
-        if entry.get("installed") and entry.get("enabled") and entry.get("marketplaceName") == marketplace["name"]
-    }
-    return [f"codex did not install and enable {name}@{marketplace['name']}" for name in sorted(expected - installed)]
+                found.append(f"codex plugin list: {result.stderr.strip() or result.stdout.strip()}")
+                continue
+            try:
+                listing = json.loads(result.stdout)
+            except ValueError:
+                found.append(f"codex plugin list returned no JSON report for {name}")
+                continue
+            installed = {
+                entry["name"]
+                for entry in listing.get("installed", [])
+                if entry.get("installed") and entry.get("enabled")
+                and entry.get("marketplaceName") == marketplace["name"]
+            }
+            if installed != {name}:
+                found.append(f"codex standalone install of {name} enabled {sorted(installed)}")
+    return found
 
 
 def main() -> int:

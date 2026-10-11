@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check a plugin repository against kit's layout and standard — the one folder structure, the vendored files pinned to a kit release, the skills and sections its type requires, frontmatter and profiles. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
+description: Check a plugin repository against the shared layout and standard — the one folder structure, the vendored files pinned to a release, the skills and sections its type requires, frontmatter and profiles. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
 kind: utility
 domain: kit
 profile: core
@@ -40,8 +40,8 @@ Every plugin repository, kit included, has the same layout. The repository name 
 python <skill-directory>/scripts/check.py --root <repository>
 ```
 
-It prints each problem and exits 1, or confirms the repository conforms. CI runs it from kit at the pinned tag.
-A repository pinned to another kit release is reported until `kit:update` moves it.
+It prints each problem and exits 1, or confirms the repository conforms. CI runs it from the pinned release.
+A repository pinned to another release is reported until `update` moves it.
 
 ## Skill families
 

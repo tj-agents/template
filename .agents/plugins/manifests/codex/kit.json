@@ -1,6 +1,6 @@
 {
   "name": "kit",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
   "author": {
     "name": "Tommy Seery"
