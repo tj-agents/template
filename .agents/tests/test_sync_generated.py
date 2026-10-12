@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -134,6 +135,45 @@ class PackageIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, message):
             sync_generated.package_identities(files)
 
+    def identity(self, path: str) -> bytes:
+        return path.translate(sync_generated.WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
+
+    def test_windows_path_uppercase_table_is_pinned_and_idempotent(self) -> None:
+        ranges = sync_generated.WINDOWS_PATH_UPPERCASE_RANGES
+        table = list(range(65536))
+        seen = set()
+        for start, end, step, delta in ranges:
+            self.assertLessEqual(0, start)
+            self.assertLessEqual(start, end)
+            self.assertLessEqual(end, 65535)
+            self.assertIn(step, (1, 2))
+            self.assertEqual(0, (end - start) % step)
+            self.assertNotEqual(0, delta)
+            for point in range(start, end + 1, step):
+                self.assertNotIn(point, seen)
+                seen.add(point)
+                table[point] = point + delta
+        self.assertEqual(134, len(ranges))
+        self.assertEqual(973, len(seen))
+        self.assertEqual(
+            {point: mapped for point, mapped in enumerate(table) if point != mapped},
+            sync_generated.WINDOWS_PATH_UPPERCASE,
+        )
+        self.assertEqual(
+            "41c26bc7a12bdaeb26025c93118697c7e3ef81ee048b00fe5cce2a472e0e0742",
+            hashlib.sha256(b"".join(point.to_bytes(2, "little") for point in table)).hexdigest(),
+        )
+        self.assertTrue(all(table[table[point]] == table[point] for point in range(65536)))
+        self.assertTrue(all(table[point] == point for point in range(0xD800, 0xE000)))
+        source = Path(sync_generated.__file__).read_text(encoding="utf-8").replace("\r\n", "\n")
+        start = source.index("WINDOWS_PATH_UPPERCASE_RANGES = (")
+        declaration = source[start:source.index("\n\n", start) + 1]
+        self.assertEqual(4163, len(declaration.encode("ascii")))
+        self.assertEqual(
+            "dab0575edcb5aa824c84dbdff349016687a105e999e396626c5a392f2de90923",
+            hashlib.sha256(declaration.encode("ascii")).hexdigest(),
+        )
+
     def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
         self.assert_rejected(
             {
@@ -179,6 +219,132 @@ class PackageIdentityTests(unittest.TestCase):
                 "plugins/template/skills/check/templates/caf\u00e9 guide.md": b"",
             }
         )
+
+    def test_preserves_distinct_windows_unicode_path_bytes(self) -> None:
+        names = (
+            ("Stra\u00dfe.md", "STRASSE.md"),
+            ("\u00df.md", "\u1e9e.md"),
+            ("\u03c3.md", "\u03c2.md"),
+            ("caf\u00e9.md", "cafe\u0301.md"),
+            ("\U00010400.md", "\U00010428.md"),
+            ("\U0001f600.md", "\U0001f603.md"),
+        )
+        files = {}
+        for index, (left, right) in enumerate(names):
+            left_path = f"plugins/template/unicode-{index}/{left}"
+            right_path = f"plugins/template/unicode-{index}/{right}"
+            self.assertNotEqual(self.identity(left_path), self.identity(right_path))
+            files[left_path] = b"left"
+            files[right_path] = b"right"
+        sync_generated.package_identities(files)
+
+    def test_rejects_windows_unicode_aliases_for_files_ancestors_and_crosskind_paths(self) -> None:
+        for left, right in (
+            ("Rule.md", "rule.md"),
+            ("\u00e0.md", "\u00c0.md"),
+            ("\u03b1.md", "\u0391.md"),
+            ("\u0430.md", "\u0410.md"),
+        ):
+            with self.subTest(left=left, right=right):
+                self.assert_rejected(
+                    {f"plugins/template/{left}": b"", f"plugins/template/{right}": b""},
+                    "Windows path identity collision",
+                )
+        self.assert_rejected(
+            {
+                "plugins/template/\u03b1/one.md": b"",
+                "plugins/template/\u0391/two.md": b"",
+            },
+            "Windows path identity collision",
+        )
+        self.assert_rejected(
+            {
+                "plugins/template/\u0430": b"",
+                "plugins/template/\u0410/child.md": b"",
+            },
+            "Windows path identity collision",
+        )
+
+    def test_rejects_scalar_and_explicit_surrogate_spellings_with_the_same_utf16_identity(self) -> None:
+        scalar = "\U00010400.md"
+        explicit_surrogates = "\ud801\udc00.md"
+        self.assertEqual(self.identity(scalar), self.identity(explicit_surrogates))
+        self.assert_rejected(
+            {
+                f"plugins/template/{scalar}": b"",
+                f"plugins/template/{explicit_surrogates}": b"",
+            },
+            "Windows path identity collision",
+        )
+
+    def test_build_accepts_valid_unicode_sibling_identities(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            make_repository(root)
+            names = (
+                "Stra\u00dfe.md",
+                "STRASSE.md",
+                "\u00df.md",
+                "\u1e9e.md",
+                "\u03c3.md",
+                "\u03c2.md",
+                "caf\u00e9.md",
+                "cafe\u0301.md",
+                "\U00010400.md",
+                "\U00010428.md",
+                "\U0001f600.md",
+                "\U0001f603.md",
+            )
+            for name in names:
+                write(root / ".agents/demo/utility/tool/templates" / name, "contents\n")
+            output = sync_generated.build(root)
+            for name in names:
+                self.assertIn(f"plugins/demo/.agents/demo/utility/tool/templates/{name}", output)
+
+    @unittest.skipUnless(os.name == "nt", "requires Windows")
+    def test_windows_native_bmp_table_and_ordinal_equivalence(self) -> None:
+        import ctypes
+
+        table = [sync_generated.WINDOWS_PATH_UPPERCASE.get(point, point) for point in range(65536)]
+        ntdll = ctypes.WinDLL("ntdll", use_last_error=True)
+        uppercase = ntdll.RtlUpcaseUnicodeChar
+        uppercase.argtypes = [ctypes.c_ushort]
+        uppercase.restype = ctypes.c_ushort
+        for point, expected in enumerate(table):
+            self.assertEqual(expected, uppercase(point), f"{point:#06x}")
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        compare = kernel32.CompareStringOrdinal
+        compare.argtypes = [ctypes.c_wchar_p, ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_bool]
+        compare.restype = ctypes.c_int
+        for point, mapped in enumerate(table):
+            if point != mapped:
+                self.assertEqual(2, compare(chr(point), 1, chr(mapped), 1, True), f"{point:#06x}")
+
+    @unittest.skipUnless(os.name == "nt", "requires Windows")
+    def test_windows_filesystem_alias_pairs_for_files_and_directories(self) -> None:
+        pairs = (
+            ("Rule.txt", "rule.txt"),
+            ("\u00e0.txt", "\u00c0.txt"),
+            ("\u03b1.txt", "\u0391.txt"),
+            ("\u0430.txt", "\u0410.txt"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for index, (left, right) in enumerate(pairs):
+                files = root / f"files-{index}"
+                files.mkdir()
+                first = files / left
+                second = files / right
+                first.write_bytes(b"first")
+                second.write_bytes(b"second")
+                self.assertEqual(b"second", first.read_bytes())
+                self.assertEqual(1, len(list(files.iterdir())))
+                directories = root / f"directories-{index}"
+                directories.mkdir()
+                (directories / left).mkdir()
+                with self.assertRaises(FileExistsError):
+                    (directories / right).mkdir()
+                self.assertEqual(1, len(list(directories.iterdir())))
 
     def test_build_validates_output_identities_before_references(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
