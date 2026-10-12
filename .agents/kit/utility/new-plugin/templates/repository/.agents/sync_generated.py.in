@@ -439,11 +439,15 @@ def validate_file_references(
     ) -> None:
         for target in sorted(set(references(body))):
             source = posixpath.normpath(posixpath.join(source_dir, target))
-            if source.startswith("../"):
-                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
-            if source_exists and not (root / source).exists():
+            if source == ".." or source.startswith("../"):
                 raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
             shipped = posixpath.normpath(posixpath.join(shipped_dir, target))
+            if shipped_dir.startswith("plugins/"):
+                package_root = "/".join(shipped_dir.split("/", 2)[:2])
+                if shipped != package_root and not shipped.startswith(package_root + "/"):
+                    raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
+            if source_exists and not (root / source).exists():
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
             if generated_required and not present(shipped):
                 raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
 

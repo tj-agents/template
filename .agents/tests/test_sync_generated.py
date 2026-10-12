@@ -322,6 +322,44 @@ class RejectionTests(GeneratorTestCase):
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
         self.assert_rejected("does not resolve from generated")
 
+    def test_package_links_cannot_reach_the_package_parent(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "See [the packages](../../../../..).\n"),
+        )
+        self.assert_rejected("does not resolve from .agents/demo/contract/style")
+
+    def test_package_adapters_cannot_link_to_another_package(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        self.assertIn("plugins/extra/INDEX.md", self.build())
+        adapter_body = sync_generated.adapter_body
+
+        def cross_package_adapter(skill, adapter_dir, canonical_dir=None):
+            body = adapter_body(skill, adapter_dir, canonical_dir)
+            if adapter_dir == "plugins/demo/skills/style":
+                return body + "See [the extra package](../../../extra/INDEX.md).\n"
+            return body
+
+        with mock.patch.object(sync_generated, "adapter_body", side_effect=cross_package_adapter):
+            self.assert_rejected("does not resolve from generated plugins/demo/skills/style")
+
+    def test_package_links_can_reach_in_package_ancestors_and_resources(self) -> None:
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "See [the notes](../../utility/tool/templates/notes.md).\n"),
+        )
+        output = self.build()
+        self.assertIn(
+            b"[the notes](../../utility/tool/templates/notes.md)",
+            output["plugins/demo/.agents/demo/contract/style/SKILL.md"],
+        )
+        for host in (".claude", ".codex"):
+            self.assertIn(
+                b"canonical definition](../../../.agents/demo/contract/style/SKILL.md)",
+                output[f"{host}/skills/style/SKILL.md"],
+            )
+
     def test_missing_skill_directory_file(self) -> None:
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "Run `<skill-directory>/scripts/missing.py`.\n"))
         self.assert_rejected("scripts/missing.py does not resolve")
