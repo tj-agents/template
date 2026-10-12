@@ -6,10 +6,12 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("sync_generated", ROOT / ".agents" / "sync_generated.py")
@@ -69,6 +71,22 @@ def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
         write(root / f".agents/{plugin}/contract/style/SKILL.md", skill_text("style", "contract", f"Pairs with `{plugin}:tool`.\n"))
 
 
+def add_publication(root: Path, package: str, source: str) -> None:
+    payload_path = root / ".agents/plugins/payloads.json"
+    payloads = json.loads(payload_path.read_text(encoding="utf-8"))
+    payloads["payloads"][package] = [source]
+    write_json(payload_path, payloads)
+    for host in ("claude", "codex"):
+        manifest_path = root / f".agents/plugins/manifests/{host}/{source}.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["name"] = package
+        if host == "claude":
+            manifest["displayName"] = package.title()
+        else:
+            manifest["interface"]["displayName"] = package.title()
+        write_json(root / f".agents/plugins/manifests/{host}/{package}.json", manifest)
+
+
 class GeneratorTestCase(unittest.TestCase):
     def test_external_selection_dependency_is_preserved_and_shape_checked(self):
         make_repository(self.root)
@@ -86,7 +104,7 @@ class GeneratorTestCase(unittest.TestCase):
     def test_optional_harness_is_shipped_without_requiring_migration(self):
         make_repository(self.root)
         self.assertNotIn("plugins/demo/harness.json", sync_generated.build(self.root))
-        manifest = {"schema_version": 1, "plugin": "demo/demo", "source_roots": [".agents/demo"], "requires": {}}
+        manifest = {"schema_version": 1, "plugin": "demo-agents/demo", "source_roots": [".agents/demo"], "requires": {}}
         write_json(self.root / ".agents/plugins/manifests/harness/demo.json", manifest)
         self.assertEqual(json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"]), manifest)
 
@@ -115,9 +133,19 @@ class BuildTests(GeneratorTestCase):
     def test_ships_skill_local_files_beside_the_package_and_adapter_entries(self) -> None:
         make_repository(self.root)
         output = self.build()
-        for directory in ("plugins/demo/skills/tool", ".claude/skills/tool", ".codex/skills/tool"):
+        canonical = "plugins/demo/.agents/demo/utility/tool"
+        adapter = "plugins/demo/skills/tool"
+        self.assertEqual(
+            (self.root / ".agents/demo/utility/tool/SKILL.md").read_bytes(),
+            output[f"{canonical}/SKILL.md"],
+        )
+        for directory in (canonical, adapter, ".claude/skills/tool", ".codex/skills/tool"):
             self.assertIn(f"{directory}/scripts/run.py", output)
             self.assertIn(f"{directory}/templates/notes.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/utility/tool/SKILL.md)",
+            output[f"{adapter}/SKILL.md"].decode(),
+        )
         self.assertIn("canonical definition](../../../.agents/demo/utility/tool/SKILL.md)", output[".claude/skills/tool/SKILL.md"].decode())
 
     def test_marketplaces_and_selection_are_derived_from_manifests_and_frontmatter(self) -> None:
@@ -130,6 +158,36 @@ class BuildTests(GeneratorTestCase):
         selection = json.loads(output["plugins/demo/selection.json"])
         self.assertEqual({"core": ["style", "tool"]}, selection["profiles"])
         self.assertIn("- `tool` — utility — core", output["plugins/demo/INDEX.md"].decode())
+
+    def test_publications_share_one_source_and_keep_one_local_adapter_set(self) -> None:
+        make_repository(self.root)
+        add_publication(self.root, "template", "demo")
+        for package in ("demo", "template"):
+            write_json(
+                self.root / f".agents/plugins/manifests/harness/{package}.json",
+                {"schema_version": 1, "plugin": f"demo-agents/{package}", "source_roots": [".agents/demo"], "requires": {}},
+            )
+        output = self.build()
+        for package in ("demo", "template"):
+            canonical = f"plugins/{package}/.agents/demo/utility/tool/SKILL.md"
+            adapter = f"plugins/{package}/skills/tool/SKILL.md"
+            self.assertEqual((self.root / ".agents/demo/utility/tool/SKILL.md").read_bytes(), output[canonical])
+            self.assertIn("canonical definition](../../.agents/demo/utility/tool/SKILL.md)", output[adapter].decode())
+            self.assertEqual(package, json.loads(output[f"plugins/{package}/selection.json"])["plugin"])
+            self.assertEqual(f"demo-agents/{package}", json.loads(output[f"plugins/{package}/harness.json"])["plugin"])
+        self.assertEqual(1, sum(name.endswith("/SKILL.md") for name in output if name == ".claude/skills/tool/SKILL.md"))
+        self.assertEqual(["demo", "template"], [item["name"] for item in json.loads(output[".agents/plugins/marketplace.json"])["plugins"]])
+
+    def test_aliases_are_projected_for_each_publication(self) -> None:
+        make_repository(self.root)
+        write(self.root / ".agents/demo/contract/old-style/SKILL.md", skill_text("old-style", "contract", "Use `demo:style`.\n"))
+        add_publication(self.root, "template", "demo")
+        payloads = json.loads((self.root / ".agents/plugins/payloads.json").read_text(encoding="utf-8"))
+        payloads["compatibilitySkillAliases"] = {"demo": {"old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}}}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        selection = json.loads(self.build()["plugins/template/selection.json"])
+        self.assertEqual({"old-style": {"replacedBy": "template:style", "removeAfter": "2027-03-31"}}, selection["compatibilitySkillAliases"])
+        self.assertEqual({"core": ["style", "tool"]}, selection["profiles"])
 
     def test_several_plugins_prefix_their_adapter_entries(self) -> None:
         make_repository(self.root, ("demo", "extra"))
@@ -160,8 +218,13 @@ class FamilyTests(GeneratorTestCase):
         write(self.root / ".agents/demo/contract/state/server/SKILL.md", skill_text("state-server", "contract"))
         output = self.build()
         for name in ("state-client", "state-server"):
+            self.assertIn(f"plugins/demo/.agents/demo/contract/state/{name.removeprefix('state-')}/SKILL.md", output)
             self.assertIn(f"plugins/demo/skills/{name}/SKILL.md", output)
             self.assertIn(f".codex/skills/{name}/SKILL.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/contract/state/client/SKILL.md)",
+            output["plugins/demo/skills/state-client/SKILL.md"].decode(),
+        )
         self.assertIn(
             "canonical definition](../../../.agents/demo/contract/state/client/SKILL.md)",
             output[".claude/skills/state-client/SKILL.md"].decode(),
@@ -227,6 +290,19 @@ class RejectionTests(GeneratorTestCase):
         write(self.root / ".agents/demo/knowledge/style/SKILL.md", skill_text("style", "contract"))
         self.assert_rejected("kind must equal its kind folder")
 
+    def test_kind_with_a_digit_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/contract2/style/SKILL.md", skill_text("style", "contract2"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_kind_with_a_hyphen_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/my-kind/style/SKILL.md", skill_text("style", "my-kind"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_an_unknown_lowercase_kind_is_accepted(self) -> None:
+        write(self.root / ".agents/demo/policy/learning/SKILL.md", skill_text("learning", "policy"))
+        output = self.build()
+        self.assertIn("plugins/demo/skills/learning/SKILL.md", output)
+
     def test_file_directly_under_a_plugin_folder(self) -> None:
         write(self.root / ".agents/demo/notes.md", "stray\n")
         self.assert_rejected("only kind folders")
@@ -244,15 +320,122 @@ class RejectionTests(GeneratorTestCase):
     def test_link_that_leaves_the_package(self) -> None:
         write(self.root / "README.md", "readme\n")
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
-        self.assert_rejected("does not resolve from generated plugins/demo/skills/style")
+        self.assert_rejected("does not resolve from generated")
+
+    def test_package_links_cannot_reach_the_package_parent(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "See [the packages](../../../../..).\n"),
+        )
+        self.assert_rejected("does not resolve from .agents/demo/contract/style")
+
+    def test_package_adapters_cannot_link_to_another_package(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        self.assertIn("plugins/extra/INDEX.md", self.build())
+        adapter_body = sync_generated.adapter_body
+
+        def cross_package_adapter(skill, adapter_dir, canonical_dir=None):
+            body = adapter_body(skill, adapter_dir, canonical_dir)
+            if adapter_dir == "plugins/demo/skills/style":
+                return body + "See [the extra package](../../../extra/INDEX.md).\n"
+            return body
+
+        with mock.patch.object(sync_generated, "adapter_body", side_effect=cross_package_adapter):
+            self.assert_rejected("does not resolve from generated plugins/demo/skills/style")
+
+    def test_package_links_can_reach_in_package_ancestors_and_resources(self) -> None:
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "See [the notes](../../utility/tool/templates/notes.md).\n"),
+        )
+        output = self.build()
+        self.assertIn(
+            b"[the notes](../../utility/tool/templates/notes.md)",
+            output["plugins/demo/.agents/demo/contract/style/SKILL.md"],
+        )
+        for host in (".claude", ".codex"):
+            self.assertIn(
+                b"canonical definition](../../../.agents/demo/contract/style/SKILL.md)",
+                output[f"{host}/skills/style/SKILL.md"],
+            )
 
     def test_missing_skill_directory_file(self) -> None:
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "Run `<skill-directory>/scripts/missing.py`.\n"))
         self.assert_rejected("scripts/missing.py does not resolve")
 
-    def test_payloads_must_match_the_plugin_folders(self) -> None:
+    def test_payloads_select_known_sources_and_retain_identity_publications(self) -> None:
         write_json(self.root / ".agents/plugins/payloads.json", {"payloads": {"other": ["other"]}})
-        self.assert_rejected("payloads must map each plugin folder")
+        self.assert_rejected("other must select exactly one canonical source")
+        write_json(self.root / ".agents/plugins/payloads.json", {"payloads": {"published": ["demo"]}})
+        self.assert_rejected("demo must retain its identity publication")
+        write_json(self.root / ".agents/plugins/payloads.json", {"payloads": {"demo": ["demo", "demo"]}})
+        self.assert_rejected("demo must select exactly one canonical source")
+
+    def test_dependencies_can_use_another_source_public_alias_but_not_its_own(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        add_publication(self.root, "template", "extra")
+        payloads = json.loads((self.root / ".agents/plugins/payloads.json").read_text(encoding="utf-8"))
+        payloads["dependencies"] = {"demo": ["template"]}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        self.assertEqual(["template"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        payloads["dependencies"] = {"extra": ["template"]}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        self.assert_rejected("extra cannot depend on template")
+        payloads["dependencies"] = {"demo": ["demo-agents/demo"]}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        self.assert_rejected("demo cannot depend on demo-agents/demo")
+        payloads["dependencies"] = {"demo": ["demo-agents/missing"]}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        self.assert_rejected("demo cannot depend on demo-agents/missing")
+
+    def test_harness_rejects_invalid_envelopes_and_roots(self) -> None:
+        harness = self.root / ".agents/plugins/manifests/harness/demo.json"
+        valid = {"schema_version": 1, "plugin": "demo-agents/demo", "source_roots": [".agents/demo"], "requires": {}}
+        for value, message in (
+            (None, "must be a JSON object"),
+            ([], "must be a JSON object"),
+            ({**valid, "schema_version": True}, "schema_version must be 1"),
+            ({**valid, "schema_version": 2}, "schema_version must be 1"),
+            ({**valid, "plugin": "demo-agents/other"}, "plugin must be demo-agents/demo"),
+            ({**valid, "source_roots": None}, "source_roots must be a nonempty list"),
+            ({**valid, "source_roots": ".agents/demo"}, "source_roots must be a nonempty list"),
+            ({**valid, "source_roots": []}, "source_roots must be a nonempty list"),
+            ({**valid, "source_roots": [1]}, "source_roots must be a nonempty list"),
+            ({**valid, "source_roots": [".agents/demo", ".agents/demo"]}, "source_roots must be unique"),
+            ({**valid, "source_roots": ["/agents/demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": ["C:/agents/demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": [".agents\\demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": [".agents/../demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": [".agents/\x00demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": ["plugins/demo"]}, "unsafe canonical source root"),
+            ({**valid, "source_roots": [".agents/missing"]}, "is not shipped in demo"),
+        ):
+            with self.subTest(value=value):
+                write_json(harness, value)
+                self.assert_rejected(message)
+        harness.write_text("not json\n", encoding="utf-8")
+        self.assert_rejected("unreadable JSON")
+        harness.write_bytes(b"\xff")
+        self.assert_rejected("unreadable JSON")
+        write_json(harness, valid)
+        with mock.patch.object(sync_generated, "read", side_effect=OSError("locked")):
+            with self.assertRaisesRegex(ValueError, "unreadable JSON"):
+                sync_generated.harness_body(self.root, "demo", "demo-agents", {})
+
+    def test_harness_cannot_claim_another_publication_source(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        add_publication(self.root, "template", "demo")
+        write_json(
+            self.root / ".agents/plugins/manifests/harness/template.json",
+            {"schema_version": 1, "plugin": "demo-agents/template", "source_roots": [".agents/extra"], "requires": {}},
+        )
+        self.assert_rejected("source root '.agents/extra' is not shipped in template")
+
+    def test_publication_manifest_roster_is_complete(self) -> None:
+        add_publication(self.root, "template", "demo")
+        (self.root / ".agents/plugins/manifests/codex/template.json").unlink()
+        self.assert_rejected("manifests/codex must hold exactly")
 
     def test_tier_rules(self) -> None:
         path = self.root / ".agents/tiers/demo.json"
@@ -353,6 +536,76 @@ class CliTests(GeneratorTestCase):
         result = self.run_generator_cli()
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertIn(".agents/authored/owner.json: only kind folders belong in a plugin folder", result.stdout)
+
+
+class PackagedScriptsTests(unittest.TestCase):
+    def test_each_copied_package_runs_from_its_adapter_resources(self) -> None:
+        for name in ("kit", "template"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                package = Path(directory) / name
+                shutil.copytree(ROOT / f"plugins/{name}", package)
+                new_plugin = subprocess.run(
+                    [
+                        sys.executable,
+                        "-B",
+                        str(package / "skills/new-plugin/scripts/new_plugin.py"),
+                        "--repository",
+                        "owner/example",
+                        "--type",
+                        "utility",
+                        "--skill",
+                        "sweep",
+                        "--description",
+                        "Example plugin.",
+                        "--destination",
+                        directory,
+                        "--author",
+                        "Ada Lovelace",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(0, new_plugin.returncode, new_plugin.stdout + new_plugin.stderr)
+                example = Path(directory) / "example"
+                adapter_check = package / "skills/check/scripts/check.py"
+                canonical_check = package / ".agents/kit/utility/check/scripts/check.py"
+                check = subprocess.run(
+                    [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(0, check.returncode, check.stdout + check.stderr)
+                gitignore = example / ".gitignore"
+                gitignore.write_text(gitignore.read_text(encoding="utf-8") + "local/\n", encoding="utf-8")
+                drifted = subprocess.run(
+                    [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(1, drifted.returncode)
+                self.assertIn(".gitignore: differs from release", drifted.stderr)
+                update = subprocess.run(
+                    [sys.executable, "-B", str(package / "skills/update/scripts/update.py"), "--root", str(example)],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(0, update.returncode, update.stdout + update.stderr)
+                canonical = subprocess.run(
+                    [sys.executable, "-B", str(canonical_check), "--root", str(example)],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(0, canonical.returncode, canonical.stdout + canonical.stderr)
 
 
 class KitRepositoryTests(unittest.TestCase):

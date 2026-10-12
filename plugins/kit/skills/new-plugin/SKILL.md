@@ -1,6 +1,6 @@
 ---
 name: new-plugin
-description: Create a plugin repository in the shared layout — a stack (knowledge tier, the seven contracts and a project scaffold), a tool (knowledge tier only) or a utility — with the generator, root files and CI vendored from kit and pinned to its release. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
+description: Create a plugin repository in the shared layout — a stack (knowledge tier, a teaching policy, the seven conventions and a project scaffold), a tool (knowledge tier and teaching policy only) or a utility — with the generator, root files and CI vendored from kit and pinned to its release. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
 kind: utility
 domain: kit
 profile: core
@@ -24,8 +24,8 @@ python <skill-directory>/scripts/new_plugin.py --repository <owner>/zig --type s
 
 | Type | Skills created | Tier |
 |---|---|---|
-| `stack` | `learning`, `knowledge`, `direction`; `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries`; `scaffold` | `stack-present`, from `--detect-file` and `--detect-glob` |
-| `tool` | `learning`, `knowledge`, `direction` | `always` |
+| `stack` | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | `stack-present`, from `--detect-file` and `--detect-glob` |
+| `tool` | `knowledge`, `direction` (knowledge); `learning` (policy) | `always` |
 | `utility` | one utility skill named by `--skill` | `always` |
 
 `--author` defaults to `git config user.name` and `--learner` to the author's first name. `--stack` is the display name.
@@ -33,7 +33,7 @@ python <skill-directory>/scripts/new_plugin.py --repository <owner>/zig --type s
 must exist and the repository folder must not. The script does not run `git init` or touch anything outside the
 new folder.
 
-Every skill starts as a skeleton with its required sections and `_Nothing yet._`. Contracts grow through the new
+Every skill starts as a skeleton with its required sections and `_Nothing yet._`. Conventions grow through the new
 repository's `learning` convention procedure; `scaffold` gets its scripts and templates once `structure` has an
 agreed File structure.
 

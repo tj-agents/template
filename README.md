@@ -1,7 +1,14 @@
 # kit
 
 Meta-scaffolder for plugin repositories. Every stack, tool and utility plugin repository shares one layout, one
-vendored generator and one CI workflow, all owned here.
+vendored generator and one CI workflow, all owned here. Template is an additional installable package from the
+same `kit-agents` marketplace and ships the identical canonical `.agents/kit` procedures and resources.
+
+## Install
+
+Existing `kit@kit-agents` installations remain supported. Install `template@kit-agents` when the Template package
+name fits the consuming environment; both packages retain their own manifests and native adapters while using the
+same source procedures.
 
 ## Skills
 
@@ -13,8 +20,8 @@ vendored generator and one CI workflow, all owned here.
 
 | Type | Skills created | Tier |
 |---|---|---|
-| stack | `learning`, `knowledge`, `direction`; `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries`; `scaffold` | applies where the stack is detected |
-| tool | `learning`, `knowledge`, `direction` | always |
+| stack | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | applies where the stack is detected |
+| tool | `knowledge`, `direction` (knowledge); `learning` (policy) | always |
 | utility | the utility skills it needs | always |
 
 ## Shared CI

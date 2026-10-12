@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -44,6 +47,60 @@ class ClaudeReportTests(unittest.TestCase):
     def test_a_plugin_manifest_without_version_passes(self) -> None:
         report = {"manifest": {"file": "plugin.json", "errors": [], "warnings": [{"path": "version", "message": "No version."}]}}
         self.assertEqual([], validate_hosts.problems(report))
+
+
+class CodexStandaloneInstallTests(unittest.TestCase):
+    def test_each_publication_uses_a_separate_home_and_accepts_only_itself(self) -> None:
+        selected = {}
+        homes = []
+
+        def fake_run(command, environment=None):
+            home = environment["CODEX_HOME"]
+            homes.append((home, command))
+            if command[:3] == ["codex", "plugin", "add"]:
+                selected[home] = command[3].split("@", 1)[0]
+                return subprocess.CompletedProcess(command, 0, "", "")
+            if command == ["codex", "plugin", "list", "--json"]:
+                report = {"installed": [{"name": selected[home], "installed": True, "enabled": True, "marketplaceName": "demo-agents"}]}
+                return subprocess.CompletedProcess(command, 0, json.dumps(report), "")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marketplace = root / ".agents/plugins/marketplace.json"
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(json.dumps({"name": "demo-agents", "plugins": [{"name": "demo"}, {"name": "template"}]}), encoding="utf-8")
+            original = validate_hosts.run
+            try:
+                validate_hosts.run = fake_run
+                self.assertEqual([], validate_hosts.validate_codex(root))
+            finally:
+                validate_hosts.run = original
+        installs = [(home, command[3].split("@", 1)[0]) for home, command in homes if command[:3] == ["codex", "plugin", "add"]]
+        self.assertEqual(["demo", "template"], [name for _, name in installs])
+        self.assertEqual(2, len({home for home, _ in installs}))
+
+    def test_an_implicit_second_install_is_rejected(self) -> None:
+        def fake_run(command, environment=None):
+            if command == ["codex", "plugin", "list", "--json"]:
+                report = {"installed": [
+                    {"name": "demo", "installed": True, "enabled": True, "marketplaceName": "demo-agents"},
+                    {"name": "template", "installed": True, "enabled": True, "marketplaceName": "demo-agents"},
+                ]}
+                return subprocess.CompletedProcess(command, 0, json.dumps(report), "")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marketplace = root / ".agents/plugins/marketplace.json"
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(json.dumps({"name": "demo-agents", "plugins": [{"name": "demo"}]}), encoding="utf-8")
+            original = validate_hosts.run
+            try:
+                validate_hosts.run = fake_run
+                self.assertEqual(["codex standalone install of demo enabled ['demo', 'template']"], validate_hosts.validate_codex(root))
+            finally:
+                validate_hosts.run = original
 
 
 if __name__ == "__main__":
