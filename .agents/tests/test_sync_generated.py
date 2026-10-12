@@ -129,6 +129,80 @@ class GeneratorTestCase(unittest.TestCase):
         return code, stream.getvalue()
 
 
+class PackageIdentityTests(unittest.TestCase):
+    def assert_rejected(self, files: dict[str, bytes], message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+            sync_generated.package_identities(files)
+
+    def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
+        self.assert_rejected(
+            {
+                "plugins/kit/skills/check/SKILL.md": b"",
+                "plugins/KIT/skills/check/README.md": b"",
+            },
+            "Windows path identity collision",
+        )
+        self.assert_rejected(
+            {
+                "plugins/kit/skills/check/SKILL.md": b"",
+                "plugins/kit/skills/check": b"",
+            },
+            "file/directory conflict",
+        )
+
+    def test_rejects_windows_unsafe_components(self) -> None:
+        for component in ("CON", "LPT\u00b9", "rule.", "rule "):
+            with self.subTest(component=component):
+                self.assert_rejected(
+                    {f"plugins/kit/skills/check/{component}/SKILL.md": b""},
+                    "Windows-unsafe path component",
+                )
+
+    def test_rejects_unsafe_paths_and_nonbytes_contents(self) -> None:
+        for path in (
+            "/plugins/kit/skills/check/SKILL.md",
+            "plugins\\kit/skills/check/SKILL.md",
+            "plugins/kit:alt/skills/check/SKILL.md",
+            "plugins/kit/skills/\x00check/SKILL.md",
+        ):
+            with self.subTest(path=path):
+                self.assert_rejected({path: b""}, "unsafe relative path")
+        self.assert_rejected(
+            {"plugins/kit/skills/check/SKILL.md": "not bytes"},
+            "shipped file contents must be bytes",
+        )
+
+    def test_accepts_ordinary_spaced_parenthesized_unicode_paths(self) -> None:
+        sync_generated.package_identities(
+            {
+                "plugins/template/.agents/kit/utility/check/templates/Guide (\u03b1).md": b"",
+                "plugins/template/skills/check/templates/caf\u00e9 guide.md": b"",
+            }
+        )
+
+    def test_build_validates_output_identities_before_references(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            make_repository(root)
+            events = []
+            identities = sync_generated.package_identities
+            references = sync_generated.validate_file_references
+
+            def record_identities(files):
+                events.append("identities")
+                identities(files)
+
+            def record_references(*arguments):
+                events.append("references")
+                references(*arguments)
+
+            with mock.patch.object(sync_generated, "package_identities", side_effect=record_identities), mock.patch.object(
+                sync_generated, "validate_file_references", side_effect=record_references
+            ):
+                sync_generated.build(root)
+            self.assertEqual(["identities", "references"], events)
+
+
 class BuildTests(GeneratorTestCase):
     def test_ships_skill_local_files_beside_the_package_and_adapter_entries(self) -> None:
         make_repository(self.root)

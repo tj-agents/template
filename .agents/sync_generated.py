@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.4.0"
+KIT_VERSION = "1.4.1"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
@@ -49,6 +49,55 @@ GENERATED_ROOTS = (
 TIER_MATCHERS = ("files", "globs", "content", "remote")
 PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
 
+
+def package_component(value: str, where: str) -> None:
+    reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
+    stem = value.split(".", 1)[0].rstrip(" ").upper()
+    if (
+        not value or value in (".", "..") or value.endswith((" ", "."))
+        or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
+        or stem in reserved
+    ):
+        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
+
+def package_relative(value: str, where: str, *, native: bool = False) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{where}: expected a nonempty relative path")
+    relative = value
+    if native:
+        relative = relative.removeprefix("./").removesuffix("/")
+    path = PurePosixPath(relative)
+    if (
+        not relative or "\\" in relative or ":" in relative or "\x00" in relative
+        or path.is_absolute() or ".." in path.parts
+        or path.as_posix() != relative or relative == "."
+    ):
+        raise ValueError(f"{where}: unsafe relative path {value!r}")
+    for component in path.parts:
+        package_component(component, where)
+    return relative
+
+def package_identities(files: dict[str, bytes]) -> None:
+    identities: dict[str, tuple[str, bool]] = {}
+    for key, data in files.items():
+        package_relative(key, "shipped file map")
+        if not isinstance(data, bytes):
+            raise ValueError(f"{key}: shipped file contents must be bytes")
+        nodes = [(key, True)] + [
+            (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
+            if ancestor.as_posix() != "."
+        ]
+        for path, is_file in nodes:
+            identity = path.casefold()
+            previous = identities.get(identity)
+            if previous is not None:
+                spelling, previous_is_file = previous
+                if spelling != path:
+                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
+                if previous_is_file != is_file:
+                    raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
+            identities[identity] = (path, is_file)
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -608,6 +657,7 @@ def build(root: Path) -> dict[str, bytes]:
         )
     emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
     emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
+    package_identities(output)
     validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
     return output
 
