@@ -1,0 +1,11 @@
+{
+  "name": "{{namespace}}",
+  "displayName": "{{display_name}}",
+  "description": "{{description}}",
+  "author": {
+    "name": "{{author}}"
+  },
+  "repository": "https://github.com/{{repository}}",
+  "skills": "./skills/",
+  "keywords": {{keywords_json}}
+}
