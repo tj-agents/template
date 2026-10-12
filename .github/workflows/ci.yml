@@ -49,13 +49,34 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          $remoteMain = git ls-remote --exit-code origin refs/heads/main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $remoteMain = ($remoteMain -split "\s+")[0]
+          if ($remoteMain -ne $env:GITHUB_SHA) {
+            "Main advanced since this workflow started; skipping regeneration publication."
+            exit 0
+          }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
           $staged = git diff --cached --name-only
           if ($staged) {
             git commit -m "Regenerate packages for $env:GITHUB_SHA"
+            $nativeErrorActionPreference = $PSNativeCommandUseErrorActionPreference
+            $PSNativeCommandUseErrorActionPreference = $false
             git push origin HEAD:main
+            $pushExitCode = $LASTEXITCODE
+            $PSNativeCommandUseErrorActionPreference = $nativeErrorActionPreference
+            if ($pushExitCode -ne 0) {
+              $remoteMain = git ls-remote --exit-code origin refs/heads/main
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              $remoteMain = ($remoteMain -split "\s+")[0]
+              if ($remoteMain -ne $env:GITHUB_SHA) {
+                "Main advanced while regeneration was publishing; skipping superseded publication."
+                exit 0
+              }
+              exit $pushExitCode
+            }
           } else {
             "Generated output already current."
           }
