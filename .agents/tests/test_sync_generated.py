@@ -618,6 +618,140 @@ class RejectionTests(GeneratorTestCase):
         )
         self.assert_rejected("ambiguous nested active link")
 
+    def test_references_cover_qualified_destinations_and_reference_forms(self) -> None:
+        body = """[double](templates/notes.md "double title")
+[single](templates/notes.md 'single title')
+[paren](templates/notes.md (parenthesized title))
+[angle](<templates/notes space.md> "angle title")
+[balanced](templates/(notes).md)
+[escaped](templates/notes\\(copy\\).md)
+[entity](templates/notes&amp;more.md)
+[full][full]
+[collapsed][]
+[shortcut]
+
+[full]: templates/full.md
+[collapsed]: templates/collapsed.md
+[shortcut]: templates/shortcut.md
+[unused]: ../../../../outside.md
+"""
+        expected = {
+            "templates/notes.md",
+            "templates/notes space.md",
+            "templates/(notes).md",
+            "templates/notes(copy).md",
+            "templates/notes&more.md",
+            "templates/full.md",
+            "templates/collapsed.md",
+        }
+        for newline in ("\n", "\r\n", "\r"):
+            with self.subTest(newline=repr(newline)):
+                self.assertEqual(expected, set(sync_generated.references(body.replace("\n", newline))))
+                self.assertEqual(
+                    ["templates/shortcut.md"],
+                    list(sync_generated.references(f"[shortcut]{newline}{newline}[shortcut]: templates/shortcut.md{newline}")),
+                )
+
+    def test_references_keep_opaque_contexts_and_reject_active_openings(self) -> None:
+        opaque = (
+            "`[inactive](file:///C:/private.md)`",
+            "```markdown\n[inactive](../../../../outside.md)\n```",
+            "~~~markdown\n[inactive](../../../../outside.md)\n~~~",
+            "    [inactive](../../../../outside.md)",
+            "<!-- [inactive](file:///C:/private.md) -->",
+            "<div>\n[inactive](../../../../outside.md)\n</div>",
+            "<pre>\n[inactive](file:///C:/private.md)\n</pre>",
+            "The launcher **exits non-zero** on failure and prints `Launched codex-cli <version> from <path> on\n<selection>` on success.",
+        )
+        for value in opaque:
+            with self.subTest(opaque=value):
+                self.assertEqual([], list(sync_generated.references(value)))
+        active = (
+            "prose <!--> [outside](../../../../outside.md)",
+            "prose <!---> [outside](../../../../outside.md)",
+            "prose <!-- incomplete [outside](../../../../outside.md)",
+            'prose <span title="`">[outside](../../../../outside.md)`</span>',
+        )
+        for value in active:
+            with self.subTest(active=value):
+                write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", value))
+                self.assert_rejected("reference")
+        for boundary in ("# heading", "- item", "> quote", "```markdown", "---", "<div>"):
+            for delimiter in ('"', "'", "("):
+                closing = ")" if delimiter == "(" else delimiter
+                for newline in ("\n", "\r\n", "\r"):
+                    value = f'[broken](templates/notes.md {delimiter}{newline}{boundary}{newline}more{closing})'.replace("\n", newline)
+                    with self.subTest(boundary=boundary, delimiter=delimiter, newline=repr(newline)):
+                        with self.assertRaisesRegex(ValueError, "block boundary"):
+                            list(sync_generated.references(value))
+
+    def test_source_only_adapter_references_guard_before_filesystem_access(self) -> None:
+        skill = {"plugin": "demo", "name": "style"}
+        directory = ".agents/demo/contract/style"
+        write(self.root / directory / "templates/notes.md", "notes\n")
+        write(self.root / directory / "scripts/run.py", "print('run')\n")
+        valid = "[notes](templates/notes.md)\nRun `<skill-directory>/scripts/run.py`.\n"
+        sync_generated.validate_file_references(
+            self.root,
+            {},
+            {},
+            [(skill, valid, directory, True, False)],
+            {},
+        )
+        write(self.root / ".agents/demo/contract/shared.md", "shared\n")
+        sync_generated.validate_file_references(
+            self.root,
+            {},
+            {},
+            [(skill, "[inside](../shared.md)", directory, True, False)],
+            {},
+        )
+        for target in ("/outside.md", "C:/outside.md", "file:outside.md", "folder\\\\outside.md", "bad\x00name.md", "../../../../../outside.md"):
+            with self.subTest(target=target), mock.patch.object(Path, "exists", side_effect=AssertionError("filesystem accessed")):
+                with self.assertRaisesRegex(ValueError, "unsafe local reference|does not resolve"):
+                    sync_generated.validate_file_references(
+                        self.root,
+                        {},
+                        {},
+                        [(skill, f"[unsafe]({target})", directory, True, False)],
+                        {},
+                    )
+        original_resolve = Path.resolve
+
+        def resolve(path: Path, *arguments, **keywords):
+            if path.name == "escape.md":
+                return self.root.parent
+            return original_resolve(path, *arguments, **keywords)
+
+        with mock.patch.object(Path, "resolve", autospec=True, side_effect=resolve):
+            with self.assertRaisesRegex(ValueError, "does not resolve"):
+                sync_generated.validate_file_references(
+                    self.root,
+                    {},
+                    {},
+                    [(skill, "[escape](escape.md)", directory, True, False)],
+                    {},
+                )
+
+
+    def test_closed_resource_validation_precedes_source_io_and_synchronize_writes(self) -> None:
+        for target, message in (
+            ("missing.md", "reference is not shipped"),
+            ("../../extra/resources/README.md", "reference leaves package"),
+        ):
+            with self.subTest(target=target), mock.patch.object(Path, "exists", side_effect=AssertionError("source fallback")):
+                output = {"plugins/demo/resources/README.md": f"[missing]({target})\n".encode()}
+                with self.assertRaisesRegex(ValueError, message):
+                    sync_generated.validate_file_references(self.root, {}, {}, [], output)
+        make_repository(self.root)
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "[outside](../../../../outside.md)\n"),
+        )
+        with mock.patch.object(sync_generated, "generated_root_paths", side_effect=AssertionError("generated outputs removed")):
+            with self.assertRaisesRegex(ValueError, "reference"):
+                self.synchronize(check=False)
+
     def test_link_that_leaves_the_package(self) -> None:
         write(self.root / "README.md", "readme\n")
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
