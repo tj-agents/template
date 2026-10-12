@@ -97,7 +97,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
         tier.write_text(tier_body, encoding="utf-8")
         style = self.root / ".agents/zig/convention/style/SKILL.md"
         style.write_text(style.read_text(encoding="utf-8") + "\nRun `<skill-directory>/scripts/missing.py`.\n", encoding="utf-8")
-        self.assert_problem("scripts/missing.py does not resolve")
+        self.assert_problem("reference is not shipped")
 
     def test_generator_validation_rejects_malformed_compatibility_aliases(self) -> None:
         path = self.root / ".agents/plugins/payloads.json"
@@ -154,12 +154,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
-        self.assert_problem(".gitignore: differs from release 1.4.1")
+        self.assert_problem(".gitignore: differs from release 1.4.2")
 
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is 1.4.1: run update")
+        self.assert_problem("pins kit 0.9.0; this check is 1.4.2: run update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -176,10 +176,10 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".kit/.agents/kit"
         shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.4.1", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.4.2", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
-        self.assertIn(".github/workflows/ci.yml: differs from release 1.4.1", result.stderr)
+        self.assertIn(".github/workflows/ci.yml: differs from release 1.4.2", result.stderr)
 
     def test_missing_tier_is_reported(self) -> None:
         (self.root / ".agents/tiers/zig.json").unlink()

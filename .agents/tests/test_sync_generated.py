@@ -557,14 +557,75 @@ class RejectionTests(GeneratorTestCase):
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See the `missing` skill.\n"))
         self.assert_rejected("unknown skill reference `missing` skill")
 
+    def test_references_parse_active_markdown_and_mask_inactive_contexts(self) -> None:
+        body = """[inline](templates/notes.md "quoted title")
+[reference][notes]
+![image](templates/notes.md)
+
+[notes]: templates/notes.md (parenthesized title)
+`[code](missing.md)`
+<!-- [comment](missing.md) -->
+<https://example.test/docs>
+"""
+        self.assertEqual(
+            ["templates/notes.md", "templates/notes.md", "templates/notes.md"],
+            list(sync_generated.references(body)),
+        )
+        for newline in ("\n", "\r", "\r\n"):
+            with self.subTest(newline=repr(newline)):
+                soft_break = f"[reference][note{newline}].{newline}{newline}[note]: templates/notes.md{newline}"
+                self.assertEqual(["templates/notes.md"], list(sync_generated.references(soft_break)))
+        with self.assertRaisesRegex(ValueError, "block boundary"):
+            list(sync_generated.references('[broken](templates/notes.md "title\n\nmore")'))
+
+    def test_markdown_references_validate_active_shipped_resources(self) -> None:
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text(
+                "style",
+                "contract",
+                """[inline](templates/notes.md "title")
+[reference][notes]
+![image](templates/notes.md)
+
+[notes]: templates/notes.md
+
+```md
+[opaque](../../../../README.md)
+```
+<!-- [opaque](../../../../README.md) -->
+""",
+            ),
+        )
+        write(self.root / ".agents/demo/contract/style/templates/notes.md", "notes\n")
+        self.assertIn("plugins/demo/skills/style/SKILL.md", self.build())
+        write(self.root / ".agents/demo/contract/style/templates/notes.md", "[missing](missing.md)\n")
+        self.assert_rejected("templates/notes.md: reference is not shipped")
+
+    def test_markdown_references_reject_unsafe_active_destinations(self) -> None:
+        for target in ("../../../../README.md", "C:/outside.md", "file:outside.md", "folder\\outside.md", "%2e%2e/%2e%2e/outside.md"):
+            with self.subTest(target=target):
+                write(
+                    self.root / ".agents/demo/contract/style/SKILL.md",
+                    skill_text("style", "contract", f"[unsafe]({target})\n"),
+                )
+                self.assert_rejected("reference")
+
+    def test_markdown_references_reject_ambiguous_active_nested_link(self) -> None:
+        write(
+            self.root / ".agents/demo/contract/style/SKILL.md",
+            skill_text("style", "contract", "[outer [inner](templates/notes.md)](templates/notes.md)\n"),
+        )
+        self.assert_rejected("ambiguous nested active link")
+
     def test_link_that_leaves_the_package(self) -> None:
         write(self.root / "README.md", "readme\n")
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
-        self.assert_rejected("does not resolve from generated")
+        self.assert_rejected("reference is not shipped")
 
     def test_missing_skill_directory_file(self) -> None:
         write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "Run `<skill-directory>/scripts/missing.py`.\n"))
-        self.assert_rejected("scripts/missing.py does not resolve")
+        self.assert_rejected("reference is not shipped")
 
     def test_payloads_select_known_sources_and_retain_identity_publications(self) -> None:
         write_json(self.root / ".agents/plugins/payloads.json", {"payloads": {"other": ["other"]}})

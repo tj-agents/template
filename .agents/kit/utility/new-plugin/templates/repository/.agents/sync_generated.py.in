@@ -7,16 +7,19 @@ Vendored from the kit repository and pinned by `.agents/plugins/kit.json`: chang
 from __future__ import annotations
 
 import argparse
+from html import unescape
 import json
 import os
 from pathlib import Path, PurePosixPath
+from string import punctuation
+from urllib.parse import unquote
 import posixpath
 import re
 import shutil
 import stat
 
 
-KIT_VERSION = "1.4.1"
+KIT_VERSION = "1.4.2"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
@@ -25,7 +28,6 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 BARE_SKILL_REFERENCE = re.compile(r"`([a-z][a-z0-9-]+)`\s+skill(?:'s)?")
-MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
 SKILL_DIRECTORY_REFERENCE = re.compile(r"<skill-directory>/([^\s`'\")\]]+)")
 REQUIRED_METADATA = ("name", "description", "kind", "domain", "profile", "applicability", "requires", "provenance")
 REPOSITORY_TYPES = ("stack", "tool", "utility")
@@ -276,6 +278,576 @@ def is_link_or_junction(path: Path) -> bool:
         return False
     return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
 
+
+def package_text(files: dict[str, bytes], path: str) -> str:
+    if path not in files:
+        raise ValueError(f"{path}: missing shipped file")
+    try:
+        return files[path].decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    except UnicodeError as error:
+        raise ValueError(f"{path}: invalid UTF-8 ({error})") from None
+
+
+def package_present(files: dict[str, bytes], path: str) -> bool:
+    return path in files or any(key.startswith(path + "/") for key in files)
+
+
+def package_target(
+    files: dict[str, bytes], package: str, directory: str, value: str, where: str
+) -> str:
+    if (
+        not value or "\\" in value or ":" in value or "\x00" in value
+        or PurePosixPath(value).is_absolute()
+    ):
+        raise ValueError(f"{where}: unsafe local reference {value!r}")
+    target = posixpath.normpath(posixpath.join(directory, value))
+    prefix = f"plugins/{package}"
+    if target != prefix and not target.startswith(prefix + "/"):
+        raise ValueError(f"{where}: reference leaves package: {value!r}")
+    package_relative(target, where)
+    if not package_present(files, target):
+        raise ValueError(f"{where}: reference is not shipped: {value!r}")
+    return target
+
+
+def package_markdown_value(value: str) -> str:
+    return unescape(re.sub(
+        r"\\(.)",
+        lambda match: match[1] if match[1] in punctuation else match[0],
+        value,
+    ))
+
+
+def package_code_end(text: str, start: int) -> int | None:
+    opening = re.match(r"`+", text[start:])
+    if opening is None:
+        return None
+    length = len(opening[0])
+    for closing in re.finditer(r"`+", text[start + length:]):
+        if len(closing[0]) == length:
+            end = start + length + closing.end()
+            try:
+                package_inline_boundary(text, start, end)
+            except ValueError:
+                return None
+            return end
+    return None
+
+
+def package_quote_line(line: str, count: int | None = None) -> tuple[int, str] | None:
+    quotes = 0
+    while count is None or quotes < count:
+        marker = re.match(r" {0,3}>[ \t]?", line)
+        if marker is None:
+            if count is not None:
+                return None
+            break
+        line = line[marker.end():]
+        quotes += 1
+    return quotes, line
+
+
+def package_inline_boundary(text: str, start: int, end: int) -> None:
+    if re.search(
+        r"\n[ \t]*\n|\n[ \t]*(?:#{1,6}(?:[ \t]|$)|>|(?:[-+*]|\d{1,9}[.)])[ \t]+|`{3,}|~{3,}|(?:[-*_][ \t]*){3,}(?:\n|$)|[=-]+[ \t]*(?:\n|$)|<)",
+        text[start:end],
+    ):
+        raise ValueError("ambiguous multiline inline token crosses a block boundary")
+
+
+def package_tag_end(text: str, start: int) -> int | None:
+    match = re.match(
+        r"""</[A-Za-z][A-Za-z0-9-]*[ \t\n]*>|<[A-Za-z][A-Za-z0-9-]*(?:[ \t\n]+[A-Za-z_:][A-Za-z0-9_.:-]*(?:[ \t\n]*=[ \t\n]*(?:[^ \t\n"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t\n]*/?>""",
+        text[start:],
+    )
+    if match is None:
+        return None
+    end = start + match.end()
+    package_inline_boundary(text, start, end)
+    return end
+
+
+def package_comment_end(text: str, start: int) -> int | None:
+    if text.startswith("<!-->", start):
+        return start + 5
+    if text.startswith("<!--->", start):
+        return start + 6
+    if text.startswith("<!--", start):
+        closing = text.find("-->", start + 4)
+        if closing >= 0:
+            end = closing + 3
+            package_inline_boundary(text, start, end)
+            return end
+    return None
+
+
+def package_html_block(body: str, previous_blank: bool) -> str | None:
+    value = body.lstrip(" ")
+    if len(body) - len(value) > 3:
+        return None
+    special = re.match(r"(?i)<(script|pre|style|textarea)(?:[ \t>]|$)", value)
+    if special:
+        return r"(?i)</" + special[1] + r"[ \t]*>"
+    for opening, ending in (("<!--", "-->"), ("<?", r"\?>"), ("<![CDATA[", r"\]\]>")):
+        if value.startswith(opening):
+            return ending
+    if re.match(r"<![A-Z]", value):
+        return ">"
+    tags = (
+        "address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|"
+        "dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|"
+        "frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|"
+        "li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|"
+        "search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul"
+    )
+    if re.match(r"(?i)</?(?:" + tags + r")(?:[ \t/>]|$)", value):
+        return ""
+    end = package_tag_end(value, 0)
+    if previous_blank and end is not None and not value[end:].strip():
+        return ""
+    return None
+
+
+def package_active_markdown(text: str) -> str:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    characters = list(text)
+    fence: tuple[str, int, int, int] | None = None
+    indented: tuple[int, int] | None = None
+    html_block: tuple[str, int, int] | None = None
+    list_widths: list[int] = []
+    list_quotes = 0
+    label_limit = -1
+    index = 0
+
+    def mask(start: int, end: int) -> None:
+        for position in range(start, end):
+            if characters[position] != "\n":
+                characters[position] = " "
+
+    while index < len(text):
+        line_start = text.rfind("\n", 0, index) + 1
+        if index == line_start:
+            end = text.find("\n", index)
+            end = len(text) if end < 0 else end + 1
+            line = text[index:end].removesuffix("\n")
+            if html_block is not None:
+                ending, quotes, width = html_block
+                quoted = package_quote_line(line, quotes)
+                if quoted is not None:
+                    content = quoted[1]
+                    indent = len(content) - len(content.lstrip(" "))
+                    if not content.strip():
+                        if not ending:
+                            html_block = None
+                        else:
+                            mask(index, end)
+                            index = end
+                            continue
+                    elif indent >= width:
+                        if ending and re.search(ending, content[width:]):
+                            html_block = None
+                        mask(index, end)
+                        index = end
+                        continue
+                    else:
+                        html_block = None
+                else:
+                    html_block = None
+            if fence is not None:
+                delimiter, length, quotes, width = fence
+                quoted = package_quote_line(line, quotes)
+                if quoted is not None:
+                    content = quoted[1]
+                    indent = len(content) - len(content.lstrip(" "))
+                    if not content.strip() or indent >= width:
+                        closing = content[width:]
+                        if re.fullmatch(r" {0,3}" + re.escape(delimiter) + "{" + str(length) + r",}[ \t]*", closing):
+                            fence = None
+                        mask(index, end)
+                        index = end
+                        continue
+                fence = None
+            quotes, content = package_quote_line(line)
+            indent = len(content) - len(content.lstrip(" "))
+            if quotes != list_quotes:
+                list_widths = []
+                list_quotes = quotes
+            if content.strip():
+                while list_widths and indent < list_widths[-1]:
+                    list_widths.pop()
+            marker = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+", content)
+            if marker is not None:
+                width = marker.end()
+                list_widths.append(width)
+                body = content[width:]
+            else:
+                width = list_widths[-1] if list_widths else 0
+                body = content[width:]
+            previous_start = text.rfind("\n", 0, max(0, index - 1)) + 1
+            previous_blank = index == 0 or not "".join(characters[previous_start:index]).strip()
+            if indented is not None:
+                if not content.strip() or (quotes, width) == indented and indent >= width + 4:
+                    mask(index, end)
+                    index = end
+                    continue
+                indented = None
+            if marker is None and indent >= width + 4 and previous_blank:
+                indented = quotes, width
+                mask(index, end)
+                index = end
+                continue
+            html_ending = package_html_block(body, previous_blank)
+            if html_ending is not None:
+                if not html_ending or not re.search(html_ending, body):
+                    html_block = html_ending, quotes, width
+                mask(index, end)
+                index = end
+                continue
+            opening = re.match(r" {0,3}(`{3,}|~{3,})([^\n]*)$", body)
+            if opening is not None and (opening[1][0] != "`" or "`" not in opening[2]):
+                fence = opening[1][0], len(opening[1]), quotes, width
+                mask(index, end)
+                index = end
+                continue
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == "<":
+            end = package_tag_end(text, index)
+            if end is not None:
+                index = end
+                continue
+            end = package_comment_end(text, index)
+            if end is not None:
+                mask(index, end)
+                characters[index] = "x"
+                index = end
+                continue
+        if text[index] == "[":
+            end = package_label_end(text, index)
+            if end is not None:
+                label_limit = max(label_limit, end)
+                if text[end + 1:end + 2] == "(":
+                    package_destination(text, end + 2, ")")
+                elif text[end + 1:end + 2] == ":":
+                    prefix = package_quote_line(text[line_start:index])[1]
+                    marker = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+", prefix)
+                    prefix = prefix[marker.end():] if marker else prefix
+                    if not prefix.strip():
+                        package_destination(text, end + 2, None)
+        if text[index] == "`":
+            end = package_code_end(text, index)
+            if end is not None:
+                if index > label_limit:
+                    mask(index, end)
+                    characters[index] = "x"
+                index = end
+                continue
+            index += len(re.match(r"`+", text[index:])[0])
+            continue
+        index += 1
+    return "".join(characters)
+
+
+def package_label_end(text: str, start: int) -> int | None:
+    depth = 1
+    index = start + 1
+    while index < len(text):
+        character = text[index]
+        if character == "\\":
+            index += 2
+            continue
+        if character == "<":
+            end = package_tag_end(text, index)
+            if end is None:
+                end = package_comment_end(text, index)
+            if end is not None:
+                index = end
+                continue
+        if character == "`":
+            end = package_code_end(text, index)
+            if end is not None:
+                index = end
+                continue
+            index += len(re.match(r"`+", text[index:])[0])
+            continue
+        if character == "[":
+            depth += 1
+        elif character == "]":
+            depth -= 1
+            if depth == 0:
+                try:
+                    package_inline_boundary(text, start, index + 1)
+                except ValueError:
+                    return None
+                return index
+        index += 1
+    return None
+
+
+def package_destination(text: str, start: int, closing: str | None) -> tuple[str, int] | None:
+    index = start
+    while index < len(text) and text[index].isspace():
+        index += 1
+    begin = index
+    if index < len(text) and text[index] == "<":
+        index += 1
+        begin = index
+        while index < len(text):
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] in ("\n", "<"):
+                return None
+            if text[index] == ">":
+                value = text[begin:index]
+                index += 1
+                break
+            index += 1
+        else:
+            return None
+    else:
+        depth = 0
+        while index < len(text):
+            character = text[index]
+            if character == "\\":
+                index += 2
+                continue
+            if character.isspace():
+                break
+            if character == "(":
+                depth += 1
+            elif character == ")":
+                if depth == 0:
+                    break
+                depth -= 1
+            index += 1
+        if depth:
+            return None
+        value = text[begin:index]
+    end = index
+    if closing is None:
+        line_end = text.find("\n", index)
+        if line_end < 0:
+            line_end = len(text)
+        suffix = text[index:line_end].strip()
+        if not suffix:
+            return value, line_end
+        if suffix[0] not in ('"', "'", "("):
+            return None
+    while index < len(text) and text[index].isspace():
+        index += 1
+    title_start = None
+    if index > end and index < len(text) and text[index] in ('"', "'", "("):
+        title_start = index
+        delimiter = ")" if text[index] == "(" else text[index]
+        index += 1
+        while index < len(text) and text[index] != delimiter:
+            index += 2 if text[index] == "\\" else 1
+        if index >= len(text):
+            return None
+        index += 1
+        title_end = index
+        if closing is None:
+            line_end = text.find("\n", index)
+            if line_end < 0:
+                line_end = len(text)
+            if text[index:line_end].strip():
+                return None
+            package_inline_boundary(text, title_start, title_end)
+            return value, line_end
+        while index < len(text) and text[index].isspace():
+            index += 1
+    if closing is not None and index < len(text) and text[index] == closing:
+        if title_start is not None:
+            package_inline_boundary(text, title_start, title_end)
+        return value, index + 1
+    return None
+
+
+def package_label_destinations(
+    text: str, start: int, end: int, definitions: dict[str, str], ambiguous: set[str]
+) -> list[str]:
+    images: list[str] = []
+    index = start
+    while index < end:
+        character = text[index]
+        if character == "\\":
+            index += 2
+            continue
+        if character == "`":
+            closing = package_code_end(text, index)
+            index = closing if closing is not None else index + len(re.match(r"`+", text[index:])[0])
+            continue
+        if character == "<":
+            closing = package_tag_end(text, index)
+            if closing is None:
+                closing = package_comment_end(text, index)
+            if closing is not None:
+                index = closing
+                continue
+            closing = text.find(">", index + 1, end)
+            if closing >= 0:
+                value = text[index + 1:closing]
+                if URL_SCHEME.match(value) and not any(character.isspace() for character in value):
+                    raise ValueError("ambiguous nested active link in label")
+        if character != "[":
+            index += 1
+            continue
+        closing = package_label_end(text, index)
+        if closing is None or closing >= end:
+            index += 1
+            continue
+        label = text[index + 1:closing]
+        after = closing + 1
+        parsed = package_destination(text, after + 1, ")") if text[after:after + 1] == "(" else None
+        value = None
+        if parsed is not None:
+            value, after = parsed
+        else:
+            while after < end and text[after].isspace():
+                after += 1
+            if text[after:after + 1] == "[":
+                reference_end = package_label_end(text, after)
+                if reference_end is not None and reference_end < end:
+                    label = text[after + 1:reference_end] or label
+                    after = reference_end + 1
+            label = " ".join(package_markdown_value(label).split()).casefold()
+            if label in ambiguous:
+                raise ValueError(f"ambiguous reference definition cannot interrupt paragraph: {label!r}")
+            value = definitions.get(label)
+        if value is None:
+            index += 1
+            continue
+        if index == 0 or text[index - 1] != "!":
+            raise ValueError("ambiguous nested active link in label")
+        images.append(value)
+        index = after
+    return images
+
+
+def package_destinations(text: str):
+    text = package_active_markdown(text)
+    definitions: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    spans: dict[int, int] = {}
+    paragraph = False
+    context = (0, 0)
+    list_width = 0
+    offset = 0
+    consumed = 0
+    for line in text.splitlines(keepends=True):
+        quotes, content = package_quote_line(line)
+        indent = len(content) - len(content.lstrip(" "))
+        marker = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+", content)
+        if marker is not None:
+            list_width = marker.end()
+            paragraph = False
+        elif content.strip() and indent < list_width:
+            list_width = 0
+        current = quotes, list_width
+        if current != context:
+            paragraph = False
+            context = current
+        body = content[list_width:]
+        body_start = offset + len(line) - len(body)
+        match = re.match(r" {0,3}\[((?:\\.|[^\]\\\n])+)\]:", body)
+        if offset < consumed:
+            offset += len(line)
+            continue
+        if match is not None:
+            parsed = package_destination(text, body_start + match.end(), None)
+            if parsed is not None:
+                value, end = parsed
+                label = " ".join(package_markdown_value(match[1]).split()).casefold()
+                if paragraph:
+                    ambiguous.add(label)
+                else:
+                    definitions.setdefault(label, value)
+                spans[offset] = end
+                consumed = end
+                offset += len(line)
+                continue
+        if not body.strip() or re.match(
+            r" {0,3}(?:#{1,6}(?:[ \t]|$)|(?:[-*_][ \t]*){3,}$|[=-]+[ \t]*$)", body
+        ):
+            paragraph = False
+        else:
+            paragraph = True
+        offset += len(line)
+    index = 0
+    while index < len(text):
+        if index in spans:
+            index = max(index + 1, spans[index])
+            continue
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == "`":
+            end = package_code_end(text, index)
+            index = end if end is not None else index + len(re.match(r"`+", text[index:])[0])
+            continue
+        if text[index] == "<":
+            tag_end = package_tag_end(text, index)
+            if tag_end is not None:
+                index = tag_end
+                continue
+            end = text.find(">", index + 1)
+            if end >= 0:
+                value = text[index + 1:end]
+                if URL_SCHEME.match(value) and not any(character.isspace() for character in value):
+                    yield value
+                    index = end + 1
+                    continue
+        if text[index] != "[":
+            index += 1
+            continue
+        end = package_label_end(text, index)
+        if end is None:
+            index += 1
+            continue
+        label = text[index + 1:end]
+        label_start, label_end = index + 1, end
+        after = end + 1
+        if after < len(text) and text[after] == "(":
+            parsed = package_destination(text, after + 1, ")")
+            if parsed is not None:
+                value, after = parsed
+                yield from package_label_destinations(text, label_start, label_end, definitions, ambiguous)
+                yield value
+                index = after
+                continue
+        while after < len(text) and text[after].isspace():
+            after += 1
+        if after < len(text) and text[after] == "[":
+            reference_end = package_label_end(text, after)
+            if reference_end is not None:
+                label = text[after + 1:reference_end] or label
+                end = reference_end
+        label = " ".join(package_markdown_value(label).split()).casefold()
+        if label in ambiguous:
+            raise ValueError(f"ambiguous reference definition cannot interrupt paragraph: {label!r}")
+        if label in definitions:
+            yield from package_label_destinations(text, label_start, label_end, definitions, ambiguous)
+            yield definitions[label]
+            index = end + 1
+        else:
+            index += 1
+
+
+def package_links(text: str):
+    for destination in package_destinations(text):
+        value = package_markdown_value(destination)
+        if value.startswith("#"):
+            continue
+        if re.match(r"(?i)^(?:[a-z]:|file:)", value):
+            yield value
+            continue
+        if URL_SCHEME.match(value):
+            continue
+        value = unquote(value, errors="strict").split("#", 1)[0]
+        if value:
+            yield value
 
 def load_config(root: Path) -> dict:
     config = load(root / ".agents/plugins/kit.json")
@@ -585,12 +1157,7 @@ def adapter_body(skill: dict, adapter_dir: str, canonical_dir: str | None = None
 
 
 def references(body: str):
-    for target in MARKDOWN_LINK.findall(body):
-        if URL_SCHEME.match(target) or target.startswith(("#", "/")):
-            continue
-        target = target.split("#", 1)[0]
-        if target:
-            yield target
+    yield from package_links(body)
     for target in SKILL_DIRECTORY_REFERENCE.findall(body):
         yield target.rstrip(".,;:")
 
@@ -616,8 +1183,16 @@ def validate_file_references(
     adapter_locations: list[tuple[dict, str, str, bool, bool]],
     output: dict,
 ) -> None:
-    def present(path: str) -> bool:
-        return path in output or any(key.startswith(path + "/") for key in output)
+    root_resolved = root.resolve()
+
+    for path in sorted(output):
+        parts = PurePosixPath(path).parts
+        if len(parts) < 3 or parts[0] != "plugins" or not path.endswith(".md"):
+            continue
+        package = parts[1]
+        directory = PurePosixPath(path).parent.as_posix()
+        for target in sorted(set(package_links(package_text(output, path)))):
+            package_target(output, package, directory, target, path)
 
     def validate(
         plugin: str,
@@ -628,15 +1203,27 @@ def validate_file_references(
         source_exists: bool,
         generated_required: bool,
     ) -> None:
+        where = f"{plugin}:{skill['name']}"
         for target in sorted(set(references(body))):
-            source = posixpath.normpath(posixpath.join(source_dir, target))
-            if source.startswith("../"):
-                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
-            if source_exists and not (root / source).exists():
-                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
-            shipped = posixpath.normpath(posixpath.join(shipped_dir, target))
-            if generated_required and not present(shipped):
-                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
+            if generated_required:
+                package = PurePosixPath(shipped_dir).parts[1]
+                package_target(output, package, shipped_dir, target, where)
+            if (
+                not target or "\\" in target or ":" in target or "\x00" in target
+                or PurePosixPath(target).is_absolute()
+            ):
+                raise ValueError(f"{where}: unsafe local reference {target!r}")
+            if source_exists:
+                source = posixpath.normpath(posixpath.join(source_dir, target))
+                source_path = PurePosixPath(source)
+                if source_path.is_absolute() or source == ".." or source.startswith("../"):
+                    raise ValueError(f"{where}: {target} does not resolve from {source_dir}")
+                candidate = root / source
+                resolved = candidate.resolve()
+                if resolved != root_resolved and root_resolved not in resolved.parents:
+                    raise ValueError(f"{where}: {target} does not resolve from {source_dir}")
+                if not candidate.exists():
+                    raise ValueError(f"{where}: {target} does not resolve from {source_dir}")
 
     for plugin, skills in plugins.items():
         for skill in skills.values():
