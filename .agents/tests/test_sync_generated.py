@@ -94,7 +94,10 @@ class GeneratorTestCase(unittest.TestCase):
         payloads = json.loads(path.read_text(encoding="utf-8"))
         payloads["dependencies"] = {"demo": ["base-agents/machine"]}
         write_json(path, payloads)
-        self.assertEqual(["base-agents/machine"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        self.assertEqual(
+            ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine", "base-agents/machine"],
+            json.loads(self.build()["plugins/demo/selection.json"])["dependencies"],
+        )
         for invalid in ("base-agents/*", "base-agents/machine/extra", "unknown", {}):
             payloads["dependencies"] = {"demo": [invalid]}
             write_json(path, payloads)
@@ -106,7 +109,9 @@ class GeneratorTestCase(unittest.TestCase):
         self.assertNotIn("plugins/demo/harness.json", sync_generated.build(self.root))
         manifest = {"schema_version": 1, "plugin": "demo-agents/demo", "source_roots": [".agents/demo"], "requires": {}}
         write_json(self.root / ".agents/plugins/manifests/harness/demo.json", manifest)
-        self.assertEqual(json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"]), manifest)
+        generated = json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"])
+        self.assertEqual(["demo-agents/demo", "tj-agents/base", "tj-agents/engineering", "tj-agents/machine"], generated["requires"]["plugins"])
+        self.assertEqual([{"id": "tj-agents", "repository": "tj-agents/marketplace"}], generated["requires"]["marketplaces"])
 
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
@@ -372,16 +377,16 @@ class RejectionTests(GeneratorTestCase):
         write_json(self.root / ".agents/plugins/payloads.json", {"payloads": {"demo": ["demo", "demo"]}})
         self.assert_rejected("demo must select exactly one canonical source")
 
-    def test_dependencies_can_use_another_source_public_alias_but_not_its_own(self) -> None:
+    def test_dependencies_reject_local_aliases_and_self_dependencies(self) -> None:
         make_repository(self.root, ("demo", "extra"))
         add_publication(self.root, "template", "extra")
         payloads = json.loads((self.root / ".agents/plugins/payloads.json").read_text(encoding="utf-8"))
         payloads["dependencies"] = {"demo": ["template"]}
         write_json(self.root / ".agents/plugins/payloads.json", payloads)
-        self.assertEqual(["template"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        self.assert_rejected("cannot depend on local alias template")
         payloads["dependencies"] = {"extra": ["template"]}
         write_json(self.root / ".agents/plugins/payloads.json", payloads)
-        self.assert_rejected("extra cannot depend on template")
+        self.assert_rejected("extra cannot depend on local alias template")
         payloads["dependencies"] = {"demo": ["demo-agents/demo"]}
         write_json(self.root / ".agents/plugins/payloads.json", payloads)
         self.assert_rejected("demo cannot depend on demo-agents/demo")
@@ -421,7 +426,7 @@ class RejectionTests(GeneratorTestCase):
         write_json(harness, valid)
         with mock.patch.object(sync_generated, "read", side_effect=OSError("locked")):
             with self.assertRaisesRegex(ValueError, "unreadable JSON"):
-                sync_generated.harness_body(self.root, "demo", "demo-agents", {})
+                sync_generated.harness_body(self.root, "demo", "demo-agents", {}, [], False)
 
     def test_harness_cannot_claim_another_publication_source(self) -> None:
         make_repository(self.root, ("demo", "extra"))
@@ -465,7 +470,7 @@ class RejectionTests(GeneratorTestCase):
     def test_pinned_kit_version_must_match_the_generator(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         write_json(path, {**json.loads(path.read_text()), "kit": "0.0.1"})
-        self.assert_rejected("run kit:update")
+        self.assert_rejected("run template:update")
 
     def test_byte_order_mark(self) -> None:
         path = self.root / ".agents/demo/contract/style/SKILL.md"

@@ -1,20 +1,18 @@
-# kit
+# Template
 
 Meta-scaffolder for plugin repositories. Every stack, tool and utility plugin repository shares one layout, one
-vendored generator and one CI workflow, all owned here. Template is an additional installable package from the
-same `kit-agents` marketplace and ships the identical canonical `.agents/kit` procedures and resources.
+vendored generator and one CI workflow, all owned here. Install the Template package to use these procedures
+and resources.
 
 ## Install
 
-Existing `kit@kit-agents` installations remain supported. Install `template@kit-agents` when the Template package
-name fits the consuming environment; both packages retain their own manifests and native adapters while using the
-same source procedures.
+Install `template@kit-agents`. Existing Kit installations remain compatible during migration to Template.
 
 ## Skills
 
-- `kit:new-plugin` creates a stack, tool or utility plugin repository.
-- `kit:check` checks a plugin repository against the layout and the standard its type requires.
-- `kit:update` moves a plugin repository to this kit release.
+- `template:new-plugin` creates a stack, tool or utility plugin repository.
+- `template:check` checks a plugin repository against the layout and the standard its type requires.
+- `template:update` moves a plugin repository to this Template release.
 
 ## Repository types
 
@@ -26,8 +24,8 @@ same source procedures.
 
 ## Shared CI
 
-A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the kit tag it pins.
-The workflow checks the generated outputs, runs the repository's own tests, `kit:check` and core's tier payload check, and
+A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the Template release tag it pins.
+The workflow checks the generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private `kit` and
 `core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
 
@@ -45,7 +43,7 @@ predicates. Core validates their detailed shape. New repositories include a self
 Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
 `marketplace/plugin` identities; the generator preserves external identities for the consuming harness.
 
-`kit:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
+`template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
 identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
-against kit, core, react and dotnet, using `GITHUB_TOKEN` unless an optional read token is supplied.
+against Template, Core, React and .NET, using `GITHUB_TOKEN` unless an optional read token is supplied.

@@ -58,7 +58,17 @@ class NewPluginTests(unittest.TestCase):
         harness = json.loads((repository / f"plugins/{name}/harness.json").read_text(encoding="utf-8"))
         marketplaces = {entry["id"] for entry in harness["requires"]["marketplaces"]}
         self.assertEqual(f"{name}-agents/{name}", harness["plugin"])
-        self.assertIn("base-agents/base", harness["requires"]["plugins"])
+        plugins = harness["requires"]["plugins"]
+        if "tj-agents/base" in plugins:
+            self.assertEqual([f"{name}-agents/{name}", "tj-agents/base", "tj-agents/engineering", "tj-agents/machine"], plugins)
+            selection = json.loads((repository / f"plugins/{name}/selection.json").read_text(encoding="utf-8"))
+            self.assertEqual(["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"], selection["dependencies"])
+            claude = json.loads((repository / f"plugins/{name}/.claude-plugin/plugin.json").read_text(encoding="utf-8"))
+            self.assertEqual(["base@tj-agents", "engineering@tj-agents", "machine@tj-agents"], claude["dependencies"])
+            marketplace = json.loads((repository / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+            self.assertEqual(["tj-agents"], marketplace["allowCrossMarketplaceDependenciesOn"])
+        else:
+            self.assertEqual([f"{name}-agents/{name}", "base-agents/base"], plugins)
         self.assertTrue(all(identity.split("/")[0] in marketplaces for identity in [harness["plugin"], *harness["requires"]["plugins"]]))
         for source in (repository / ".agents" / name).rglob("SKILL.md"):
             skill = next(line.removeprefix("name: ") for line in source.read_text(encoding="utf-8").splitlines() if line.startswith("name: "))
@@ -106,8 +116,8 @@ class NewPluginTests(unittest.TestCase):
         for relative in VENDORED:
             self.assertEqual((ROOT / relative).read_bytes(), (repository / relative).read_bytes(), relative)
         ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.4.0", ci)
-        self.assertIn("kit_ref: v1.4.0", ci)
+        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.6.0", ci)
+        self.assertIn("kit_ref: v1.6.0", ci)
 
     def test_refuses_an_existing_repository_and_a_stack_without_markers(self) -> None:
         (self.destination / "zig").mkdir()
