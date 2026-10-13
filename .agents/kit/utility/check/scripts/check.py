@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a plugin repository against kit's layout and standard."""
+"""Check a plugin repository against Template's layout and standard."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def owns_templates(root: Path) -> bool:
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
     running = new_plugin.kit_version()
     if pinned != running:
-        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
+        return [f".agents/plugins/kit.json pins Template {pinned}; this check is {running}: run update"]
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
@@ -54,7 +54,7 @@ def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
 
 def check_files(root: Path) -> list[str]:
     problems = [f"{name}: required" for name in STANDARD["root_files"] if not (root / name).is_file()]
-    problems += [f"{name}: retired; kit documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
+    problems += [f"{name}: retired; Template documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
     plugins_root = root / ".agents/plugins"
     if not plugins_root.is_dir():
         return [*problems, ".agents/plugins: required"]
@@ -217,7 +217,7 @@ def check_effective_dependency_projection(root: Path, config: dict, generated: d
 def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
-        return [".agents/plugins/kit.json: missing; this is not a kit plugin repository"]
+        return [".agents/plugins/kit.json: missing; this is not a Template plugin repository"]
     try:
         config = json.loads(text(config_path))
     except json.JSONDecodeError as error:
@@ -261,9 +261,9 @@ def main() -> int:
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:
-        print(f"{root.name} does not conform to kit {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
+        print(f"{root.name} does not conform to Template {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
         return 1
-    print(f"{root.name} conforms to kit {new_plugin.kit_version()}")
+    print(f"{root.name} conforms to Template {new_plugin.kit_version()}")
     return 0
 
 

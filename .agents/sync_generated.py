@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a plugin repository's host discovery entries, marketplaces and installable payloads.
 
-Vendored from the kit repository and pinned by `.agents/plugins/kit.json`: change it in kit, never here.
+Vendored from the Template repository and pinned by `.agents/plugins/kit.json`: change it in Template, never here.
 """
 
 from __future__ import annotations
@@ -98,8 +98,8 @@ def load_config(root: Path) -> dict:
         raise ValueError(".agents/plugins/kit.json: schema_version must be 1")
     if config.get("kit") != KIT_VERSION:
         raise ValueError(
-            f".agents/plugins/kit.json pins kit {config.get('kit')} but this generator is kit {KIT_VERSION}; "
-            "run kit:update"
+            f".agents/plugins/kit.json pins Template {config.get('kit')} but this generator is Template {KIT_VERSION}; "
+            "run template:update"
         )
     if config.get("type") not in REPOSITORY_TYPES:
         raise ValueError(f".agents/plugins/kit.json: type must be one of {', '.join(REPOSITORY_TYPES)}")

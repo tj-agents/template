@@ -16,7 +16,7 @@
   "interface": {
     "displayName": "Template",
     "shortDescription": "Create and keep plugin repositories in one layout.",
-    "longDescription": "Creates stack, tool and utility plugin repositories in one shared layout, with the generator, CI and conformance files vendored from kit and pinned to a release.",
+    "longDescription": "Creates stack, tool and utility plugin repositories in one shared layout, with the generator, CI and conformance files vendored from Template and pinned to a release.",
     "developerName": "Tommy Seery",
     "category": "Productivity",
     "capabilities": [],

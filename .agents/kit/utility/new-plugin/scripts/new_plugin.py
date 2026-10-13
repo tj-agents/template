@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a plugin repository in the kit layout."""
+"""Create a plugin repository in the Template layout."""
 
 from __future__ import annotations
 

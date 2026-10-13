@@ -177,7 +177,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins kit 0.9.0; this check is 1.6.0: run update")
+        self.assert_problem("pins Template 0.9.0; this check is 1.6.0: run update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
