@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vendor this kit release's shared files into a plugin repository and pin the repository to it."""
+"""Vendor this Template release's shared files into a plugin repository and pin the repository to it."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def update(root: Path, dry_run: bool) -> list[str]:
     new_plugin = load_new_plugin()
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
-        raise ValueError(f"{config_path}: missing; this is not a kit plugin repository")
+        raise ValueError(f"{config_path}: missing; this is not a Template plugin repository")
     config = json.loads(config_path.read_text(encoding="utf-8"))
     if not new_plugin.REPOSITORY.fullmatch(str(config.get("repository", ""))):
         raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")

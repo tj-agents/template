@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a plugin repository against kit's layout and standard."""
+"""Check a plugin repository against Template's layout and standard."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def owns_templates(root: Path) -> bool:
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
     running = new_plugin.kit_version()
     if pinned != running:
-        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
+        return [f".agents/plugins/kit.json pins Template {pinned}; this check is {running}: run update"]
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
@@ -54,7 +54,7 @@ def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
 
 def check_files(root: Path) -> list[str]:
     problems = [f"{name}: required" for name in STANDARD["root_files"] if not (root / name).is_file()]
-    problems += [f"{name}: retired; kit documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
+    problems += [f"{name}: retired; Template documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
     plugins_root = root / ".agents/plugins"
     if not plugins_root.is_dir():
         return [*problems, ".agents/plugins: required"]
@@ -173,10 +173,51 @@ def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -
     return problems
 
 
+def check_effective_dependency_projection(root: Path, config: dict, generated: dict[str, bytes]) -> list[str]:
+    if config["type"] != "stack":
+        return []
+    paths = [path for path in generated if path == ".claude-plugin/marketplace.json" or path.endswith(("/selection.json", "/harness.json", "/.claude-plugin/plugin.json"))]
+    present = [path for path in paths if (root / path).is_file()]
+    if not present:
+        return []
+    problems = []
+    for path in paths:
+        actual = root / path
+        if not actual.is_file():
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+            continue
+        try:
+            expected = json.loads(generated[path])
+            observed = json.loads(text(actual))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+            continue
+        if not isinstance(expected, dict) or not isinstance(observed, dict):
+            matches = False
+        elif path.endswith("/selection.json"):
+            matches = observed.get("dependencies") == expected.get("dependencies")
+        elif path.endswith("/harness.json"):
+            observed_requires = observed.get("requires")
+            expected_requires = expected.get("requires")
+            matches = (
+                isinstance(observed_requires, dict)
+                and isinstance(expected_requires, dict)
+                and observed_requires.get("plugins") == expected_requires.get("plugins")
+                and observed_requires.get("marketplaces") == expected_requires.get("marketplaces")
+            )
+        elif path.endswith("/.claude-plugin/plugin.json"):
+            matches = observed.get("dependencies") == expected.get("dependencies")
+        else:
+            matches = observed.get("allowCrossMarketplaceDependenciesOn") == expected.get("allowCrossMarketplaceDependenciesOn")
+        if not matches:
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+    return problems
+
+
 def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
-        return [".agents/plugins/kit.json: missing; this is not a kit plugin repository"]
+        return [".agents/plugins/kit.json: missing; this is not a Template plugin repository"]
     try:
         config = json.loads(text(config_path))
     except json.JSONDecodeError as error:
@@ -199,7 +240,7 @@ def check(root: Path) -> list[str]:
     problems += check_agents_entries(root, set(plugins))
     problems += check_standard(root, kind, namespace, plugins)
     try:
-        generator.build(root)
+        generated = generator.build(root)
     except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
         return problems + [str(error)]
     payloads_path = root / ".agents/plugins/payloads.json"
@@ -208,6 +249,7 @@ def check(root: Path) -> list[str]:
     except (json.JSONDecodeError, AttributeError) as error:
         return problems + [f".agents/plugins/payloads.json: not a JSON object ({error})"]
     problems += check_names(plugins, aliases)
+    problems += check_effective_dependency_projection(root, config, generated)
     return problems
 
 
@@ -219,9 +261,9 @@ def main() -> int:
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:
-        print(f"{root.name} does not conform to kit {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
+        print(f"{root.name} does not conform to Template {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
         return 1
-    print(f"{root.name} conforms to kit {new_plugin.kit_version()}")
+    print(f"{root.name} conforms to Template {new_plugin.kit_version()}")
     return 0
 
 

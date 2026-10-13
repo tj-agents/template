@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a plugin repository in the kit layout."""
+"""Create a plugin repository in the Template layout."""
 
 from __future__ import annotations
 
@@ -140,6 +140,16 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         "kit_version": kit_version(),
         "date": date.today().isoformat(),
         "agents_rules": AGENTS_RULES[arguments.type].format(learner=arguments.learner),
+        "harness_requires_json": json.dumps(
+            {
+                "marketplaces": [{"id": f"{namespace}-agents", "repository": arguments.repository}]
+                + ([] if arguments.type == "stack" else [{"id": "base-agents", "repository": "tj-agents/core"}]),
+                "plugins": [f"{namespace}-agents/{namespace}"]
+                + ([] if arguments.type == "stack" else ["base-agents/base"]),
+                "hooks": [],
+                "permissions": {"claude_allow": [], "codex_prefix_rules": []},
+            }
+        ),
     }
     if arguments.type == "utility":
         values["skill"] = arguments.skill
