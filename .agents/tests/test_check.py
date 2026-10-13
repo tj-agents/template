@@ -86,11 +86,17 @@ class StackCheckTests(RenderedRepositoryTestCase):
         path.write_text(json.dumps({**selection, "dependencies": []}, indent=2) + "\n", encoding="utf-8")
         self.assert_problem("plugins/zig/selection.json: effective dependency projection is missing or differs")
 
-    def test_stack_generated_dependency_projection_must_match(self) -> None:
-        path = self.root / "plugins/zig/selection.json"
-        selection = json.loads(path.read_text(encoding="utf-8"))
-        path.write_text(json.dumps({**selection, "dependencies": []}, indent=2) + "\n", encoding="utf-8")
+    def test_stack_generated_dependency_projection_reports_wrong_json_shapes(self) -> None:
+        selection = self.root / "plugins/zig/selection.json"
+        selection.write_text("[]\n", encoding="utf-8")
         self.assert_problem("plugins/zig/selection.json: effective dependency projection is missing or differs")
+
+        harness = self.root / "plugins/zig/harness.json"
+        harness.write_text("[]\n", encoding="utf-8")
+        self.assert_problem("plugins/zig/harness.json: effective dependency projection is missing or differs")
+
+        harness.write_text('{"requires": []}\n', encoding="utf-8")
+        self.assert_problem("plugins/zig/harness.json: effective dependency projection is missing or differs")
 
     def test_generator_validation_reports_invalid_payload_manifest_tier_and_reference(self) -> None:
         payloads = self.root / ".agents/plugins/payloads.json"

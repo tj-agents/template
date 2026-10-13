@@ -192,10 +192,19 @@ def check_effective_dependency_projection(root: Path, config: dict, generated: d
         except (json.JSONDecodeError, UnicodeDecodeError):
             problems.append(f"{path}: effective dependency projection is missing or differs")
             continue
-        if path.endswith("/selection.json"):
+        if not isinstance(expected, dict) or not isinstance(observed, dict):
+            matches = False
+        elif path.endswith("/selection.json"):
             matches = observed.get("dependencies") == expected.get("dependencies")
         elif path.endswith("/harness.json"):
-            matches = observed.get("requires", {}).get("plugins") == expected.get("requires", {}).get("plugins") and observed.get("requires", {}).get("marketplaces") == expected.get("requires", {}).get("marketplaces")
+            observed_requires = observed.get("requires")
+            expected_requires = expected.get("requires")
+            matches = (
+                isinstance(observed_requires, dict)
+                and isinstance(expected_requires, dict)
+                and observed_requires.get("plugins") == expected_requires.get("plugins")
+                and observed_requires.get("marketplaces") == expected_requires.get("marketplaces")
+            )
         elif path.endswith("/.claude-plugin/plugin.json"):
             matches = observed.get("dependencies") == expected.get("dependencies")
         else:
