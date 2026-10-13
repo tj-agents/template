@@ -99,7 +99,7 @@ def load_config(root: Path) -> dict:
     if config.get("kit") != KIT_VERSION:
         raise ValueError(
             f".agents/plugins/kit.json pins Template {config.get('kit')} but this generator is Template {KIT_VERSION}; "
-            "run template:update"
+            "run template:update (kit:update for legacy Kit installations)"
         )
     if config.get("type") not in REPOSITORY_TYPES:
         raise ValueError(f".agents/plugins/kit.json: type must be one of {', '.join(REPOSITORY_TYPES)}")
