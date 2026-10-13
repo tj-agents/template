@@ -173,6 +173,38 @@ def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -
     return problems
 
 
+def check_effective_dependency_projection(root: Path, config: dict, generated: dict[str, bytes]) -> list[str]:
+    if config["type"] != "stack":
+        return []
+    paths = [path for path in generated if path == ".claude-plugin/marketplace.json" or path.endswith(("/selection.json", "/harness.json", "/.claude-plugin/plugin.json"))]
+    present = [path for path in paths if (root / path).is_file()]
+    if not present:
+        return []
+    problems = []
+    for path in paths:
+        actual = root / path
+        if not actual.is_file():
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+            continue
+        try:
+            expected = json.loads(generated[path])
+            observed = json.loads(text(actual))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+            continue
+        if path.endswith("/selection.json"):
+            matches = observed.get("dependencies") == expected.get("dependencies")
+        elif path.endswith("/harness.json"):
+            matches = observed.get("requires", {}).get("plugins") == expected.get("requires", {}).get("plugins") and observed.get("requires", {}).get("marketplaces") == expected.get("requires", {}).get("marketplaces")
+        elif path.endswith("/.claude-plugin/plugin.json"):
+            matches = observed.get("dependencies") == expected.get("dependencies")
+        else:
+            matches = observed.get("allowCrossMarketplaceDependenciesOn") == expected.get("allowCrossMarketplaceDependenciesOn")
+        if not matches:
+            problems.append(f"{path}: effective dependency projection is missing or differs")
+    return problems
+
+
 def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
@@ -199,7 +231,7 @@ def check(root: Path) -> list[str]:
     problems += check_agents_entries(root, set(plugins))
     problems += check_standard(root, kind, namespace, plugins)
     try:
-        generator.build(root)
+        generated = generator.build(root)
     except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
         return problems + [str(error)]
     payloads_path = root / ".agents/plugins/payloads.json"
@@ -208,6 +240,7 @@ def check(root: Path) -> list[str]:
     except (json.JSONDecodeError, AttributeError) as error:
         return problems + [f".agents/plugins/payloads.json: not a JSON object ({error})"]
     problems += check_names(plugins, aliases)
+    problems += check_effective_dependency_projection(root, config, generated)
     return problems
 
 
