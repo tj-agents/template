@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/kit
+          repository: ${{ github.repository_owner }}/template
           ref: ${{ inputs.kit_ref }}
           path: .kit
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/kit
+          repository: ${{ github.repository_owner }}/template
           ref: ${{ inputs.kit_ref }}
           path: .kit
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
