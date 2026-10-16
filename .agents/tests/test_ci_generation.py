@@ -50,11 +50,11 @@ class PluginCiGenerationTests(unittest.TestCase):
         verify = self.job("verify", self.plugin_ci, "hosts")
         hosts = self.job("hosts", self.plugin_ci)
         self.assertIn("matrix:\n        os: [ubuntu-latest, windows-latest]", verify)
-        self.assertIn("ref: ${{ inputs.kit_ref }}", verify)
+        self.assertIn("ref: ${{ inputs.template_ref }}", verify)
         self.assert_generation_precedes(verify, "- name: repository tests")
         self.assertLess(verify.index("- name: generated files are current"), verify.index("- name: the repository conforms"))
         self.assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
-        self.assertIn("ref: ${{ inputs.kit_ref }}", hosts)
+        self.assertIn("ref: ${{ inputs.template_ref }}", hosts)
         self.assertIn("repository: ${{ inputs.template_repository }}", verify)
         self.assertIn("repository: ${{ inputs.template_repository }}", hosts)
 

@@ -1,6 +1,6 @@
 {
   "name": "template",
-  "version": "1.6.2",
+  "version": "2.0.0",
   "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
   "author": {
     "name": "Tommy Seery"

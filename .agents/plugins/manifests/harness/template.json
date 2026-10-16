@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "plugin": "kit-agents/template",
+  "plugin": "template-agents/template",
   "source_roots": [
     ".agents/template"
   ],
   "requires": {
     "marketplaces": [
       {
-        "id": "kit-agents",
+        "id": "template-agents",
         "repository": "tj-agents/template"
       },
       {
@@ -16,7 +16,7 @@
       }
     ],
     "plugins": [
-      "kit-agents/template",
+      "template-agents/template",
       "base-agents/base"
     ],
     "hooks": [],

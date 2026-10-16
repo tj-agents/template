@@ -217,8 +217,6 @@ def check_effective_dependency_projection(root: Path, config: dict, generated: d
 def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/template.json"
     if not config_path.is_file():
-        if (root / ".agents/plugins/kit.json").is_file():
-            return [".agents/plugins/kit.json: legacy pin; run template:update to migrate"]
         return [".agents/plugins/template.json: missing; this is not a Template plugin repository"]
     try:
         config = json.loads(text(config_path))

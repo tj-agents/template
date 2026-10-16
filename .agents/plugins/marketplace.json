@@ -1,21 +1,9 @@
 {
-  "name": "kit-agents",
+  "name": "template-agents",
   "interface": {
     "displayName": "Template"
   },
   "plugins": [
-    {
-      "name": "kit",
-      "source": {
-        "source": "local",
-        "path": "./plugins/kit"
-      },
-      "policy": {
-        "installation": "INSTALLED_BY_DEFAULT",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
-    },
     {
       "name": "template",
       "source": {
