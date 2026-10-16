@@ -12,7 +12,7 @@ Install `template@template-agents`.
 
 - `template:new-plugin` creates a stack, tool or utility plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
-- `template:update` moves a plugin repository to this Template release.
+- `template:update` refreshes a plugin repository's vendored files from Template's main branch.
 
 ## Repository types
 
@@ -24,8 +24,8 @@ Install `template@template-agents`.
 
 ## Shared CI
 
-A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the Template release tag it pins.
-The workflow checks the generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
+Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
+The workflow checks generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private Template and
 `core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
 

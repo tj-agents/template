@@ -36,7 +36,7 @@ def write_json(path: Path, value) -> None:
 
 
 def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
-    write_json(root / ".agents/plugins/template.json", {"schema_version": 1, "template": sync_generated.TEMPLATE_VERSION, "repository": "owner/demo", "type": "stack"})
+    write_json(root / ".agents/plugins/template.json", {"schema_version": 1, "repository": "owner/demo", "type": "stack"})
     write_json(root / ".agents/plugins/payloads.json", {"payloads": {plugin: [plugin] for plugin in plugins}})
     for host in ("claude", "codex"):
         templates = {
@@ -60,7 +60,7 @@ def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
         write_json(root / f".agents/plugins/manifests/claude/{plugin}.json", {**common, "displayName": plugin.title()})
         write_json(
             root / f".agents/plugins/manifests/codex/{plugin}.json",
-            {**common, "version": "0.1.0", "interface": {"displayName": plugin.title(), "category": "Productivity"}},
+            {**common, "interface": {"displayName": plugin.title(), "category": "Productivity"}},
         )
         write(
             root / f".agents/{plugin}/utility/tool/SKILL.md",
@@ -457,20 +457,24 @@ class RejectionTests(GeneratorTestCase):
         write_json(path, {**json.loads(path.read_text()), "description": "Drifted."})
         self.assert_rejected("disagree on description")
 
-    def test_claude_manifest_omits_version(self) -> None:
-        path = self.root / ".agents/plugins/manifests/claude/demo.json"
-        write_json(path, {**json.loads(path.read_text()), "version": "1.0.0"})
-        self.assert_rejected("omits version")
+    def test_both_host_manifests_reject_version(self) -> None:
+        for host in ("claude", "codex"):
+            path = self.root / f".agents/plugins/manifests/{host}/demo.json"
+            write_json(path, {**json.loads(path.read_text()), "version": "1.0.0"})
+            self.assert_rejected(f"the {host} manifest must omit version")
+            manifest = json.loads(path.read_text())
+            manifest.pop("version")
+            write_json(path, manifest)
 
     def test_marketplace_templates_do_not_list_plugins(self) -> None:
         path = self.root / ".agents/plugins/manifests/claude/marketplace.json"
         write_json(path, {**json.loads(path.read_text()), "plugins": []})
         self.assert_rejected("plugin entries are generated")
 
-    def test_pinned_template_version_must_match_the_generator(self) -> None:
+    def test_legacy_template_config_pin_is_rejected(self) -> None:
         path = self.root / ".agents/plugins/template.json"
         write_json(path, {**json.loads(path.read_text()), "template": "0.0.1"})
-        self.assert_rejected("run template:update")
+        self.assert_rejected(r"unknown fields \['template'\]")
 
     def test_byte_order_mark(self) -> None:
         path = self.root / ".agents/demo/contract/style/SKILL.md"
@@ -594,7 +598,7 @@ class PackagedScriptsTests(unittest.TestCase):
                     check=False,
                 )
                 self.assertEqual(1, drifted.returncode)
-                self.assertIn(".gitignore: differs from release", drifted.stderr)
+                self.assertIn(".gitignore: differs from current Template", drifted.stderr)
                 update = subprocess.run(
                     [sys.executable, "-B", str(package / "skills/update/scripts/update.py"), "--root", str(example)],
                     capture_output=True,
