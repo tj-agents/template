@@ -190,12 +190,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
-        self.assert_problem(".gitignore: differs from release 2.0.1")
+        self.assert_problem(".gitignore: differs from current Template")
 
-    def test_other_pinned_release(self) -> None:
+    def test_legacy_config_pin_is_rejected(self) -> None:
         path = self.root / ".agents/plugins/template.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "template": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins Template 0.9.0; this check is 2.0.1: run update")
+        self.assert_problem("unknown fields ['template']")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -212,10 +212,10 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".template/.agents/template"
         shutil.copytree(ROOT / ".agents/template", nested)
-        self.edit(".github/workflows/ci.yml", "template_ref: v2.0.1", "template_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "template_ref: main", "template_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
-        self.assertIn(".github/workflows/ci.yml: differs from release 2.0.1", result.stderr)
+        self.assertIn(".github/workflows/ci.yml: differs from current Template", result.stderr)
 
     def test_missing_tier_is_reported(self) -> None:
         (self.root / ".agents/tiers/zig.json").unlink()
@@ -228,17 +228,34 @@ class StackCheckTests(RenderedRepositoryTestCase):
         path.write_text(json.dumps({**tier, "applies": "always"}, indent=2) + "\n", encoding="utf-8")
         self.assert_problem("a stack repository applies stack-present")
 
-    def test_update_restores_vendored_files_and_the_pin(self) -> None:
+    def test_update_restores_vendored_files_and_removes_legacy_versions(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
         path = self.root / ".agents/plugins/template.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "template": "0.9.0"}, indent=2) + "\n", encoding="utf-8")
+        manifest_paths = [self.root / f".agents/plugins/manifests/{host}/zig.json" for host in ("claude", "codex")]
+        for manifest_path in manifest_paths:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["version"] = "0.1.0"
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         dry = run(str(UPDATE), "--root", str(self.root), "--dry-run")
         self.assertIn("would update .gitignore", dry.stdout)
+        self.assertIn("would update .agents/plugins/template.json", dry.stdout)
+        for host in ("claude", "codex"):
+            self.assertIn(f"would update .agents/plugins/manifests/{host}/zig.json", dry.stdout)
         self.assertIn("local/", (self.root / ".gitignore").read_text())
+        self.assertIn("template", json.loads(path.read_text(encoding="utf-8")))
+        for manifest_path in manifest_paths:
+            self.assertIn("version", json.loads(manifest_path.read_text(encoding="utf-8")))
         result = run(str(UPDATE), "--root", str(self.root))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("updated .agents/plugins/template.json", result.stdout)
         self.assertEqual([], check.check(self.root))
+        self.assertNotIn("template", json.loads(path.read_text(encoding="utf-8")))
+        for manifest_path in manifest_paths:
+            self.assertNotIn("version", json.loads(manifest_path.read_text(encoding="utf-8")))
+        rerun = run(str(UPDATE), "--root", str(self.root))
+        self.assertEqual(0, rerun.returncode, rerun.stdout + rerun.stderr)
+        self.assertIn("already current", rerun.stdout)
 
     def test_update_rejects_missing_template_pin(self) -> None:
         (self.root / ".agents/plugins/template.json").unlink()
