@@ -71,6 +71,17 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_a_new_repository_conforms(self) -> None:
         self.assertEqual([], check.check(self.root))
 
+    def test_repository_can_declare_rolling_plugin_selection(self) -> None:
+        selection = {
+            "schema_version": 1,
+            "marketplaces": {"tj-agents": {"repository": "tj-agents/marketplace"}},
+            "plugins": ["base@tj-agents", "engineering@tj-agents", "machine@tj-agents"],
+        }
+        (self.root / ".agents/plugins.json").write_text(json.dumps(selection), encoding="utf-8")
+        self.assertEqual([], check.check(self.root))
+        (self.root / ".agents/unexpected.json").write_text("{}", encoding="utf-8")
+        self.assert_problem(".agents/unexpected.json: not part of the plugin layout")
+
     def test_generated_freshness_is_not_required(self) -> None:
         for generated in (".claude/skills", ".codex/skills", "plugins", ".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", ".agents/INDEX.md"):
             path = self.root / generated
@@ -179,12 +190,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
-        self.assert_problem(".gitignore: differs from release 2.0.0")
+        self.assert_problem(".gitignore: differs from release 2.0.1")
 
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/template.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "template": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins Template 0.9.0; this check is 2.0.0: run update")
+        self.assert_problem("pins Template 0.9.0; this check is 2.0.1: run update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -201,10 +212,10 @@ class StackCheckTests(RenderedRepositoryTestCase):
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
         nested = self.root / ".template/.agents/template"
         shutil.copytree(ROOT / ".agents/template", nested)
-        self.edit(".github/workflows/ci.yml", "template_ref: v2.0.0", "template_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "template_ref: v2.0.1", "template_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
-        self.assertIn(".github/workflows/ci.yml: differs from release 2.0.0", result.stderr)
+        self.assertIn(".github/workflows/ci.yml: differs from release 2.0.1", result.stderr)
 
     def test_missing_tier_is_reported(self) -> None:
         (self.root / ".agents/tiers/zig.json").unlink()
