@@ -24,8 +24,8 @@ def load_module(name: str, path: Path):
     return module
 
 
-new_plugin = load_module("kit_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
-generator = load_module("kit_generator", new_plugin.GENERATOR_TEMPLATE)
+new_plugin = load_module("template_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
+generator = load_module("template_generator", new_plugin.GENERATOR_TEMPLATE)
 
 
 def text(path: Path) -> str:
@@ -33,13 +33,13 @@ def text(path: Path) -> str:
 
 
 def owns_templates(root: Path) -> bool:
-    return (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+    return (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
 
 
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
-    running = new_plugin.kit_version()
+    running = new_plugin.template_version()
     if pinned != running:
-        return [f".agents/plugins/kit.json pins Template {pinned}; this check is {running}: run update"]
+        return [f".agents/plugins/template.json pins Template {pinned}; this check is {running}: run update"]
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
@@ -215,23 +215,25 @@ def check_effective_dependency_projection(root: Path, config: dict, generated: d
 
 
 def check(root: Path) -> list[str]:
-    config_path = root / ".agents/plugins/kit.json"
+    config_path = root / ".agents/plugins/template.json"
     if not config_path.is_file():
-        return [".agents/plugins/kit.json: missing; this is not a Template plugin repository"]
+        if (root / ".agents/plugins/kit.json").is_file():
+            return [".agents/plugins/kit.json: legacy pin; run template:update to migrate"]
+        return [".agents/plugins/template.json: missing; this is not a Template plugin repository"]
     try:
         config = json.loads(text(config_path))
     except json.JSONDecodeError as error:
-        return [f".agents/plugins/kit.json: invalid JSON ({error})"]
+        return [f".agents/plugins/template.json: invalid JSON ({error})"]
     if not isinstance(config, dict):
-        return [".agents/plugins/kit.json: must be a JSON object"]
+        return [".agents/plugins/template.json: must be a JSON object"]
     match = generator.REPOSITORY.fullmatch(str(config.get("repository", "")))
     if match is None:
-        return [".agents/plugins/kit.json: repository must be owner/name with a lowercase name"]
+        return [".agents/plugins/template.json: repository must be owner/name with a lowercase name"]
     kind = config.get("type")
     if kind not in STANDARD["types"]:
-        return [f".agents/plugins/kit.json: type must be one of {', '.join(STANDARD['types'])}"]
+        return [f".agents/plugins/template.json: type must be one of {', '.join(STANDARD['types'])}"]
     namespace = match.group(1)
-    problems = check_vendored(root, config["repository"], str(config.get("kit")))
+    problems = check_vendored(root, config["repository"], str(config.get("template")))
     problems += check_files(root)
     try:
         plugins = generator.discover(root, namespace)
@@ -261,9 +263,9 @@ def main() -> int:
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:
-        print(f"{root.name} does not conform to Template {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
+        print(f"{root.name} does not conform to Template {new_plugin.template_version()}: {len(problems)} problem(s)", file=sys.stderr)
         return 1
-    print(f"{root.name} conforms to Template {new_plugin.kit_version()}")
+    print(f"{root.name} conforms to Template {new_plugin.template_version()}")
     return 0
 
 

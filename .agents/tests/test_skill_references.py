@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location("skill_references", ROOT / ".agents/kit/utility/check/scripts/check_skill_references.py")
+SPEC = importlib.util.spec_from_file_location("skill_references", ROOT / ".agents/template/utility/check/scripts/check_skill_references.py")
 checker = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(checker)
 

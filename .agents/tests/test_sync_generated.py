@@ -36,7 +36,7 @@ def write_json(path: Path, value) -> None:
 
 
 def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
-    write_json(root / ".agents/plugins/kit.json", {"schema_version": 1, "kit": sync_generated.KIT_VERSION, "repository": "owner/demo", "type": "stack"})
+    write_json(root / ".agents/plugins/template.json", {"schema_version": 1, "template": sync_generated.TEMPLATE_VERSION, "repository": "owner/demo", "type": "stack"})
     write_json(root / ".agents/plugins/payloads.json", {"payloads": {plugin: [plugin] for plugin in plugins}})
     for host in ("claude", "codex"):
         templates = {
@@ -467,9 +467,9 @@ class RejectionTests(GeneratorTestCase):
         write_json(path, {**json.loads(path.read_text()), "plugins": []})
         self.assert_rejected("plugin entries are generated")
 
-    def test_pinned_kit_version_must_match_the_generator(self) -> None:
-        path = self.root / ".agents/plugins/kit.json"
-        write_json(path, {**json.loads(path.read_text()), "kit": "0.0.1"})
+    def test_pinned_template_version_must_match_the_generator(self) -> None:
+        path = self.root / ".agents/plugins/template.json"
+        write_json(path, {**json.loads(path.read_text()), "template": "0.0.1"})
         self.assert_rejected("run template:update")
 
     def test_byte_order_mark(self) -> None:
@@ -575,7 +575,7 @@ class PackagedScriptsTests(unittest.TestCase):
                 self.assertEqual(0, new_plugin.returncode, new_plugin.stdout + new_plugin.stderr)
                 example = Path(directory) / "example"
                 adapter_check = package / "skills/check/scripts/check.py"
-                canonical_check = package / ".agents/kit/utility/check/scripts/check.py"
+                canonical_check = package / ".agents/template/utility/check/scripts/check.py"
                 check = subprocess.run(
                     [sys.executable, "-B", str(adapter_check), "--root", str(example)],
                     capture_output=True,
