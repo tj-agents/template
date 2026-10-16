@@ -9,9 +9,10 @@ Delivered: Template PR #13 and v1.6.2; marketplace #12; React #17; Rust #4; Core
 
 The final breaking release is published: Template PR #14 merged at `84277e7260a2fac3f16b30046569e4e0f77c79a7`, with green PR and main CI (Linux, Windows, hosts and regeneration); tag and release `v2.0.0` point there. It removes Kit publication, manifests and lock selection, changes the internal marketplace to `template-agents`, replaces `kit_ref`/`.kit` with `template_ref`/`.template`, and removes pin migration behavior. Marketplace PR #13 passed both OS checks and merged at `07c8b399e4c2e70a30340c7b0b11a8a7b1074e80`; its catalog drops Kit and pins Template v2.0.0.
 
-Current execution: eight plugin-repository branches have the 2.0.0 generator, workflow and pin, with passing conformance and exact generated-freshness checks. Core has a separate branch changing only its Template checker ref to v2.0.0; PR #269 and its branch have not been modified by this workstream. Work-items and Template locks now select the Kit-free marketplace commit. .NET scaffold CI uses that same marketplace revision and its resolved B013 record has been reconciled. An isolated docs branch replaces the active Kit repository link.
+Current execution: final v2 consumer migrations are merged: React #18, Rust #5, Work-items #11/#12, Nvim #6, GitHub Actions #11, Azure #15, Work #6, Docs #4, Core #282 and Template #15. Available Windows/Linux and host checks were green. PR #269 was never modified by this workstream; its separate owner merged it as `2ed865e13f071a573d505dacd59c1a482eb5f2bb`, introducing rolling `machine:plugin-selection`. The .NET scaffold is being aligned with that contract in #55, and Template's own lock is migrating to the current `plugins.json` selection.
 
-Remaining: validate, commit, open, monitor and merge the final consumer branches; deliver Template's own marketplace lock and current plan checkpoint; audit every tj-agents origin/main for active Kit references; update the parent audit and handoff; remove merged task worktrees with cleanup proof. Current Template branch: `Chore/TemplateMarketplace200`. This file remains the canonical recovery record.
+
+Remaining: finish exact-head review and CI for .NET #55, Work #7 and Template rolling selection; merge normally; rerun the live-source audit; update the parent handoff result and clean merged task worktrees. Current Template branch: `Chore/TemplateRollingSelection`. This file remains the canonical recovery record.
 
 ## Rename takeover, 2026-10-16
 
