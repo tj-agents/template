@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-TEMPLATE_VERSION = "2.0.0"
+TEMPLATE_VERSION = "2.0.1"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
