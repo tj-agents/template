@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "template": "2.0.0",
+  "template": "2.0.1",
   "repository": "tj-agents/template",
   "type": "utility"
 }
