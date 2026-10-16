@@ -17,21 +17,25 @@ NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new-plugin"
 
 
 def load_new_plugin():
-    loader = SourceFileLoader("kit_new_plugin", str(NEW_PLUGIN / "scripts/new_plugin.py"))
-    module = importlib.util.module_from_spec(importlib.util.spec_from_loader("kit_new_plugin", loader))
+    loader = SourceFileLoader("template_new_plugin", str(NEW_PLUGIN / "scripts/new_plugin.py"))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader("template_new_plugin", loader))
     loader.exec_module(module)
     return module
 
 
 def update(root: Path, dry_run: bool) -> list[str]:
     new_plugin = load_new_plugin()
-    config_path = root / ".agents/plugins/kit.json"
-    if not config_path.is_file():
+    config_path = root / ".agents/plugins/template.json"
+    legacy_path = root / ".agents/plugins/kit.json"
+    if config_path.is_file() and legacy_path.is_file():
+        raise ValueError("both template.json and kit.json exist; keep one release pin")
+    source_path = config_path if config_path.is_file() else legacy_path
+    if not source_path.is_file():
         raise ValueError(f"{config_path}: missing; this is not a Template plugin repository")
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = json.loads(source_path.read_text(encoding="utf-8"))
     if not new_plugin.REPOSITORY.fullmatch(str(config.get("repository", ""))):
-        raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
-    owns_templates = (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+        raise ValueError(f"{source_path}: repository must be owner/name with a lowercase name")
+    owns_templates = (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
         if relative == ".github/workflows/ci.yml" and owns_templates:
@@ -43,12 +47,17 @@ def update(root: Path, dry_run: bool) -> list[str]:
             if not dry_run:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(expected, encoding="utf-8", newline="\n")
-    version = new_plugin.kit_version()
-    if config.get("kit") != version:
+    version = new_plugin.template_version()
+    if source_path != config_path or config.get("template") != version:
+        changed.append(".agents/plugins/template.json")
+        if not dry_run:
+            config.pop("kit", None)
+            config["template"] = version
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+    if source_path == legacy_path:
         changed.append(".agents/plugins/kit.json")
         if not dry_run:
-            config["kit"] = version
-            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+            legacy_path.unlink()
     return changed
 
 

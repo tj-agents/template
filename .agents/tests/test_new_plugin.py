@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / ".agents/kit/utility/new-plugin"
+SKILL = ROOT / ".agents/template/utility/new-plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
@@ -116,8 +116,11 @@ class NewPluginTests(unittest.TestCase):
         for relative in VENDORED:
             self.assertEqual((ROOT / relative).read_bytes(), (repository / relative).read_bytes(), relative)
         ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("uses: owner/template/.github/workflows/plugin-ci.yml@v1.6.1", ci)
-        self.assertIn("kit_ref: v1.6.1", ci)
+        self.assertIn("uses: owner/template/.github/workflows/plugin-ci.yml@v1.6.2", ci)
+        self.assertIn("kit_ref: v1.6.2", ci)
+        config = json.loads((repository / ".agents/plugins/template.json").read_text(encoding="utf-8"))
+        self.assertEqual("1.6.2", config["template"])
+        self.assertFalse((repository / ".agents/plugins/kit.json").exists())
 
     def test_refuses_an_existing_repository_and_a_stack_without_markers(self) -> None:
         (self.destination / "zig").mkdir()

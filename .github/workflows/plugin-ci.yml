@@ -4,8 +4,13 @@ on:
   workflow_call:
     inputs:
       kit_ref:
-        description: The kit release the calling repository pins, such as v1.0.0.
+        description: The Template release the calling repository pins, such as v1.0.0.
         required: true
+        type: string
+      template_repository:
+        description: The Template repository to check out.
+        required: false
+        default: tj-agents/template
         type: string
       generate_before_verify:
         required: false
@@ -13,7 +18,7 @@ on:
         type: boolean
     secrets:
       read_token:
-        description: A token that can read the organization's kit and core repositories.
+        description: A token that can read the organization's Template and core repositories.
         required: false
 
 jobs:
@@ -27,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/template
+          repository: ${{ inputs.template_repository }}
           ref: ${{ inputs.kit_ref }}
           path: .kit
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
@@ -71,12 +76,12 @@ jobs:
             python -B -m unittest discover -s .agents/tests -p "test_*.py"
             exit $LASTEXITCODE
           }
-      - name: the repository conforms to its pinned kit release
+      - name: the repository conforms to its pinned Template release
         shell: pwsh
-        run: python -B .kit/.agents/kit/utility/check/scripts/check.py --root .
+        run: python -B .kit/.agents/template/utility/check/scripts/check.py --root .
       - name: authored skill references resolve in the public corpus
         shell: pwsh
-        run: python -B .kit/.agents/kit/utility/check/scripts/check_skill_references.py --root . --root .kit --root .core --root .react --root .dotnet --source-root .
+        run: python -B .kit/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .kit --root .core --root .react --root .dotnet --source-root .
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
@@ -87,7 +92,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/template
+          repository: ${{ inputs.template_repository }}
           ref: ${{ inputs.kit_ref }}
           path: .kit
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}

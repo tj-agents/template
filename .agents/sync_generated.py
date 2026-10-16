@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate a plugin repository's host discovery entries, marketplaces and installable payloads.
 
-Vendored from the Template repository and pinned by `.agents/plugins/kit.json`: change it in Template, never here.
+Vendored from the Template repository and pinned by `.agents/plugins/template.json`: change it in Template, never here.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.6.1"
+TEMPLATE_VERSION = "1.6.2"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
@@ -91,24 +91,24 @@ def is_link_or_junction(path: Path) -> bool:
 
 
 def load_config(root: Path) -> dict:
-    config = load(root / ".agents/plugins/kit.json")
+    config = load(root / ".agents/plugins/template.json")
     if not isinstance(config, dict):
-        raise ValueError(".agents/plugins/kit.json: must be a JSON object")
+        raise ValueError(".agents/plugins/template.json: must be a JSON object")
     if config.get("schema_version") != 1:
-        raise ValueError(".agents/plugins/kit.json: schema_version must be 1")
-    if config.get("kit") != KIT_VERSION:
+        raise ValueError(".agents/plugins/template.json: schema_version must be 1")
+    if config.get("template") != TEMPLATE_VERSION:
         raise ValueError(
-            f".agents/plugins/kit.json pins Template {config.get('kit')} but this generator is Template {KIT_VERSION}; "
+            f".agents/plugins/template.json pins Template {config.get('template')} but this generator is Template {TEMPLATE_VERSION}; "
             "run template:update (kit:update for legacy Kit installations)"
         )
     if config.get("type") not in REPOSITORY_TYPES:
-        raise ValueError(f".agents/plugins/kit.json: type must be one of {', '.join(REPOSITORY_TYPES)}")
+        raise ValueError(f".agents/plugins/template.json: type must be one of {', '.join(REPOSITORY_TYPES)}")
     match = REPOSITORY.fullmatch(str(config.get("repository", "")))
     if match is None:
-        raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
-    unknown = set(config) - {"schema_version", "kit", "type", "repository"}
+        raise ValueError(".agents/plugins/template.json: repository must be owner/name with a lowercase name")
+    unknown = set(config) - {"schema_version", "template", "type", "repository"}
     if unknown:
-        raise ValueError(f".agents/plugins/kit.json: unknown fields {sorted(unknown)}")
+        raise ValueError(f".agents/plugins/template.json: unknown fields {sorted(unknown)}")
     return {**config, "namespace": match.group(1)}
 
 
