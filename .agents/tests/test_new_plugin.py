@@ -110,17 +110,16 @@ class NewPluginTests(unittest.TestCase):
         self.assertEqual({"utility": {"sweep"}}, self.skills("tools"))
         self.assert_repository_is_current("tools")
 
-    def test_vendored_files_match_kit_and_ci_pins_its_release(self) -> None:
+    def test_vendored_files_match_template_and_ci_pins_its_release(self) -> None:
         self.assertEqual(0, self.create("helix", "tool").returncode)
         repository = self.destination / "helix"
         for relative in VENDORED:
             self.assertEqual((ROOT / relative).read_bytes(), (repository / relative).read_bytes(), relative)
         ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn("uses: owner/template/.github/workflows/plugin-ci.yml@v1.6.2", ci)
-        self.assertIn("kit_ref: v1.6.2", ci)
+        self.assertIn("uses: owner/template/.github/workflows/plugin-ci.yml@v2.0.0", ci)
+        self.assertIn("template_ref: v2.0.0", ci)
         config = json.loads((repository / ".agents/plugins/template.json").read_text(encoding="utf-8"))
-        self.assertEqual("1.6.2", config["template"])
-        self.assertFalse((repository / ".agents/plugins/kit.json").exists())
+        self.assertEqual("2.0.0", config["template"])
 
     def test_refuses_an_existing_repository_and_a_stack_without_markers(self) -> None:
         (self.destination / "zig").mkdir()
@@ -145,7 +144,7 @@ class NewPluginTests(unittest.TestCase):
 
 
 class VendoredSourceTests(unittest.TestCase):
-    def test_kit_copies_equal_their_templates(self) -> None:
+    def test_template_copies_equal_their_sources(self) -> None:
         for relative in VENDORED:
             self.assertEqual((TEMPLATES / f"{relative}.in").read_bytes(), (ROOT / relative).read_bytes(), relative)
 

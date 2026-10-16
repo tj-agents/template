@@ -9,7 +9,7 @@ jobs:
   verify:
     uses: ./.github/workflows/plugin-ci.yml
     with:
-      kit_ref: ${{ github.sha }}
+      template_ref: ${{ github.sha }}
       template_repository: ${{ github.repository }}
       generate_before_verify: true
     secrets:

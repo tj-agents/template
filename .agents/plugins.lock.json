@@ -9,7 +9,6 @@
   "plugins": [
     "base@tj-agents",
     "engineering@tj-agents",
-    "kit@tj-agents",
     "machine@tj-agents",
     "template@tj-agents"
   ]

@@ -12,7 +12,6 @@
   "enabledPlugins": {
     "base@tj-agents": true,
     "engineering@tj-agents": true,
-    "kit@tj-agents": true,
     "machine@tj-agents": true,
     "template@tj-agents": true
   },

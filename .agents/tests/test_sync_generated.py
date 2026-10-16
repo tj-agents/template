@@ -545,7 +545,7 @@ class CliTests(GeneratorTestCase):
 
 class PackagedScriptsTests(unittest.TestCase):
     def test_each_copied_package_runs_from_its_adapter_resources(self) -> None:
-        for name in ("kit", "template"):
+        for name in ("template",):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
                 package = Path(directory) / name
                 shutil.copytree(ROOT / f"plugins/{name}", package)
@@ -613,8 +613,8 @@ class PackagedScriptsTests(unittest.TestCase):
                 self.assertEqual(0, canonical.returncode, canonical.stdout + canonical.stderr)
 
 
-class KitRepositoryTests(unittest.TestCase):
-    def test_kit_generated_outputs_are_current(self) -> None:
+class TemplateRepositoryTests(unittest.TestCase):
+    def test_template_generated_outputs_are_current(self) -> None:
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(0, sync_generated.synchronize(ROOT, check=True))
 

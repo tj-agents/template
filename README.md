@@ -6,7 +6,7 @@ and resources.
 
 ## Install
 
-Install `template@kit-agents`. Existing Kit installations remain compatible during migration to Template.
+Install `template@template-agents`.
 
 ## Skills
 

@@ -11,9 +11,6 @@ enabled = true
 [plugins."engineering@tj-agents"]
 enabled = true
 
-[plugins."kit@tj-agents"]
-enabled = true
-
 [plugins."machine@tj-agents"]
 enabled = true
 

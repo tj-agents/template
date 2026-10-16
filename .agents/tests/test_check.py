@@ -179,12 +179,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
-        self.assert_problem(".gitignore: differs from release 1.6.2")
+        self.assert_problem(".gitignore: differs from release 2.0.0")
 
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/template.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "template": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins Template 0.9.0; this check is 1.6.2: run update")
+        self.assert_problem("pins Template 0.9.0; this check is 2.0.0: run update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -199,12 +199,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
         self.assertIn(".agents/docs: a plugin folder needs at least one skill", problems)
 
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
-        nested = self.root / ".kit/.agents/template"
+        nested = self.root / ".template/.agents/template"
         shutil.copytree(ROOT / ".agents/template", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.6.2", "kit_ref: v0.9.0")
+        self.edit(".github/workflows/ci.yml", "template_ref: v2.0.0", "template_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
-        self.assertIn(".github/workflows/ci.yml: differs from release 1.6.2", result.stderr)
+        self.assertIn(".github/workflows/ci.yml: differs from release 2.0.0", result.stderr)
 
     def test_missing_tier_is_reported(self) -> None:
         (self.root / ".agents/tiers/zig.json").unlink()
@@ -229,18 +229,11 @@ class StackCheckTests(RenderedRepositoryTestCase):
         self.assertIn("updated .agents/plugins/template.json", result.stdout)
         self.assertEqual([], check.check(self.root))
 
-    def test_update_migrates_legacy_kit_pin(self) -> None:
-        current = self.root / ".agents/plugins/template.json"
-        legacy = self.root / ".agents/plugins/kit.json"
-        config = json.loads(current.read_text(encoding="utf-8"))
-        config["kit"] = config.pop("template")
-        legacy.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
-        current.unlink()
-        self.assertIn("legacy pin; run template:update", "\n".join(check.check(self.root)))
+    def test_update_rejects_missing_template_pin(self) -> None:
+        (self.root / ".agents/plugins/template.json").unlink()
         result = run(str(UPDATE), "--root", str(self.root))
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertFalse(legacy.exists())
-        self.assertEqual([], check.check(self.root))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("template.json: missing", result.stderr)
 
 
 class ToolCheckTests(RenderedRepositoryTestCase):
@@ -351,11 +344,11 @@ class SkillFamilyCheckTests(RenderedRepositoryTestCase):
         self.assertEqual([], check.check(self.root))
 
 
-class KitConformsTests(unittest.TestCase):
-    def test_kit_conforms_to_itself(self) -> None:
+class TemplateConformsTests(unittest.TestCase):
+    def test_template_conforms_to_itself(self) -> None:
         self.assertEqual([], check.check(ROOT))
 
-    def test_kit_conforms_when_checked_from_a_nested_copy(self) -> None:
+    def test_template_conforms_when_checked_from_a_nested_copy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             nested = Path(directory) / ".agents/template"
             shutil.copytree(ROOT / ".agents/template", nested)

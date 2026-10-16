@@ -94,13 +94,13 @@ class SkillReferenceTests(unittest.TestCase):
         self.assertEqual([], checker.check([self.root]))
 
     def test_concrete_hyphenated_names_are_not_illustrative_placeholders(self):
-        self.skill("kit", "real")
-        self.write("README.md", "Use `kit:nonexistent-plugin` and skills (`missing-plugin`).")
+        self.skill("sample", "real")
+        self.write("README.md", "Use `sample:nonexistent-plugin` and skills (`missing-plugin`).")
         problems = checker.check([self.root])
         self.assertEqual(2, len(problems))
-        self.assertTrue(any("missing skill kit:nonexistent-plugin" in item for item in problems))
+        self.assertTrue(any("missing skill sample:nonexistent-plugin" in item for item in problems))
         self.assertTrue(any("missing skill missing-plugin" in item for item in problems))
-        self.write("README.md", "Examples: `plugin:skill`, `namespace:skill`, `your-plugin:your-skill`, `kit:*`, and skills (`<skill-name>`).")
+        self.write("README.md", "Examples: `plugin:skill`, `namespace:skill`, `your-plugin:your-skill`, `sample:*`, and skills (`<skill-name>`).")
         self.assertEqual([], checker.check([self.root]))
 
     def test_multiple_roots_and_legacy_payload_body(self):
