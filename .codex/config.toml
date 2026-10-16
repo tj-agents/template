@@ -2,8 +2,7 @@
 [marketplaces.tj-agents]
 source_type = "git"
 source = "https://github.com/tj-agents/marketplace.git"
-ref = "07c8b399e4c2e70a30340c7b0b11a8a7b1074e80"
-sparse_paths = [".agents/plugins", ".claude-plugin"]
+sparse_paths = [".agents/plugins", ".claude-plugin", "plugins"]
 
 [plugins."base@tj-agents"]
 enabled = true
