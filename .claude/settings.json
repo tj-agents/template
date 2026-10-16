@@ -1,0 +1,22 @@
+{
+  "extraKnownMarketplaces": {
+    "tj-agents": {
+      "source": {
+        "source": "github",
+        "repo": "tj-agents/marketplace",
+        "ref": "4962303949fd60d66682c0012644e6a684e200d7"
+      },
+      "autoUpdate": false
+    }
+  },
+  "enabledPlugins": {
+    "base@tj-agents": true,
+    "engineering@tj-agents": true,
+    "kit@tj-agents": true,
+    "machine@tj-agents": true,
+    "template@tj-agents": true
+  },
+  "permissions": {
+    "allow": []
+  }
+}

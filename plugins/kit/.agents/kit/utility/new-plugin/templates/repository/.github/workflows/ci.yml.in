@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    uses: {{owner}}/kit/.github/workflows/plugin-ci.yml@v{{kit_version}}
+    uses: {{owner}}/template/.github/workflows/plugin-ci.yml@v{{kit_version}}
     with:
       kit_ref: v{{kit_version}}
     secrets:
