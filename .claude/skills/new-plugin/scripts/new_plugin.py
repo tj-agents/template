@@ -18,7 +18,6 @@ GENERATOR_TEMPLATE = TEMPLATES / "repository/.agents/sync_generated.py.in"
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^([A-Za-z0-9_.-]+)/([a-z][a-z0-9-]*)$")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
-TEMPLATE_VERSION = re.compile(r'^TEMPLATE_VERSION = "(\d+\.\d+\.\d+)"$', re.MULTILINE)
 VENDORED = (
     ".agents/sync_generated.py",
     ".agents/sync-generated.ps1",
@@ -49,13 +48,6 @@ DEFAULT_PROMPTS = {
 }
 
 
-def template_version() -> str:
-    match = TEMPLATE_VERSION.search(GENERATOR_TEMPLATE.read_text(encoding="utf-8"))
-    if match is None:
-        raise ValueError(f"{GENERATOR_TEMPLATE}: no TEMPLATE_VERSION")
-    return match.group(1)
-
-
 def git_user_name() -> str:
     result = subprocess.run(["git", "config", "--get", "user.name"], capture_output=True, text=True, check=False)
     return result.stdout.strip()
@@ -73,7 +65,7 @@ def render(text: str, values: dict[str, str], source: PurePosixPath) -> str:
 
 
 def vendored_files(repository: str) -> dict[str, str]:
-    values = {"owner": REPOSITORY.fullmatch(repository).group(1), "template_version": template_version()}
+    values = {"owner": REPOSITORY.fullmatch(repository).group(1)}
     return {
         relative: render(
             (TEMPLATES / "repository" / f"{relative}.in").read_text(encoding="utf-8"),
@@ -137,7 +129,6 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         "category": arguments.category,
         "keywords_json": json.dumps(keywords),
         "default_prompt": DEFAULT_PROMPTS[arguments.type].format(stack=arguments.stack, namespace=namespace),
-        "template_version": template_version(),
         "date": date.today().isoformat(),
         "agents_rules": AGENTS_RULES[arguments.type].format(learner=arguments.learner),
         "harness_requires_json": json.dumps(
@@ -172,7 +163,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         files[destination_path(relative, values)] = render(source.read_text(encoding="utf-8"), values, relative)
     files[f".agents/tiers/{namespace}.json"] = json.dumps(tier(arguments, namespace), indent=2) + "\n"
     files[".agents/plugins/template.json"] = json.dumps(
-        {"schema_version": 1, "template": values["template_version"], "repository": arguments.repository, "type": arguments.type},
+        {"schema_version": 1, "repository": arguments.repository, "type": arguments.type},
         indent=2,
     ) + "\n"
     files[".agents/plugins/payloads.json"] = json.dumps({"payloads": {namespace: [namespace]}}, indent=2) + "\n"

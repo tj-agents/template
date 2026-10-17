@@ -36,10 +36,7 @@ def owns_templates(root: Path) -> bool:
     return (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
 
 
-def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
-    running = new_plugin.template_version()
-    if pinned != running:
-        return [f".agents/plugins/template.json pins Template {pinned}; this check is {running}: run update"]
+def check_vendored(root: Path, repository: str) -> list[str]:
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
@@ -48,7 +45,7 @@ def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
         if not path.is_file():
             problems.append(f"{relative}: missing; run update")
         elif text(path) != expected:
-            problems.append(f"{relative}: differs from release {running}; change it in the source repository, then run update")
+            problems.append(f"{relative}: differs from current Template; change it in the source repository, then run update")
     return problems
 
 
@@ -231,7 +228,7 @@ def check(root: Path) -> list[str]:
     if kind not in STANDARD["types"]:
         return [f".agents/plugins/template.json: type must be one of {', '.join(STANDARD['types'])}"]
     namespace = match.group(1)
-    problems = check_vendored(root, config["repository"], str(config.get("template")))
+    problems = check_vendored(root, config["repository"])
     problems += check_files(root)
     try:
         plugins = generator.discover(root, namespace)
@@ -261,9 +258,9 @@ def main() -> int:
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:
-        print(f"{root.name} does not conform to Template {new_plugin.template_version()}: {len(problems)} problem(s)", file=sys.stderr)
+        print(f"{root.name} does not conform to Template: {len(problems)} problem(s)", file=sys.stderr)
         return 1
-    print(f"{root.name} conforms to Template {new_plugin.template_version()}")
+    print(f"{root.name} conforms to Template")
     return 0
 
 

@@ -1,6 +1,6 @@
 ---
 name: new-plugin
-description: Create a plugin repository in the shared layout — a stack (knowledge tier, a teaching policy, the seven conventions and a project scaffold), a tool (knowledge tier and teaching policy only) or a utility — with the generator, root files and CI vendored from the selected package and pinned to its release. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
+description: Create a plugin repository in the shared layout — a stack (knowledge tier, a teaching policy, the seven conventions and a project scaffold), a tool (knowledge tier and teaching policy only) or a utility — with the generator, root files and CI following the selected package's main branch. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
 kind: utility
 domain: template
 profile: core
@@ -46,4 +46,4 @@ agreed File structure.
 ## Validation
 
 The script fails if the new repository does not generate cleanly. Before the first push,
-`pwsh .agents/sync-generated.ps1 -Check` and `check` pass in it; CI then runs both from the pinned release.
+`pwsh .agents/sync-generated.ps1 -Check` and `check` pass in it; CI then runs both from Template's main branch.
