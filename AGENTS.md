@@ -9,9 +9,8 @@ Template's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps
 `template:check` and `template:update` read those templates and `template:check`'s `standard.json`, the one statement of what each
 repository type requires.
 
-`.github/workflows/plugin-ci.yml` is the CI every plugin repository calls, pinned to a Template release tag. Changing the
-generator, a vendored file or the workflow is a Template release: bump `TEMPLATE_VERSION`, `.agents/plugins/template.json` and the
-Codex manifest version together, then tag `v<version>` after the merge.
+Template plugin CI runs from the main branch. Plugin repositories follow main and run template:update to refresh the exact
+vendored content; Template changes do not require version bumps or tags.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
 `pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and

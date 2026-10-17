@@ -42,6 +42,10 @@ class PluginCiGenerationTests(unittest.TestCase):
     def test_reusable_generation_defaults_to_off(self) -> None:
         inputs = self.plugin_ci[:self.plugin_ci.index("    secrets:")]
         self.assertIn(
+            "      template_ref:\n        description: Template source ref; defaults to main and may be overridden for candidate checks.\n        required: false\n        default: main\n        type: string",
+            inputs,
+        )
+        self.assertIn(
             "      generate_before_verify:\n        required: false\n        default: false\n        type: boolean",
             inputs,
         )

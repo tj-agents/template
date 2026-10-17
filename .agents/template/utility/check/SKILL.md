@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check a plugin repository against the shared layout and standard — the one folder structure, the vendored files pinned to a release, the skills and sections its type requires, frontmatter and profiles. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
+description: Check a plugin repository against the shared layout and standard — the one folder structure, the vendored files from Template's main branch, the skills and sections its type requires, frontmatter and profiles. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
 kind: utility
 domain: template
 profile: core
@@ -17,7 +17,7 @@ Every plugin repository, Template included, has the same layout. The repository 
 <repo>/
   AGENTS.md  CLAUDE.md  README.md
   .gitattributes  .gitignore            vendored
-  .github/workflows/ci.yml              vendored; calls Template's plugin-ci.yml at the pinned tag
+  .github/workflows/ci.yml              vendored; calls Template's plugin-ci.yml from main
   plans/                                optional
   .agents/
     <plugin>/<kind>/<name>/SKILL.md     one folder per plugin; the main plugin is named after the repository
@@ -25,7 +25,7 @@ Every plugin repository, Template included, has the same layout. The repository 
     <plugin>/<kind>/<name>/templates/
     <plugin>/<kind>/<family>/<member>/SKILL.md   a family groups related skills; <family>/SKILL.md is optional
     tiers/<plugin>.json
-    plugins/template.json               repository, type and the pinned Template release
+    plugins/template.json               repository and type
     plugins/payloads.json               published plugins, dependencies, compatibility aliases
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
@@ -40,8 +40,7 @@ Every plugin repository, Template included, has the same layout. The repository 
 python <skill-directory>/scripts/check.py --root <repository>
 ```
 
-It prints each problem and exits 1, or confirms the repository conforms. CI runs it from the pinned release.
-A repository pinned to another release is reported until `update` moves it.
+CI runs it against the current Template source. Run update to refresh vendored files when they differ.
 
 ## Skill families
 
@@ -54,7 +53,7 @@ Renaming a published skill keeps its old name as a compatibility alias until its
 
 ## What it enforces
 
-- The vendored files equal this Template release, with `ci.yml` rendered for the repository's owner.
+- The vendored files equal the current Template source, with `ci.yml` rendered for the repository's owner.
 - Only the layout's entries under `.agents/` and `.agents/plugins/`; `SOURCE_LAYOUT.md` and `sources.json` are retired.
 - The skills its type in `standard.json` requires, with their kind, profile and sections:
   - **stack**: `knowledge`, `direction` (kind `knowledge`); `learning` (kind `policy`); `style`, `structure`

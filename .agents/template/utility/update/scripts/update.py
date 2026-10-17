@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vendor this Template release's shared files into a plugin repository and pin the repository to it."""
+"""Refresh a plugin repository's vendored files from Template and remove legacy version metadata."""
 
 from __future__ import annotations
 
@@ -43,12 +43,22 @@ def update(root: Path, dry_run: bool) -> list[str]:
             if not dry_run:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(expected, encoding="utf-8", newline="\n")
-    version = new_plugin.template_version()
-    if config.get("template") != version:
+    if "template" in config:
         changed.append(".agents/plugins/template.json")
         if not dry_run:
-            config["template"] = version
+            config.pop("template")
             config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+    for host in ("claude", "codex"):
+        manifest_dir = root / f".agents/plugins/manifests/{host}"
+        for path in sorted(manifest_dir.glob("*.json")):
+            if path.name == "marketplace.json":
+                continue
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(manifest, dict) and "version" in manifest:
+                changed.append(path.relative_to(root).as_posix())
+                if not dry_run:
+                    manifest.pop("version")
+                    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     return changed
 
 
