@@ -39,8 +39,9 @@ agreed File structure.
 
 ## Publish it
 
-1. `git init -b main`, commit, then `gh repo create <owner>/<name> --private --source . --push`.
-2. `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>` with the read-only token CI uses.
+1. `git init -b main`, commit, then `gh repo create <owner>/<name> --public --source . --push`; plugin
+   repositories are public so the shared marketplace can install them and CI runs.
+2. Only while a repository plugin CI reads is private: `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>`.
 3. Add the plugin to the shared marketplace's `catalog.json` and regenerate it.
 
 ## Validation
