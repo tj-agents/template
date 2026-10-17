@@ -1,6 +1,5 @@
 {
   "name": "{{namespace}}",
-  "version": "0.1.0",
   "description": "{{description}}",
   "author": {
     "name": "{{author}}"
@@ -11,7 +10,7 @@
   "interface": {
     "displayName": "{{display_name}}",
     "shortDescription": "{{description}}",
-    "longDescription": "{{description}}",
+    "longDescription": "{{description}} Follow the Template main branch and run template:update to refresh vendored files.",
     "developerName": "{{author}}",
     "category": "{{category}}",
     "capabilities": [],
