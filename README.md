@@ -26,8 +26,9 @@ Install `template@template-agents`.
 
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
 The workflow checks generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
-installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private Template and
-`core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
+installs the marketplace with the real Claude Code and Codex CLIs. It reads Template and `core` with `GITHUB_TOKEN`; a
+repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents access, only while
+either is private.
 
 ## Authoring and verification
 
