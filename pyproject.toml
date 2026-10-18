@@ -15,7 +15,7 @@ dev = [
 package = false
 
 [tool.ruff]
-extend-exclude = [".claude", ".codex", "plugins", "*.md"]
+include = [".agents/**/*.py", ".github/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "PIE", "RET", "RUF"]
