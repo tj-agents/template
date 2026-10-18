@@ -109,7 +109,12 @@ jobs:
           }
       - name: the repository conforms to the current Template source
         shell: pwsh
-        run: python -B .template/.agents/template/utility/check/scripts/check.py --root . --base $env:GUIDANCE_EXAMPLES_BASE --head $env:GUIDANCE_EXAMPLES_HEAD $env:GUIDANCE_EXAMPLES_MERGE_BASE
+        run: |
+          $checkArguments = @('--root', '.', '--base', $env:GUIDANCE_EXAMPLES_BASE, '--head', $env:GUIDANCE_EXAMPLES_HEAD)
+          if ($env:GUIDANCE_EXAMPLES_MERGE_BASE) {
+            $checkArguments += $env:GUIDANCE_EXAMPLES_MERGE_BASE
+          }
+          python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .react --root .dotnet --source-root .

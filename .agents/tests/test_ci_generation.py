@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import stat
@@ -99,14 +100,58 @@ def test_verify_checks_changed_authored_guidance_against_the_event_base(
     assert "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" in comparison
     conformance = step(verify, "the repository conforms to the current Template source")
     assert ".template/.agents/template/utility/check/scripts/check.py" in conformance
-    assert "--base $env:GUIDANCE_EXAMPLES_BASE" in conformance
-    assert "--head $env:GUIDANCE_EXAMPLES_HEAD" in conformance
+    assert "'--base', $env:GUIDANCE_EXAMPLES_BASE" in conformance
+    assert "'--head', $env:GUIDANCE_EXAMPLES_HEAD" in conformance
     assert "$env:GUIDANCE_EXAMPLES_MERGE_BASE" in conformance
     assert "changed authored guidance has concrete examples" not in verify
     assert (
         ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
         not in verify
     )
+
+
+@pytest.mark.parametrize("merge_base", ["", "--merge-base"])
+def test_conformance_step_passes_only_present_native_arguments(
+    plugin_ci: str, tmp_path: Path, merge_base: str
+) -> None:
+    conformance = step(
+        job("verify", plugin_ci, "hosts"),
+        "the repository conforms to the current Template source",
+    )
+    body = conformance.split("        run: |\n", 1)[1]
+    command = "\n".join(line.removeprefix("          ") for line in body.splitlines())
+    checker = tmp_path / ".template/.agents/template/utility/check/scripts/check.py"
+    checker.parent.mkdir(parents=True)
+    checker.write_text(
+        "import argparse, json\n"
+        "parser = argparse.ArgumentParser()\n"
+        "parser.add_argument('--root')\n"
+        "parser.add_argument('--base')\n"
+        "parser.add_argument('--head')\n"
+        "parser.add_argument('--merge-base', action='store_true')\n"
+        "print(json.dumps(vars(parser.parse_args())))\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["pwsh", "-NoProfile", "-Command", command],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=os.environ
+        | {
+            "GUIDANCE_EXAMPLES_BASE": "base-commit",
+            "GUIDANCE_EXAMPLES_HEAD": "head-commit",
+            "GUIDANCE_EXAMPLES_MERGE_BASE": merge_base,
+        },
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout) == {
+        "root": ".",
+        "base": "base-commit",
+        "head": "head-commit",
+        "merge_base": bool(merge_base),
+    }
 
 
 def test_regeneration_is_main_push_only_and_uses_the_verified_head(ci: str) -> None:
