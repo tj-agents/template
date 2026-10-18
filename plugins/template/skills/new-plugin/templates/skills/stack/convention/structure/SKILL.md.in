@@ -15,8 +15,11 @@ Owns the repository and module layout, visibility, and where dependencies are wi
 
 ## Agreed
 
-_Nothing yet._ Propose a rule through `{{namespace}}:learning`'s convention procedure.
+_Unfinished starter._ Propose a rule through `{{namespace}}:learning`'s convention procedure, then replace this
+with the agreed rule and a concrete fenced code, command, configuration, or input/output example before
+committing. The guidance-example check rejects this placeholder.
 
 ## File structure
 
-_Nothing yet._ Once agreed, this is the tree `{{namespace}}:scaffold` creates.
+_Unfinished starter._ Once agreed, show the actual tree `{{namespace}}:scaffold` creates in the concrete example
+above.

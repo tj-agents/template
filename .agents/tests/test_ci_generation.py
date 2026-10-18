@@ -84,6 +84,31 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "repository: ${{ inputs.template_repository }}" in hosts
 
 
+def test_verify_checks_changed_authored_guidance_against_the_event_base(
+    plugin_ci: str,
+) -> None:
+    verify = job("verify", plugin_ci, "hosts")
+    assert "ref: ${{ github.event.pull_request.head.sha || github.sha }}" in verify
+    assert "fetch-depth: 0" in verify
+    comparison = step(verify, "resolve the authored-guidance comparison range")
+    assert "github.event.pull_request.base.sha" in comparison
+    assert "github.event.before" in comparison
+    assert "GUIDANCE_EXAMPLES_BASE=$base" in comparison
+    assert "GUIDANCE_EXAMPLES_HEAD=$head" in comparison
+    assert "$mergeBase = '--merge-base'" in comparison
+    assert "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" in comparison
+    conformance = step(verify, "the repository conforms to the current Template source")
+    assert ".template/.agents/template/utility/check/scripts/check.py" in conformance
+    assert "--base $env:GUIDANCE_EXAMPLES_BASE" in conformance
+    assert "--head $env:GUIDANCE_EXAMPLES_HEAD" in conformance
+    assert "$env:GUIDANCE_EXAMPLES_MERGE_BASE" in conformance
+    assert "changed authored guidance has concrete examples" not in verify
+    assert (
+        ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
+        not in verify
+    )
+
+
 def test_regeneration_is_main_push_only_and_uses_the_verified_head(ci: str) -> None:
     assert "push:\n    branches: [main]" in ci
     assert "pull_request:" in ci
