@@ -128,7 +128,7 @@ def commit_initial_repository(root: Path) -> None:
         ("init", "-q", "-b", "main"),
         ("config", "user.name", "Template test"),
         ("config", "user.email", "template@example.invalid"),
-        ("add", "."),
+        ("add", "-f", "."),
         ("commit", "-q", "-m", "initial"),
     ):
         result = subprocess.run(

@@ -132,6 +132,53 @@ class ExampleCheckerTests(unittest.TestCase):
                 )
                 self.assertEqual(0, self.check("--path", relative).returncode)
 
+    def test_fence_nested_under_a_numbered_list_is_an_example(self) -> None:
+        relative = ".agents/example/convention/list/SKILL.md"
+        self.write(
+            relative,
+            self.skill(
+                "# Rule\n\n1. Demonstrate the behavior:\n\n"
+                "    ```text\n    Input: source\n    Output: result\n    ```\n"
+            ),
+        )
+        self.assertEqual(0, self.check("--path", relative).returncode)
+        self.write(
+            relative,
+            self.skill(
+                "# Rule\n\n10. Demonstrate the behavior:\n\n"
+                "    Explain the input first.\n\n"
+                "     ```text\n     Input: source\n     Output: result\n     ```\n"
+            ),
+        )
+        self.assertEqual(0, self.check("--path", relative).returncode)
+        for prefix, indentation in (
+            ("100. Demonstrate:\n\n     Continue the explanation.\n\n", "     "),
+            ("- Steps:\n\n  10. Demonstrate:\n\n", "      "),
+        ):
+            with self.subTest(prefix=prefix):
+                self.write(
+                    relative,
+                    self.skill(
+                        "# Rule\n\n"
+                        + prefix
+                        + f"{indentation}```text\n{indentation}Input: source\n"
+                        + f"{indentation}Output: result\n{indentation}```\n"
+                    ),
+                )
+                self.assertEqual(0, self.check("--path", relative).returncode)
+        self.write(
+            relative, self.skill("# Rule\n\n    ```text\n    Input: prose\n    ```\n")
+        )
+        self.assertEqual(1, self.check("--path", relative).returncode)
+        self.write(
+            relative,
+            self.skill(
+                "# Rule\n\n1. A completed list.\n\nA separate paragraph.\n\n"
+                "    ```text\n    Input: prose\n    ```\n"
+            ),
+        )
+        self.assertEqual(1, self.check("--path", relative).returncode)
+
     def test_meaningful_comment_and_directive_examples_pass(self) -> None:
         examples = {
             "slash": "// Explain why this is safe",
