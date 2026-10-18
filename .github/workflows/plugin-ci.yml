@@ -81,7 +81,7 @@ jobs:
             uv run ruff format --check
             uv run ruff check
             uv run mypy
-            uv run pytest
+            if (Test-Path .agents/tests/test_*.py) { uv run pytest }
             exit $LASTEXITCODE
           }
           if (Test-Path .agents/tests/test_*.py) {
