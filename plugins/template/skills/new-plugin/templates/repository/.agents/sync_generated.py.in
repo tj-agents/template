@@ -23,7 +23,7 @@ BARE_SKILL_REFERENCE = re.compile(r"`([a-z][a-z0-9-]+)`\s+skill(?:'s)?")
 MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
 SKILL_DIRECTORY_REFERENCE = re.compile(r"<skill-directory>/([^\s`'\")\]]+)")
 REQUIRED_METADATA = ("name", "description", "kind", "domain", "profile", "applicability", "requires", "provenance")
-REPOSITORY_TYPES = ("stack", "tool", "utility")
+REPOSITORY_TYPES = ("stack", "tool", "utility", "profile")
 RESERVED_AGENT_DIRS = {"continuation", "plugins", "tiers", "tests", "hooks"}
 IGNORED_PARTS = {"__pycache__"}
 IGNORED_SUFFIXES = {".pyc"}
@@ -295,6 +295,8 @@ def validate_local_dependency_cycles(dependencies: dict, plugins: dict[str, dict
 
 def effective_dependencies(config: dict, source: str, dependencies: dict) -> list[str]:
     inherited = STACK_CORE_DEPENDENCIES if config["type"] == "stack" else ()
+    if config["type"] == "profile":
+        inherited = ("tj-agents/base",)
     return list(dict.fromkeys((*inherited, *dependencies.get(source, []))))
 
 
@@ -482,7 +484,7 @@ def validate_file_references(
         validate(skill["plugin"], skill, body, directory, directory, source_exists, generated_required)
 
 
-def harness_body(root: Path, package: str, marketplace: str, output: dict[str, bytes], dependencies: list[str], stack: bool) -> str | None:
+def harness_body(root: Path, package: str, marketplace: str, output: dict[str, bytes], dependencies: list[str], inherit_core: bool) -> str | None:
     relative = f"{MANIFEST_ROOT}/harness/{package}.json"
     path = root / relative
     if not path.exists():
@@ -515,7 +517,7 @@ def harness_body(root: Path, package: str, marketplace: str, output: dict[str, b
         target = f"plugins/{package}/{value}"
         if target not in output and not any(name.startswith(target + "/") for name in output):
             raise ValueError(f"{relative}: source root {value!r} is not shipped in {package}")
-    if not stack:
+    if not inherit_core:
         return body
     requires = manifest.get("requires")
     if not isinstance(requires, dict):
@@ -632,12 +634,12 @@ def build(root: Path) -> dict[str, bytes]:
         }
         emit(f"plugins/{package}/selection.json", dump(selection))
         emit(f"plugins/{package}/tier.json", read(root / f".agents/tiers/{source}.json"))
-        harness = harness_body(root, package, templates["claude"]["name"], output, effective, config["type"] == "stack")
+        harness = harness_body(root, package, templates["claude"]["name"], output, effective, config["type"] in ("stack", "profile"))
         if harness is not None:
             emit(f"plugins/{package}/harness.json", harness)
         for host in HOSTS:
             manifest = manifests[host][package]
-            if host == "claude" and config["type"] == "stack":
+            if host == "claude" and config["type"] in ("stack", "profile"):
                 manifest = {**manifest, "dependencies": claude_dependencies(effective)}
             emit(f"plugins/{package}/.{host}-plugin/plugin.json", dump(manifest))
 
@@ -668,7 +670,7 @@ def build(root: Path) -> dict[str, bytes]:
         templates["claude"]["name"],
     )
     claude_marketplace = {**templates["claude"], "plugins": claude_entries}
-    if config["type"] == "stack" and claude_marketplaces:
+    if config["type"] in ("stack", "profile") and claude_marketplaces:
         claude_marketplace["allowCrossMarketplaceDependenciesOn"] = claude_marketplaces
     emit(MARKETPLACE_OUTPUTS["claude"], dump(claude_marketplace))
     emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
