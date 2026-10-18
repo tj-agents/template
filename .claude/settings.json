@@ -12,6 +12,7 @@
     "base@tj-agents": true,
     "engineering@tj-agents": true,
     "machine@tj-agents": true,
+    "personal@tj-agents": true,
     "python@tj-agents": true,
     "template@tj-agents": true
   },
