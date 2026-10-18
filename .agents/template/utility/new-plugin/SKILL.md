@@ -1,6 +1,6 @@
 ---
 name: new-plugin
-description: Create a plugin repository in the shared layout — a stack (knowledge tier, a teaching policy, the seven conventions and a project scaffold), a tool (knowledge tier and teaching policy only) or a utility — with the generator, root files and CI following the selected package's main branch. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
+description: Create a stack, tool, utility or project policy profile repository in the shared layout, with the generator, root files and CI following the selected package's main branch. Use when starting a language stack, a tool to learn, a utility plugin or a reusable project profile.
 kind: utility
 domain: template
 profile: core
@@ -27,6 +27,12 @@ python <skill-directory>/scripts/new_plugin.py --repository <owner>/zig --type s
 | `stack` | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | `stack-present`, from `--detect-file` and `--detect-glob` |
 | `tool` | `knowledge`, `direction` (knowledge); `learning` (policy) | `always` |
 | `utility` | one utility skill named by `--skill` | `always` |
+| `profile` | one policy named by `--skill`; may add policies, conventions, workflows and utilities | `always`, in explicitly adopting projects |
+
+Create a policy profile with `--type profile --skill <policy-name>`. It has no stack detection or teaching
+scaffolding and requires at least one policy in its main plugin. It inherits `base@tj-agents` from
+`tj-agents/marketplace`. Add mandatory host hooks to the shipped harness manifest and verify their actual
+delivery; neither discovery nor an `always` tier proves session loading.
 
 `--author` defaults to `git config user.name` and `--learner` to the author's first name. `--stack` is the display name.
 `--keywords` and `--category` feed the manifests. `--dry-run` lists the files without writing. The destination

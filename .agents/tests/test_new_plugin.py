@@ -60,11 +60,13 @@ class NewPluginTests(unittest.TestCase):
         self.assertEqual(f"{name}-agents/{name}", harness["plugin"])
         plugins = harness["requires"]["plugins"]
         if "tj-agents/base" in plugins:
-            self.assertEqual([f"{name}-agents/{name}", "tj-agents/base", "tj-agents/engineering", "tj-agents/machine"], plugins)
+            kind = json.loads((repository / ".agents/plugins/template.json").read_text())["type"]
+            dependencies = ["tj-agents/base"] if kind == "profile" else ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"]
+            self.assertEqual([f"{name}-agents/{name}", *dependencies], plugins)
             selection = json.loads((repository / f"plugins/{name}/selection.json").read_text(encoding="utf-8"))
-            self.assertEqual(["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"], selection["dependencies"])
+            self.assertEqual(dependencies, selection["dependencies"])
             claude = json.loads((repository / f"plugins/{name}/.claude-plugin/plugin.json").read_text(encoding="utf-8"))
-            self.assertEqual(["base@tj-agents", "engineering@tj-agents", "machine@tj-agents"], claude["dependencies"])
+            self.assertEqual([f"{identity.split('/')[1]}@{identity.split('/')[0]}" for identity in dependencies], claude["dependencies"])
             marketplace = json.loads((repository / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
             self.assertEqual(["tj-agents"], marketplace["allowCrossMarketplaceDependenciesOn"])
         else:
@@ -109,6 +111,26 @@ class NewPluginTests(unittest.TestCase):
         self.assertEqual(0, self.create("tools", "utility", "--skill", "sweep").returncode)
         self.assertEqual({"utility": {"sweep"}}, self.skills("tools"))
         self.assert_repository_is_current("tools")
+
+    def test_profile_has_a_policy_and_current_core_dependency(self) -> None:
+        result = self.create("personal", "profile", "--skill", "current")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual({"policy": {"current"}}, self.skills("personal"))
+        repository = self.destination / "personal"
+        tier = json.loads((repository / ".agents/tiers/personal.json").read_text())
+        self.assertEqual("always", tier["applies"])
+        self.assertNotIn("detect", tier)
+        self.assertIn("explicitly select", (repository / "AGENTS.md").read_text())
+        self.assert_repository_is_current("personal")
+
+    def test_profile_requires_a_policy_name_and_rejects_detection(self) -> None:
+        for flags, message in (([], "needs --skill"), (["--skill", "Bad"], "needs --skill"),
+                               (["--skill", "current", "--detect-file", "x"], "only a stack")):
+            with self.subTest(flags=flags):
+                result = self.create("personal", "profile", *flags)
+                self.assertEqual(2, result.returncode)
+                self.assertIn(message, result.stderr)
+                self.assertFalse((self.destination / "personal").exists())
 
     def test_vendored_files_match_template_and_ci_follows_main(self) -> None:
         self.assertEqual(0, self.create("helix", "tool").returncode)

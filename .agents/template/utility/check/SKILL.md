@@ -62,6 +62,9 @@ Renaming a published skill keeps its old name as a compatibility alias until its
     applies where the stack is present.
   - **tool**: `knowledge`, `direction` (kind `knowledge`); `learning` (kind `policy`); its tier always applies.
   - **utility**: only skills of kind `utility`; its tier declares `always` or `stack-present`. New utilities default to `always`.
+  - **profile**: at least one policy in the main plugin, with supporting policies, conventions, workflows and
+    utilities; its tier always applies after explicit project selection. Its generated host dependencies and
+    harness requirements include the canonical `tj-agents/base` capability.
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
