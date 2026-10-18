@@ -59,6 +59,12 @@
         }
       }
     },
+    "profile": {
+      "applies": "always",
+      "only_kinds": ["policy", "convention", "workflow", "utility"],
+      "required_kinds": ["policy"],
+      "skills": {}
+    },
     "utility": {
       "applies": ["always", "stack-present"],
       "only_kinds": ["utility"],
