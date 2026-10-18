@@ -13,5 +13,5 @@ Template plugin CI runs from the main branch. Plugin repositories follow main an
 vendored content; Template changes do not require version bumps or tags.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
-`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and
-`python -B -m unittest discover -s .agents/tests -p "test_*.py"` must pass before delivery.
+`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and the `python:build`
+gate must pass before delivery.
