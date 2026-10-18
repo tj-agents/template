@@ -15,7 +15,9 @@ provenance: house
 
 ## The goal
 
-_Not set yet._ Agree it with {{learner}} before the first lesson.
+_Unfinished starter._ Agree it with {{learner}} before the first lesson, then replace this with the actual goal and
+a concrete fenced example of a learning step, command, configuration, or input/output before committing. The
+guidance-example check rejects this placeholder.
 
 ## The skill tree
 
@@ -26,4 +28,5 @@ Update a row's status when {{learner}} levels up an area.
 
 ## References
 
-_None agreed yet._ Explanations and conventions cite only the references listed here.
+_Unfinished starter._ Record the sources that support the concrete example above. Explanations and conventions cite
+only the references listed here.
