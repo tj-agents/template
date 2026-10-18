@@ -1,6 +1,6 @@
 ---
 name: new-plugin
-description: Create a plugin repository in the shared layout — a stack (knowledge tier, a teaching policy, the seven conventions and a project scaffold), a tool (knowledge tier and teaching policy only) or a utility — with the generator, root files and CI following the selected package's main branch. Use when starting a new language stack, a new tool to learn, or a new utility plugin.
+description: Create a stack, tool, utility or project policy profile repository in the shared layout, with the generator, root files and CI following the selected package's main branch. Use when starting a language stack, a tool to learn, a utility plugin or a reusable project profile.
 kind: utility
 domain: template
 profile: core

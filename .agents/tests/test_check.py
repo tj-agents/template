@@ -41,6 +41,7 @@ EXTRA_ARGUMENTS = {
     "stack": ["--detect-file", "build.zig"],
     "tool": [],
     "utility": ["--skill", "sweep"],
+    "profile": ["--skill", "current"],
 }
 
 
@@ -80,6 +81,11 @@ def helix_repo(repository_factory: Callable[[str, str], Path]) -> Path:
 @pytest.fixture
 def tools_repo(repository_factory: Callable[[str, str], Path]) -> Path:
     return repository_factory("utility", "tools")
+
+
+@pytest.fixture
+def personal_repo(repository_factory: Callable[[str, str], Path]) -> Path:
+    return repository_factory("profile", "personal")
 
 
 def edit(root: Path, relative: str, old: str, new: str) -> None:
@@ -478,6 +484,67 @@ def test_only_utility_skills(tools_repo: Path) -> None:
     )
     regenerate(tools_repo)
     assert_problem(tools_repo, "a utility repository has only utility skills")
+
+
+def test_a_new_profile_conforms(personal_repo: Path) -> None:
+    assert check.check(personal_repo) == []
+
+
+def test_profile_needs_a_policy_in_its_main_plugin(personal_repo: Path) -> None:
+    policy = personal_repo / ".agents/personal/policy/current"
+    utility = personal_repo / ".agents/personal/utility/current"
+    utility.parent.mkdir()
+    policy.rename(utility)
+    policy.parent.rmdir()
+    edit(
+        personal_repo,
+        ".agents/personal/utility/current/SKILL.md",
+        "kind: policy",
+        "kind: utility",
+    )
+    regenerate(personal_repo)
+    assert_problem(
+        personal_repo, "a profile repository needs at least one policy skill"
+    )
+
+
+def test_profile_rejects_knowledge_kind(personal_repo: Path) -> None:
+    policy = personal_repo / ".agents/personal/policy/current"
+    knowledge = personal_repo / ".agents/personal/knowledge/current"
+    knowledge.parent.mkdir()
+    policy.rename(knowledge)
+    policy.parent.rmdir()
+    edit(
+        personal_repo,
+        ".agents/personal/knowledge/current/SKILL.md",
+        "kind: policy",
+        "kind: knowledge",
+    )
+    regenerate(personal_repo)
+    assert_problem(
+        personal_repo,
+        "a profile repository has only policy, convention, workflow, utility skills",
+    )
+
+
+def test_profile_is_always_applicable_once_selected(personal_repo: Path) -> None:
+    path = personal_repo / ".agents/tiers/personal.json"
+    tier = json.loads(path.read_text())
+    tier.update(applies="stack-present", detect={"files": ["personal.json"]})
+    path.write_text(json.dumps(tier), encoding="utf-8")
+    assert_problem(personal_repo, "a profile repository applies always")
+
+
+def test_profile_dependency_projection_is_checked(personal_repo: Path) -> None:
+    path = personal_repo / "plugins/personal/harness.json"
+    harness = json.loads(path.read_text())
+    harness["requires"]["plugins"] = ["personal-agents/personal"]
+    path.write_text(json.dumps(harness), encoding="utf-8")
+    assert_problem(
+        personal_repo,
+        "plugins/personal/harness.json: effective dependency projection is "
+        "missing or differs",
+    )
 
 
 def test_a_conforming_scaffold_in_one_plugin_is_enough(zig_repo: Path) -> None:
