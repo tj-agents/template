@@ -26,7 +26,7 @@ VENDORED = (
     "CLAUDE.md",
     ".github/workflows/ci.yml",
 )
-SKILL_SETS = {"stack": ("common", "stack"), "tool": ("common", "tool"), "utility": ("utility",)}
+SKILL_SETS = {"stack": ("common", "stack"), "tool": ("common", "tool"), "utility": ("utility",), "profile": ("profile",)}
 KIND_HEADINGS = {
     "knowledge": "Knowledge",
     "policy": "Policies",
@@ -40,11 +40,13 @@ AGENTS_RULES = {
     ),
     "tool": "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules.",
     "utility": "Every skill here is a `utility`. Its scripts and templates sit beside its `SKILL.md`.",
+    "profile": "This profile applies in projects that explicitly select it. Policies live under `policy/`; supporting conventions, workflows and utilities stay beside their owning skills. Declare mandatory host hooks in the shipped harness manifest and verify their delivery on each supported host.",
 }
 DEFAULT_PROMPTS = {
     "stack": "Teach me the next {stack} concept my current task needs.",
     "tool": "Teach me the next {stack} step at my current level.",
     "utility": "Show me what {namespace} can do.",
+    "profile": "Apply the {namespace} project policies.",
 }
 
 
@@ -134,15 +136,15 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         "harness_requires_json": json.dumps(
             {
                 "marketplaces": [{"id": f"{namespace}-agents", "repository": arguments.repository}]
-                + ([] if arguments.type == "stack" else [{"id": "base-agents", "repository": "tj-agents/core"}]),
+                + ([] if arguments.type in ("stack", "profile") else [{"id": "base-agents", "repository": "tj-agents/core"}]),
                 "plugins": [f"{namespace}-agents/{namespace}"]
-                + ([] if arguments.type == "stack" else ["base-agents/base"]),
+                + ([] if arguments.type in ("stack", "profile") else ["base-agents/base"]),
                 "hooks": [],
                 "permissions": {"claude_allow": [], "codex_prefix_rules": []},
             }
         ),
     }
-    if arguments.type == "utility":
+    if arguments.type in ("utility", "profile"):
         values["skill"] = arguments.skill
     files: dict[str, str] = {}
     sources: list[tuple[Path, PurePosixPath]] = []
@@ -185,8 +187,8 @@ def validate(arguments: argparse.Namespace) -> Path:
         raise ValueError("a stack repository needs --detect-file or --detect-glob")
     if arguments.type != "stack" and (arguments.detect_file or arguments.detect_glob):
         raise ValueError("only a stack repository declares detect markers")
-    if arguments.type == "utility" and not (arguments.skill and NAME.fullmatch(arguments.skill)):
-        raise ValueError("a utility repository needs --skill with a lowercase name")
+    if arguments.type in ("utility", "profile") and not (arguments.skill and NAME.fullmatch(arguments.skill)):
+        raise ValueError(f"a {arguments.type} repository needs --skill with a lowercase name")
     destination = arguments.destination.resolve()
     if not destination.is_dir():
         raise ValueError(f"{destination} does not exist")
@@ -207,7 +209,7 @@ def main() -> int:
     parser.add_argument("--learner", default=None)
     parser.add_argument("--detect-file", action="append", default=[])
     parser.add_argument("--detect-glob", action="append", default=[])
-    parser.add_argument("--skill", help="first utility skill name, for a utility repository")
+    parser.add_argument("--skill", help="first utility or policy skill name, for a utility or profile repository")
     parser.add_argument("--keywords", help="comma-separated; defaults to the name")
     parser.add_argument("--category", default="Productivity")
     parser.add_argument("--dry-run", action="store_true")
