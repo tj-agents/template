@@ -2,7 +2,9 @@
   "schema_version": 1,
   "plugin": "template-agents/template",
   "source_roots": [
-    ".agents/template"
+    ".agents/template/utility/check",
+    ".agents/template/utility/new-plugin",
+    ".agents/template/utility/update"
   ],
   "requires": {
     "marketplaces": [
