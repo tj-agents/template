@@ -13,6 +13,9 @@ enabled = true
 [plugins."machine@tj-agents"]
 enabled = true
 
+[plugins."python@tj-agents"]
+enabled = true
+
 [plugins."template@tj-agents"]
 enabled = true
 
