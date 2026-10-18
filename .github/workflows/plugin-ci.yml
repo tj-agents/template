@@ -66,12 +66,15 @@ jobs:
           if ('${{ github.event_name }}' -eq 'pull_request') {
             $base = '${{ github.event.pull_request.base.sha }}'
             $head = '${{ github.event.pull_request.head.sha }}'
+            $mergeBase = '--merge-base'
           } else {
             $base = '${{ github.event.before }}'
             $head = '${{ github.sha }}'
+            $mergeBase = ''
           }
           "GUIDANCE_EXAMPLES_BASE=$base" >> $env:GITHUB_ENV
           "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
+          "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" >> $env:GITHUB_ENV
       - name: regenerate generated files from authored sources
         if: inputs.generate_before_verify
         shell: pwsh
@@ -106,13 +109,10 @@ jobs:
           }
       - name: the repository conforms to the current Template source
         shell: pwsh
-        run: python -B .template/.agents/template/utility/check/scripts/check.py --root .
+        run: python -B .template/.agents/template/utility/check/scripts/check.py --root . --base $env:GUIDANCE_EXAMPLES_BASE --head $env:GUIDANCE_EXAMPLES_HEAD $env:GUIDANCE_EXAMPLES_MERGE_BASE
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .react --root .dotnet --source-root .
-      - name: changed authored guidance has concrete examples
-        shell: pwsh
-        run: python -B .core/.agents/engineering/convention/docs/scripts/check_examples.py --root . --base $env:GUIDANCE_EXAMPLES_BASE --head $env:GUIDANCE_EXAMPLES_HEAD
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .

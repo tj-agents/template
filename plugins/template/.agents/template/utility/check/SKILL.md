@@ -1,6 +1,6 @@
 ---
 name: check
-description: Check a plugin repository against the shared layout and standard — the one folder structure, the vendored files from Template's main branch, the skills and sections its type requires, frontmatter and profiles. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
+description: Check a plugin repository against the shared layout and standard — the one folder structure, vendored files, required skill metadata and sections, and concrete examples in added or updated skill contracts. The canonical description of the plugin layout. Use when asked whether a plugin repository conforms, before delivering a structural change to one, or when a layout question comes up.
 kind: utility
 domain: template
 profile: core
@@ -40,7 +40,9 @@ Every plugin repository, Template included, has the same layout. The repository 
 python <skill-directory>/scripts/check.py --root <repository>
 ```
 
-CI runs it against the current Template source. Run update to refresh vendored files when they differ.
+CI supplies its exact `--base` and `--head` range. Locally, the checker considers working, staged and untracked
+skills against `HEAD`, plus commits since `origin/main` when that ref is available. A fresh or non-Git repository
+checks every skill. Run update to refresh vendored files when they differ.
 
 ## Skill families
 
@@ -68,6 +70,10 @@ Renaming a published skill keeps its old name as a compatibility alias until its
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
+- Every added or updated canonical `SKILL.md` contains a meaningful fenced code, command, configuration, or
+  input/output example. `check_examples.py` is the standalone form for an explicit `--base`/`--head` range or
+  one or more working-tree `--path` values. It excludes generated payloads and skill assets; unchanged legacy
+  skills are not retrofitted. Follow `engineering:docs` for the authoring decision this validation enforces.
 - Skill names are foldered: no flat names in one kind folder that share a hyphen-separated first or last word,
   nor a flat name sharing a family folder's word; no member repeating its family (`state/client-state/`); no
   name repeating its namespace (`dotnet-stack` under `dotnet`). Declared compatibility aliases are exempt.

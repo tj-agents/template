@@ -12,10 +12,7 @@ SKILL = ROOT / ".agents/template/utility/new-plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
-CORE_EXAMPLES_CHECK = (
-    ROOT
-    / ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
-)
+EXAMPLES_CHECK = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
     ".agents/sync_generated.py",
@@ -192,18 +189,15 @@ def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
     assert_repository_is_current(tmp_path, "tools")
 
 
-def test_generated_starter_requires_a_concrete_example_when_core_is_available(
+def test_generated_starter_requires_a_concrete_example(
     tmp_path: Path,
 ) -> None:
-    if not CORE_EXAMPLES_CHECK.is_file():
-        pytest.skip("Core guidance-example checker is supplied by reusable CI")
-
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
     relative = ".agents/tools/utility/sweep/SKILL.md"
 
     result = run(
-        str(CORE_EXAMPLES_CHECK),
+        str(EXAMPLES_CHECK),
         "--root",
         str(repository),
         "--path",
@@ -217,9 +211,6 @@ def test_generated_starter_requires_a_concrete_example_when_core_is_available(
 def test_initial_plugin_passes_the_zero_base_check_after_real_examples_are_added(
     tmp_path: Path,
 ) -> None:
-    if not CORE_EXAMPLES_CHECK.is_file():
-        pytest.skip("Core guidance-example checker is supplied by reusable CI")
-
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
     skill = repository / ".agents/tools/utility/sweep/SKILL.md"
@@ -251,7 +242,15 @@ output: [\"artifacts/old.bin\"]
     for arguments in (
         ("init",),
         ("add", "."),
-        ("-c", "user.name=Template test", "-c", "user.email=test@example.com", "commit", "-m", "initial"),
+        (
+            "-c",
+            "user.name=Template test",
+            "-c",
+            "user.email=test@example.com",
+            "commit",
+            "-m",
+            "initial",
+        ),
     ):
         result = subprocess.run(
             ["git", *arguments],
@@ -264,7 +263,7 @@ output: [\"artifacts/old.bin\"]
         assert result.returncode == 0, result.stdout + result.stderr
 
     result = run(
-        str(CORE_EXAMPLES_CHECK),
+        str(EXAMPLES_CHECK),
         "--root",
         str(repository),
         "--base",

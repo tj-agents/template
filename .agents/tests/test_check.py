@@ -25,6 +25,11 @@ def load(name: str, path: Path) -> Any:
 
 
 check = load("template_check", ROOT / ".agents/template/utility/check/scripts/check.py")
+CHECK = ROOT / ".agents/template/utility/check/scripts/check.py"
+EXAMPLE_PROBLEM = (
+    ".agents/tools/utility/sweep/SKILL.md: add a concrete "
+    "non-placeholder fenced example"
+)
 
 
 def run(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -35,6 +40,17 @@ def run(*arguments: str) -> subprocess.CompletedProcess[str]:
         encoding="utf-8",
         check=False,
     )
+
+
+def complete_skill_examples(root: Path) -> None:
+    for skill in (root / ".agents").glob("*/*/**/SKILL.md"):
+        content = skill.read_text(encoding="utf-8")
+        if "```" not in content:
+            skill.write_text(
+                content + "\n```text\nInput: fixture\nOutput: verified\n```\n",
+                encoding="utf-8",
+                newline="\n",
+            )
 
 
 EXTRA_ARGUMENTS = {
@@ -63,7 +79,9 @@ def repository_factory(tmp_path: Path) -> Callable[[str, str], Path]:
             *EXTRA_ARGUMENTS[kind],
         )
         assert result.returncode == 0, result.stderr
-        return tmp_path / name
+        repository = tmp_path / name
+        complete_skill_examples(repository)
+        return repository
 
     return create
 
@@ -105,8 +123,222 @@ def assert_problem(root: Path, fragment: str) -> None:
     assert any(fragment in problem for problem in problems), problems
 
 
+def commit_initial_repository(root: Path) -> None:
+    for arguments in (
+        ("init", "-q", "-b", "main"),
+        ("config", "user.name", "Template test"),
+        ("config", "user.email", "template@example.invalid"),
+        ("add", "."),
+        ("commit", "-q", "-m", "initial"),
+    ):
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_a_new_stack_repository_conforms(zig_repo: Path) -> None:
     assert check.check(zig_repo) == []
+
+
+def test_normal_check_rejects_a_changed_skill_without_a_real_example(
+    tools_repo: Path,
+) -> None:
+    commit_initial_repository(tools_repo)
+    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
+        ),
+        encoding="utf-8",
+    )
+    assert_problem(
+        tools_repo,
+        EXAMPLE_PROBLEM,
+    )
+
+
+def test_normal_check_rejects_a_placeholder_example(tools_repo: Path) -> None:
+    commit_initial_repository(tools_repo)
+    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "Input: fixture\nOutput: verified", "TODO", 1
+        ),
+        encoding="utf-8",
+    )
+    assert_problem(
+        tools_repo,
+        EXAMPLE_PROBLEM,
+    )
+
+
+def test_explicit_range_reads_committed_skill_after_working_file_deletion(
+    tools_repo: Path,
+) -> None:
+    commit_initial_repository(tools_repo)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    ).stdout.strip()
+    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
+        ),
+        encoding="utf-8",
+    )
+    staged = subprocess.run(
+        ["git", "add", "."], cwd=tools_repo, capture_output=True, text=True, check=False
+    )
+    assert staged.returncode == 0, staged.stderr
+    committed = subprocess.run(
+        ["git", "commit", "-q", "-m", "remove example"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert committed.returncode == 0, committed.stderr
+    skill.unlink()
+
+    result = run(
+        str(CHECK), "--root", str(tools_repo), "--base", base, "--head", "HEAD"
+    )
+
+    assert result.returncode == 1
+    assert EXAMPLE_PROBLEM in result.stderr
+
+
+def test_merge_base_range_ignores_target_only_skill_example_change(
+    tools_repo: Path,
+) -> None:
+    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
+        ),
+        encoding="utf-8",
+    )
+    commit_initial_repository(tools_repo)
+
+    result = subprocess.run(
+        ["git", "checkout", "-q", "-b", "feature"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    readme = tools_repo / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + "\nFeature-only change.\n")
+    for arguments in (
+        ("add", "README.md"),
+        ("commit", "-q", "-m", "feature readme"),
+    ):
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=tools_repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+
+    result = subprocess.run(
+        ["git", "checkout", "-q", "main"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    skill.write_text(
+        skill.read_text(encoding="utf-8")
+        + "\n```text\nInput: target update\nOutput: valid example\n```\n",
+        encoding="utf-8",
+    )
+    for arguments in (("add", "."), ("commit", "-q", "-m", "target example")):
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=tools_repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+    target = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    result = subprocess.run(
+        ["git", "checkout", "-q", "feature"],
+        cwd=tools_repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+    direct = run(
+        str(CHECK), "--root", str(tools_repo), "--base", target, "--head", "HEAD"
+    )
+    pr = run(
+        str(CHECK),
+        "--root",
+        str(tools_repo),
+        "--base",
+        target,
+        "--head",
+        "HEAD",
+        "--merge-base",
+    )
+
+    assert direct.returncode == 1
+    assert EXAMPLE_PROBLEM in direct.stderr
+    assert pr.returncode == 0, pr.stdout + pr.stderr
+
+
+def test_normal_check_does_not_retrofit_an_unchanged_legacy_skill(
+    tools_repo: Path,
+) -> None:
+    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8").replace(
+            "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
+        ),
+        encoding="utf-8",
+    )
+    commit_initial_repository(tools_repo)
+    readme = tools_repo / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + "\nChanged.\n")
+    assert check.check(tools_repo) == []
+
+
+def test_installed_check_payload_ships_the_standalone_example_validator(
+    tmp_path: Path,
+) -> None:
+    checker = ROOT / "plugins/template/skills/check/scripts/check_examples.py"
+    assert checker.is_file()
+    rules = tmp_path / "RULES.md"
+    rules.write_text(
+        "# Rules\n\n```text\nInput: change\nOutput: verified\n```\n",
+        encoding="utf-8",
+    )
+    result = run(str(checker), "--root", str(tmp_path), "--path", "RULES.md")
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_repository_can_declare_rolling_plugin_selection(zig_repo: Path) -> None:
@@ -581,7 +813,7 @@ def add_contract(root: Path, folder: str, name: str) -> None:
         f"---\nname: {name}\ndescription: The {name} contract.\nkind: contract\n"
         f"domain: zig\nprofile: core\n"
         f"applicability: zig projects\nrequires: zig\nprovenance: house\n---\n\n"
-        f"# {name}\n\nOwns {name}.\n",
+        f"# {name}\n\nOwns {name}.\n\n```text\nInput: fixture\nOutput: verified\n```\n",
         encoding="utf-8",
         newline="\n",
     )
