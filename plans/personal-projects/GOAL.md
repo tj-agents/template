@@ -42,9 +42,9 @@ Before writing governed code in a newly created repository, apply its owning plu
 
 ## Next Steps
 
-1. Acknowledge ownership in this goal, inspect current Template source and available standards, and investigate the best policy/profile type and mandatory delivery mechanism. Do not repeat the already-complete broad assessment of whether a separate personal profile is useful.
-2. Record the chosen concise policy wording, applicability/enforcement approach, acceptance evidence, and delivery slices here. The user delegated these bounded wording/design choices; do not stop at a proposal when authorized implementation can proceed.
-3. Implement and deliver Template's policy/profile support with meaningful generator/checker/scaffold coverage. Then scaffold `tj-agents/personal` through Template, author the required policy, integrate its canonical marketplace selection and verify real loading/adoption in covered personal projects.
+1. Complete review and deliver the current Template profile-support candidate. The full 133-test suite, generation freshness and Template check passed on 2026-10-18. Both native `codex review --help` startup and the required review-lens capability were attempted; native startup stalled without output, and both read-only lens dispatches were rejected because their configured model is unsupported by this account. Use the documented parent fallback over the frozen descriptor; do not claim independent review.
+2. After Template lands, scaffold `tj-agents/personal` through its supported `--type profile` command. Author the required policy, integrate its canonical marketplace selection and verify actual instruction loading/adoption in covered personal projects. Core's existing native instruction fragment format is an available delivery option when plugin hooks cannot be relied on; generated blocks must derive from one authored body and have a freshness check.
+3. Keep the personal policy mandatory through explicit project selection and verified instruction delivery, with employer scope excluded. Continue across the recorded delivery slices without a routine approval question.
 4. Assess Core personal-only candidates against evidence and avoid copying instruction bodies or adding generic requirements with no concrete benefit. Report the delivered policy, adoption coverage, tests and any genuine unresolved gate honestly.
 
 ## Decisions and progress — 2026-10-18
@@ -62,3 +62,26 @@ Before writing governed code in a newly created repository, apply its owning plu
 3. **Explicit adoption and policy ownership** — inventory known tj-agents and Concertable selections; preserve employer scope and unrelated work. Add personal selection with committed declarations and drift checks, verify actual supported host entry points, and assess Core-only candidates from evidence. Keep generic mechanisms in Core and one authored policy definition. Record coverage and unresolved platform evidence here.
 
 Current tooling: default shell runner fails during helper setup; the approved escalated runner works. Read-only Node access and process execution work within the sandbox, but Git metadata writes and session-store access require the approved runner. GitHub authentication is available through that runner. These are host permission constraints, not evidence of a source defect in this workstream.
+
+```agent-host-coverage
+{
+  "schema_version": 1,
+  "shared_source": ".agents/template/utility/new-plugin/ and .agents/template/utility/check/; personal policy will be authored once in its Template-scaffolded repository",
+  "hosts": [
+    {
+      "host": "claude",
+      "behavior": "Profile skills and dependencies are packaged for Claude; selected personal rules must also be delivered as native instructions or trusted hooks",
+      "source": ".agents/template/utility/new-plugin/templates/repository/.agents/sync_generated.py.in",
+      "mapping": "Canonical policy source to plugins/<name>/.agents and generated skills adapters, Claude manifest dependencies and shipped harness",
+      "verification": {"level": "source", "result": "passed", "evidence": "133 Template tests passed, including profile round trip and canonical policy/adapter equality; generation freshness passed. Personal installed-host acceptance remains a later slice."}
+    },
+    {
+      "host": "codex",
+      "behavior": "Profile skills and harness requirements are packaged for Codex; selected personal rules must also be delivered as native instructions or trusted hooks",
+      "source": ".agents/template/utility/new-plugin/templates/repository/.agents/sync_generated.py.in",
+      "mapping": "Canonical policy source to .codex adapters, plugin source and selection.json dependencies plus shipped harness",
+      "verification": {"level": "source", "result": "passed", "evidence": "133 Template tests passed, including profile round trip, canonical policy/adapter equality and dependency projection; generation freshness passed. Personal installed-host acceptance remains a later slice."}
+    }
+  ]
+}
+```
