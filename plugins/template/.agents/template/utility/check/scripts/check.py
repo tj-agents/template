@@ -108,9 +108,6 @@ def skill_example_paths(
             )
         except examples.CheckError as error:
             raise ValueError(str(error)) from error
-    elif git_output(root, "rev-parse", "--verify", "HEAD^") is None:
-        return records, False
-
     paths = {
         root / Path(raw.decode("utf-8", errors="surrogateescape"))
         for raw in changed_bytes.split(b"\0")

@@ -35,6 +35,7 @@ PLACEHOLDERS = re.compile(
     re.IGNORECASE,
 )
 OPENING_FENCE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})(.*)$")
+LIST_ITEM = re.compile(r"^( *)(?:[-+*]|\d+[.)])\s+")
 METADATA_FENCE_TAGS = {"agent-host-coverage", "agent-host-completion", "completion"}
 
 
@@ -226,9 +227,20 @@ def has_meaningful_content(content: str) -> bool:
 
 def has_concrete_example(text: str) -> bool:
     lines = strip_front_matter(text).splitlines()
+    containers: list[int] = []
     index = 0
     while index < len(lines):
-        opening = OPENING_FENCE.match(lines[index])
+        line = lines[index].expandtabs(4)
+        indentation = len(line) - len(line.lstrip(" "))
+        if line.strip():
+            while containers and indentation < containers[-1]:
+                containers.pop()
+        container = containers[-1] if containers else 0
+        item = LIST_ITEM.match(line)
+        if item is not None and indentation <= container + 3:
+            container = item.end()
+            containers.append(container)
+        opening = OPENING_FENCE.match(line[container:])
         if not opening:
             index += 1
             continue
@@ -242,10 +254,18 @@ def has_concrete_example(text: str) -> bool:
         content: list[str] = []
         index += 1
         close = re.compile(rf"^[ ]{{0,3}}{re.escape(marker)}{{{width},}}[ \t]*$")
-        while index < len(lines) and not close.match(lines[index]):
-            content.append(lines[index])
+        closed = False
+        while index < len(lines):
+            line = lines[index].expandtabs(4)
+            if line.strip() and len(line) - len(line.lstrip(" ")) < container:
+                break
+            line = line[container:]
+            if close.match(line):
+                closed = True
+                break
+            content.append(line)
             index += 1
-        if index < len(lines):
+        if closed:
             candidate = "\n".join(content).strip()
             tags = set(re.findall(r"[a-z]+(?:-[a-z]+)*", info))
             if (
@@ -254,7 +274,7 @@ def has_concrete_example(text: str) -> bool:
                 and not is_structural_json(candidate)
             ):
                 return True
-        index += 1
+            index += 1
     return False
 
 

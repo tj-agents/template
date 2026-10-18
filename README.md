@@ -1,8 +1,8 @@
 # Template
 
-Meta-scaffolder for plugin repositories. Every stack, tool, utility and profile plugin repository shares one layout, one
-vendored generator and one CI workflow, all owned here. Install the Template package to use these procedures
-and resources.
+Template owns the plugin and skill contract: required content, metadata, layout,
+scaffolding, generated host projections, and validation across plugin repositories.
+It links to Core's generic documentation guidance for authoring decisions.
 
 ## Install
 
