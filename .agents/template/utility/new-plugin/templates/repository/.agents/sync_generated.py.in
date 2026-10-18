@@ -4,7 +4,6 @@ installable payloads."""
 
 import argparse
 import json
-import os
 import posixpath
 import re
 import shutil
@@ -114,10 +113,8 @@ def is_link_or_junction(path: Path) -> bool:
     is_junction = getattr(path, "is_junction", None)
     if is_junction is not None and is_junction():
         return True
-    if os.name != "nt":
-        return False
     try:
-        attributes = path.lstat().st_file_attributes
+        attributes = getattr(path.lstat(), "st_file_attributes", 0)
     except FileNotFoundError:
         return False
     return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
