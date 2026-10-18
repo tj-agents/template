@@ -31,6 +31,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.template_repository }}
@@ -56,6 +59,19 @@ jobs:
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v10.3.0
+      - name: resolve the authored-guidance comparison range
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.event_name }}' -eq 'pull_request') {
+            $base = '${{ github.event.pull_request.base.sha }}'
+            $head = '${{ github.event.pull_request.head.sha }}'
+          } else {
+            $base = '${{ github.event.before }}'
+            $head = '${{ github.sha }}'
+          }
+          "GUIDANCE_EXAMPLES_BASE=$base" >> $env:GITHUB_ENV
+          "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
       - name: regenerate generated files from authored sources
         if: inputs.generate_before_verify
         shell: pwsh
@@ -94,6 +110,9 @@ jobs:
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .react --root .dotnet --source-root .
+      - name: changed authored guidance has concrete examples
+        shell: pwsh
+        run: python -B .core/.agents/engineering/convention/docs/scripts/check_examples.py --root . --base $env:GUIDANCE_EXAMPLES_BASE --head $env:GUIDANCE_EXAMPLES_HEAD
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .

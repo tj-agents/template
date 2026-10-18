@@ -12,6 +12,10 @@ SKILL = ROOT / ".agents/template/utility/new-plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
+CORE_EXAMPLES_CHECK = (
+    ROOT
+    / ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
+)
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
     ".agents/sync_generated.py",
@@ -186,6 +190,28 @@ def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     assert skills(tmp_path, "tools") == {"utility": {"sweep"}}
     assert_repository_is_current(tmp_path, "tools")
+
+
+def test_generated_starter_requires_a_concrete_example_when_core_is_available(
+    tmp_path: Path,
+) -> None:
+    if not CORE_EXAMPLES_CHECK.is_file():
+        pytest.skip("Core guidance-example checker is supplied by reusable CI")
+
+    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    repository = tmp_path / "tools"
+    relative = ".agents/tools/utility/sweep/SKILL.md"
+
+    result = run(
+        str(CORE_EXAMPLES_CHECK),
+        "--root",
+        str(repository),
+        "--path",
+        relative,
+    )
+
+    assert result.returncode == 1
+    assert relative in result.stderr.replace("\\", "/")
 
 
 def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> None:

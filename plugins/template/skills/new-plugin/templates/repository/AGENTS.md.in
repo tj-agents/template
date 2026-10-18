@@ -11,4 +11,9 @@ Change them in Template, then run `template:update` to refresh the exact vendore
 `pwsh .agents/sync-generated.ps1` after authored changes and require `pwsh .agents/sync-generated.ps1 -Check`
 before delivery.
 
+When adding or changing a skill or standard, include a concrete fenced example that shows its actual behaviour:
+code, a command and its representative output, configuration, or an input/output pair. Do this before prose
+explanation so the example settles ambiguous terminology. A starter's explicit unfinished placeholder is not an
+example; replace it with real behaviour before committing, because the guidance-example check rejects it.
+
 {{agents_rules}}
