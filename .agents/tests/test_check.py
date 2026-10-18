@@ -485,6 +485,7 @@ def test_portable_repository_plugin_configuration_is_allowed(zig_repo: Path) -> 
         "plugins.lock.json",
         "settings.json",
         "repository-harness.json",
+        "persistent-workflow-binding.json",
     ):
         (zig_repo / ".agents" / filename).write_text("{}\n", encoding="utf-8")
     assert check.check(zig_repo) == []
