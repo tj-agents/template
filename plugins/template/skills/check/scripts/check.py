@@ -4,6 +4,7 @@
 import argparse
 import importlib.util
 import json
+import subprocess
 import sys
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -43,10 +44,116 @@ def load_module(name: str, path: Path) -> Any:
 
 new_plugin = load_module("template_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
 generator = load_module("template_generator", new_plugin.GENERATOR_TEMPLATE)
+examples = load_module(
+    "template_check_examples", SKILL_DIRECTORY / "scripts/check_examples.py"
+)
 
 
 def text(path: Path) -> str:
     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def git_output(root: Path, *arguments: str) -> bytes | None:
+    result = subprocess.run(
+        ["git", *arguments], cwd=root, capture_output=True, check=False
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def skill_example_paths(
+    root: Path, plugins: Plugins | None, base: str | None, head: str, merge_base: bool
+) -> tuple[set[Path], bool]:
+    top_level = git_output(root, "rev-parse", "--show-toplevel")
+    owns_repository = (
+        top_level is not None
+        and Path(top_level.decode("utf-8").strip()).resolve() == root
+    )
+    if base is not None:
+        if not owns_repository:
+            raise ValueError(
+                "an explicit --base range requires --root to be a Git repository root"
+            )
+        try:
+            changed_paths = examples.changed_paths(root, base, head, merge_base)
+        except examples.CheckError as error:
+            raise ValueError(str(error)) from error
+        return {
+            root.joinpath(*path.parts)
+            for path in changed_paths
+            if path.name == "SKILL.md" and examples.is_authored_guidance(path)
+        }, True
+
+    assert plugins is not None
+    records = {
+        root / skill["directory"] / "SKILL.md"
+        for skills in plugins.values()
+        for skill in skills.values()
+    }
+    current = git_output(root, "rev-parse", "--verify", "HEAD^{commit}")
+    if current is None or not owns_repository:
+        return records, False
+
+    changed_bytes = git_output(root, "diff", "--name-only", "-z", "HEAD") or b""
+    changed_bytes += (
+        git_output(root, "ls-files", "--others", "--exclude-standard", "-z") or b""
+    )
+    merge_base_ref = git_output(root, "merge-base", "HEAD", "origin/main")
+    if merge_base_ref is not None:
+        try:
+            changed_bytes += b"\0".join(
+                path.as_posix().encode("utf-8")
+                for path in examples.changed_paths(
+                    root, merge_base_ref.decode("utf-8").strip(), "HEAD"
+                )
+            )
+        except examples.CheckError as error:
+            raise ValueError(str(error)) from error
+    paths = {
+        root / Path(raw.decode("utf-8", errors="surrogateescape"))
+        for raw in changed_bytes.split(b"\0")
+        if raw
+    }
+    return records.intersection(paths), False
+
+
+def check_skill_examples(
+    root: Path,
+    plugins: Plugins | None,
+    base: str | None,
+    head: str,
+    merge_base: bool,
+) -> list[str]:
+    if not STANDARD["skill_content"]["requires_concrete_fenced_example"]:
+        return []
+    if base is not None:
+        try:
+            head = examples.commit(root, head, "--head")
+        except examples.CheckError as error:
+            raise ValueError(str(error)) from error
+    paths, committed = skill_example_paths(root, plugins, base, head, merge_base)
+    problems = []
+    for path in sorted(paths):
+        try:
+            content = (
+                examples.committed_text(
+                    root,
+                    head,
+                    examples.normalized_path(path.relative_to(root).as_posix()),
+                )
+                if committed
+                else text(path)
+            )
+        except (examples.CheckError, OSError, UnicodeDecodeError) as error:
+            problems.append(
+                f"{path.relative_to(root).as_posix()}: cannot read skill ({error})"
+            )
+            continue
+        if not examples.has_concrete_example(content):
+            problems.append(
+                f"{path.relative_to(root).as_posix()}: add a concrete "
+                "non-placeholder fenced example"
+            )
+    return problems
 
 
 def owns_templates(root: Path) -> bool:
@@ -315,7 +422,12 @@ def check_effective_dependency_projection(
     return problems
 
 
-def check(root: Path) -> list[str]:
+def check(
+    root: Path,
+    base: str | None = None,
+    head: str = "HEAD",
+    merge_base: bool = False,
+) -> list[str]:
     config_path = root / ".agents/plugins/template.json"
     if not config_path.is_file():
         return [
@@ -351,6 +463,11 @@ def check(root: Path) -> list[str]:
         TypeError,
         AttributeError,
     ) as error:
+        if base is not None:
+            try:
+                problems += check_skill_examples(root, None, base, head, merge_base)
+            except ValueError as example_error:
+                problems.append(f"skill examples: {example_error}")
         return [*problems, str(error)]
     problems += check_agents_entries(root, set(plugins))
     problems += check_standard(root, kind, namespace, plugins)
@@ -378,14 +495,22 @@ def check(root: Path) -> list[str]:
         ]
     problems += check_names(plugins, aliases)
     problems += check_effective_dependency_projection(root, config, generated)
+    try:
+        problems += check_skill_examples(root, plugins, base, head, merge_base)
+    except ValueError as error:
+        problems.append(f"skill examples: {error}")
     return problems
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    root = parser.parse_args().root.resolve()
-    problems = check(root)
+    parser.add_argument("--base")
+    parser.add_argument("--head", default="HEAD")
+    parser.add_argument("--merge-base", action="store_true")
+    arguments = parser.parse_args()
+    root = arguments.root.resolve()
+    problems = check(root, arguments.base, arguments.head, arguments.merge_base)
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:

@@ -11,5 +11,6 @@ provenance: house
 
 # {{skill}}
 
-_Nothing yet._ Describe what this utility does, how to run it, and how its output is validated. Its scripts and
+_Unfinished starter._ Replace this with the utility's real behaviour and a concrete fenced command, configuration,
+or input/output example before committing. The guidance-example check rejects this placeholder. Its scripts and
 templates sit beside this file.

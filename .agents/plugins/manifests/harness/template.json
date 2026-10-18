@@ -23,8 +23,28 @@
     ],
     "hooks": [],
     "permissions": {
-      "claude_allow": [],
-      "codex_prefix_rules": []
+      "claude_allow": [
+        "Bash(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
+        "PowerShell(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
+        "Bash(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
+        "PowerShell(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)"
+      ],
+      "codex_prefix_rules": [
+        {
+          "pattern": [
+            ["python", "python.exe", "python3", "py"],
+            "-B",
+            "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py"
+          ],
+          "justification": "Reads a declared repository's changed authored skills and reports a missing concrete fenced example; it does not change repository or session state",
+          "match": [
+            ["python", "-B", "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py", "--root", "${PROJECT_ROOT}", "--base", "origin/main"]
+          ],
+          "not_match": [
+            ["python", "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py"]
+          ]
+        }
+      ]
     }
   }
 }

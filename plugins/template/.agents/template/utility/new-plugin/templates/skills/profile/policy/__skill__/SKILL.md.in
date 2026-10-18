@@ -11,6 +11,8 @@ provenance: house
 
 # {{skill}}
 
-_Nothing yet._ Define the projects covered, the required behavior and the evidence that establishes it.
+_Unfinished starter._ Replace this with the projects covered, required behaviour, evidence that establishes it, and
+a concrete fenced code, command, configuration, or input/output example before committing. The guidance-example
+check rejects this placeholder.
 For mandatory session delivery, declare the policy's host hooks in the shipped harness manifest and verify
 the actual Claude and Codex entry points; skill discovery alone does not prove that a policy was loaded.

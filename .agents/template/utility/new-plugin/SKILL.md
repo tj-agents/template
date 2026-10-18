@@ -39,9 +39,10 @@ delivery; neither discovery nor an `always` tier proves session loading.
 must exist and the repository folder must not. The script does not run `git init` or touch anything outside the
 new folder.
 
-Every skill starts as a skeleton with its required sections and `_Nothing yet._`. Conventions grow through the new
-repository's `learning` convention procedure; `scaffold` gets its scripts and templates once `structure` has an
-agreed File structure.
+Every starter is explicitly unfinished. Replace it with the skill's actual behaviour and a meaningful fenced code,
+command, configuration, or input/output example before the first validation; `template:check` rejects an unfinished
+starter until that example exists. Conventions grow through the new repository's `learning` convention procedure;
+`scaffold` gets its scripts and templates once `structure` has an agreed File structure.
 
 ## Publish it
 

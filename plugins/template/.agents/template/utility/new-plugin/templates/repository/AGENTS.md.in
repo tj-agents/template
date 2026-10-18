@@ -11,4 +11,14 @@ Change them in Template, then run `template:update` to refresh the exact vendore
 `pwsh .agents/sync-generated.ps1` after authored changes and require `pwsh .agents/sync-generated.ps1 -Check`
 before delivery.
 
+```powershell
+pwsh .agents/sync-generated.ps1
+pwsh .agents/sync-generated.ps1 -Check
+```
+
+Follow `engineering:docs` when adding or changing a skill or standard. Keep a convention's required `Owns …`
+opening, then use a concrete fenced example before additional explanatory prose to settle ambiguous terminology. A
+starter's explicit unfinished placeholder is not an example, so replace it with real behaviour before committing
+because the guidance-example check rejects it.
+
 {{agents_rules}}

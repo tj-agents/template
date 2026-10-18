@@ -12,6 +12,7 @@ SKILL = ROOT / ".agents/template/utility/new-plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
+EXAMPLES_CHECK = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
     ".agents/sync_generated.py",
@@ -186,6 +187,92 @@ def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     assert skills(tmp_path, "tools") == {"utility": {"sweep"}}
     assert_repository_is_current(tmp_path, "tools")
+
+
+def test_generated_starter_requires_a_concrete_example(
+    tmp_path: Path,
+) -> None:
+    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    repository = tmp_path / "tools"
+    relative = ".agents/tools/utility/sweep/SKILL.md"
+
+    result = run(
+        str(EXAMPLES_CHECK),
+        "--root",
+        str(repository),
+        "--path",
+        relative,
+    )
+
+    assert result.returncode == 1
+    assert relative in result.stderr.replace("\\", "/")
+
+
+def test_initial_plugin_passes_the_zero_base_check_after_real_examples_are_added(
+    tmp_path: Path,
+) -> None:
+    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    repository = tmp_path / "tools"
+    skill = repository / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        """---
+name: sweep
+description: Lists stale build outputs before removing them.
+kind: utility
+domain: tools
+profile: core
+applicability: build cleanup
+requires: tools
+provenance: house
+---
+
+# Sweep
+
+Lists stale build outputs before removing them.
+
+## Example
+
+```text
+input: [\"artifacts/old.bin\"]
+output: [\"artifacts/old.bin\"]
+```
+""",
+        encoding="utf-8",
+    )
+    for arguments in (
+        ("init",),
+        ("add", "."),
+        (
+            "-c",
+            "user.name=Template test",
+            "-c",
+            "user.email=test@example.com",
+            "commit",
+            "-m",
+            "initial",
+        ),
+    ):
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    result = run(
+        str(EXAMPLES_CHECK),
+        "--root",
+        str(repository),
+        "--base",
+        "0" * 40,
+        "--head",
+        "HEAD",
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> None:

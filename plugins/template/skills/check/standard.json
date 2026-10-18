@@ -5,6 +5,9 @@
   "agents_folders": ["continuation", "plugins", "tiers", "tests", "hooks"],
   "plugins_entries": ["template.json", "payloads.json", "manifests", "marketplace.json", "skill-references.json"],
   "convention_opening": "Owns ",
+  "skill_content": {
+    "requires_concrete_fenced_example": true
+  },
   "types": {
     "stack": {
       "applies": "stack-present",

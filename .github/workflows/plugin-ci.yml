@@ -31,6 +31,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.template_repository }}
@@ -56,6 +59,22 @@ jobs:
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v10.3.0
+      - name: resolve the authored-guidance comparison range
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.event_name }}' -eq 'pull_request') {
+            $base = '${{ github.event.pull_request.base.sha }}'
+            $head = '${{ github.event.pull_request.head.sha }}'
+            $mergeBase = '--merge-base'
+          } else {
+            $base = '${{ github.event.before }}'
+            $head = '${{ github.sha }}'
+            $mergeBase = ''
+          }
+          "GUIDANCE_EXAMPLES_BASE=$base" >> $env:GITHUB_ENV
+          "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
+          "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" >> $env:GITHUB_ENV
       - name: regenerate generated files from authored sources
         if: inputs.generate_before_verify
         shell: pwsh
@@ -90,7 +109,7 @@ jobs:
           }
       - name: the repository conforms to the current Template source
         shell: pwsh
-        run: python -B .template/.agents/template/utility/check/scripts/check.py --root .
+        run: python -B .template/.agents/template/utility/check/scripts/check.py --root . --base $env:GUIDANCE_EXAMPLES_BASE --head $env:GUIDANCE_EXAMPLES_HEAD $env:GUIDANCE_EXAMPLES_MERGE_BASE
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .react --root .dotnet --source-root .

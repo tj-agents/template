@@ -1,8 +1,8 @@
 # Template
 
-Meta-scaffolder for plugin repositories. Every stack, tool, utility and profile plugin repository shares one layout, one
-vendored generator and one CI workflow, all owned here. Install the Template package to use these procedures
-and resources.
+Template owns the plugin and skill contract: required content, metadata, layout,
+scaffolding, generated host projections, and validation across plugin repositories.
+It links to Core's generic documentation guidance for authoring decisions.
 
 ## Install
 
@@ -31,12 +31,16 @@ an `always` tier makes a selected profile applicable, but does not itself load i
 
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
 The workflow checks generated outputs, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
-its unittest suite), `template:check` and core's tier payload check, and
+its unittest suite), Template's skill-content and layout validation, core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React and .NET with
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
 
 ## Authoring and verification
+
+Every added or updated skill must show its actual behaviour in a meaningful fenced code, command, configuration, or
+input/output example. `template:check` validates that contract for local edits and CI's exact committed range; it does
+not require a retrofit of unchanged skills.
 
 ```powershell
 pwsh .agents/sync-generated.ps1
