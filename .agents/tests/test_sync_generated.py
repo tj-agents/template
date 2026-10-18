@@ -2,7 +2,6 @@ import contextlib
 import importlib.util
 import io
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -429,7 +428,7 @@ def test_a_linked_member_folder_is_not_shipped(
     write(outside / "SKILL.md", skill_text("style-linked", "contract"))
     link = demo_root / ".agents/demo/contract/style/linked"
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import _winapi
 
             _winapi.CreateJunction(str(outside), str(link))
@@ -816,7 +815,7 @@ def test_write_refuses_a_linked_generated_root(
     outside = tmp_path_factory.mktemp("outside")
     link = demo_root / "plugins"
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import _winapi
 
             _winapi.CreateJunction(str(outside), str(link))
