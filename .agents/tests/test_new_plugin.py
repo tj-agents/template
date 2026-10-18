@@ -214,6 +214,68 @@ def test_generated_starter_requires_a_concrete_example_when_core_is_available(
     assert relative in result.stderr.replace("\\", "/")
 
 
+def test_initial_plugin_passes_the_zero_base_check_after_real_examples_are_added(
+    tmp_path: Path,
+) -> None:
+    if not CORE_EXAMPLES_CHECK.is_file():
+        pytest.skip("Core guidance-example checker is supplied by reusable CI")
+
+    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    repository = tmp_path / "tools"
+    skill = repository / ".agents/tools/utility/sweep/SKILL.md"
+    skill.write_text(
+        """---
+name: sweep
+description: Lists stale build outputs before removing them.
+kind: utility
+domain: tools
+profile: core
+applicability: build cleanup
+requires: tools
+provenance: house
+---
+
+# Sweep
+
+Lists stale build outputs before removing them.
+
+## Example
+
+```text
+input: [\"artifacts/old.bin\"]
+output: [\"artifacts/old.bin\"]
+```
+""",
+        encoding="utf-8",
+    )
+    for arguments in (
+        ("init",),
+        ("add", "."),
+        ("-c", "user.name=Template test", "-c", "user.email=test@example.com", "commit", "-m", "initial"),
+    ):
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    result = run(
+        str(CORE_EXAMPLES_CHECK),
+        "--root",
+        str(repository),
+        "--base",
+        "0" * 40,
+        "--head",
+        "HEAD",
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> None:
     result = create(tmp_path, "personal", "profile", "--skill", "current")
     assert result.returncode == 0, result.stdout + result.stderr
