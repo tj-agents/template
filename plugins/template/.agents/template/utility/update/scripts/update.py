@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
-"""Refresh a plugin repository's vendored files from Template and remove legacy version metadata."""
+"""Refresh a plugin repository's vendored files from Template.
 
-from __future__ import annotations
+Also removes legacy version metadata.
+"""
 
 import argparse
 import importlib.util
-from importlib.machinery import SourceFileLoader
 import json
-from pathlib import Path
 import subprocess
 import sys
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+from typing import Any
 
 sys.dont_write_bytecode = True
 
 NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new-plugin"
 
 
-def load_new_plugin():
-    loader = SourceFileLoader("template_new_plugin", str(NEW_PLUGIN / "scripts/new_plugin.py"))
-    module = importlib.util.module_from_spec(importlib.util.spec_from_loader("template_new_plugin", loader))
+def load_new_plugin() -> Any:
+    loader = SourceFileLoader(
+        "template_new_plugin", str(NEW_PLUGIN / "scripts/new_plugin.py")
+    )
+    spec = importlib.util.spec_from_loader("template_new_plugin", loader)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
     return module
 
@@ -27,17 +33,27 @@ def update(root: Path, dry_run: bool) -> list[str]:
     new_plugin = load_new_plugin()
     config_path = root / ".agents/plugins/template.json"
     if not config_path.is_file():
-        raise ValueError(f"{config_path}: missing; this is not a Template plugin repository")
+        raise ValueError(
+            f"{config_path}: missing; this is not a Template plugin repository"
+        )
     config = json.loads(config_path.read_text(encoding="utf-8"))
     if not new_plugin.REPOSITORY.fullmatch(str(config.get("repository", ""))):
-        raise ValueError(f"{config_path}: repository must be owner/name with a lowercase name")
-    owns_templates = (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
+        raise ValueError(
+            f"{config_path}: repository must be owner/name with a lowercase name"
+        )
+    owns_templates = (
+        root / ".agents/template/utility/new-plugin/templates/repository"
+    ).is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
         if relative == ".github/workflows/ci.yml" and owns_templates:
             continue
         path = root / relative
-        current = path.read_text(encoding="utf-8").replace("\r\n", "\n") if path.is_file() else None
+        current = (
+            path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if path.is_file()
+            else None
+        )
         if current != expected:
             changed.append(relative)
             if not dry_run:
@@ -47,7 +63,9 @@ def update(root: Path, dry_run: bool) -> list[str]:
         changed.append(".agents/plugins/template.json")
         if not dry_run:
             config.pop("template")
-            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+            config_path.write_text(
+                json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n"
+            )
     for host in ("claude", "codex"):
         manifest_dir = root / f".agents/plugins/manifests/{host}"
         for path in sorted(manifest_dir.glob("*.json")):
@@ -58,7 +76,11 @@ def update(root: Path, dry_run: bool) -> list[str]:
                 changed.append(path.relative_to(root).as_posix())
                 if not dry_run:
                     manifest.pop("version")
-                    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+                    path.write_text(
+                        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                        newline="\n",
+                    )
     return changed
 
 
@@ -78,7 +100,16 @@ def main() -> int:
     if arguments.dry_run or not changed:
         print("already current" if not changed else "dry run: nothing written")
         return 0
-    return subprocess.run([sys.executable, "-B", str(root / ".agents/sync_generated.py"), "--root", str(root)], check=False).returncode
+    return subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            str(root / ".agents/sync_generated.py"),
+            "--root",
+            str(root),
+        ],
+        check=False,
+    ).returncode
 
 
 if __name__ == "__main__":

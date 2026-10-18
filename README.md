@@ -30,7 +30,8 @@ an `always` tier makes a selected profile applicable, but does not itself load i
 ## Shared CI
 
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
-The workflow checks generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
+The workflow checks generated outputs, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
+its unittest suite), `template:check` and core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React and .NET with
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
@@ -40,7 +41,11 @@ access, only while one of them is private.
 ```powershell
 pwsh .agents/sync-generated.ps1
 pwsh .agents/sync-generated.ps1 -Check
-python -B -m unittest discover -s .agents/tests -p "test_*.py"
+uv sync --locked
+uv run ruff format --check
+uv run ruff check
+uv run mypy
+uv run pytest
 ```
 
 Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's v3

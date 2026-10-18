@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Validate a plugin repository's marketplace and plugins with the real Claude Code and Codex CLIs."""
-
-from __future__ import annotations
+"""Validate a plugin repository's marketplace and plugins with the real
+Claude Code and Codex CLIs."""
 
 import argparse
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
+from typing import Any
 
 
-def run(command: list[str], environment: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+def run(
+    command: list[str], environment: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     executable = shutil.which(command[0])
     if executable is None:
         raise SystemExit(f"error: {command[0]} is not on PATH")
@@ -28,21 +30,25 @@ def run(command: list[str], environment: dict[str, str] | None = None) -> subpro
     )
 
 
-def tolerated(warning: dict) -> bool:
-    # Claude manifests omit version on purpose: Claude then treats every pushed commit as an update.
+def tolerated(warning: dict[str, Any]) -> bool:
+    # Claude manifests omit version on purpose: Claude then treats every
+    # pushed commit as an update.
     path = str(warning.get("path", ""))
     return path == "version" or path.endswith("→ version")
 
 
-def problems(report, where: str = "") -> list[str]:
+def problems(report: Any, where: str = "") -> list[str]:
     found: list[str] = []
     if isinstance(report, dict):
         location = report.get("file") or where
         for error in report.get("errors") or []:
-            found.append(f"{location}: {error.get('path', '')}: {error.get('message', error)}")
+            found.append(
+                f"{location}: {error.get('path', '')}: {error.get('message', error)}"
+            )
         for warning in report.get("warnings") or []:
             if not tolerated(warning):
-                found.append(f"{location}: {warning.get('path', '')}: {warning.get('message', warning)}")
+                message = warning.get("message", warning)
+                found.append(f"{location}: {warning.get('path', '')}: {message}")
         for key, value in report.items():
             if key not in ("errors", "warnings"):
                 found.extend(problems(value, location))
@@ -57,18 +63,25 @@ def validate_claude(root: Path) -> list[str]:
     targets += sorted(path for path in (root / "plugins").iterdir() if path.is_dir())
     found: list[str] = []
     for target in targets:
-        result = run(["claude", "plugin", "validate", "--strict", "--json", str(target)])
+        result = run(
+            ["claude", "plugin", "validate", "--strict", "--json", str(target)]
+        )
         try:
             report = json.loads(result.stdout)
         except ValueError:
-            found.append(f"{target}: claude plugin validate returned no report: {result.stderr.strip()}")
+            found.append(
+                f"{target}: claude plugin validate returned no report: "
+                f"{result.stderr.strip()}"
+            )
             continue
         found.extend(problems(report, str(target)))
     return found
 
 
 def validate_codex(root: Path) -> list[str]:
-    marketplace = json.loads((root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
+    marketplace = json.loads(
+        (root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
+    )
     expected = {entry["name"] for entry in marketplace["plugins"]}
     found = []
     for name in sorted(expected):
@@ -82,14 +95,16 @@ def validate_codex(root: Path) -> list[str]:
             for step in steps:
                 result = run(step, environment)
                 if result.returncode != 0:
-                    found.append(f"{' '.join(step)}: {result.stderr.strip() or result.stdout.strip()}")
+                    output = result.stderr.strip() or result.stdout.strip()
+                    found.append(f"{' '.join(step)}: {output}")
                     failed = True
                     break
             if failed:
                 continue
             result = run(["codex", "plugin", "list", "--json"], environment)
             if result.returncode != 0:
-                found.append(f"codex plugin list: {result.stderr.strip() or result.stdout.strip()}")
+                output = result.stderr.strip() or result.stdout.strip()
+                found.append(f"codex plugin list: {output}")
                 continue
             try:
                 listing = json.loads(result.stdout)
@@ -99,11 +114,14 @@ def validate_codex(root: Path) -> list[str]:
             installed = {
                 entry["name"]
                 for entry in listing.get("installed", [])
-                if entry.get("installed") and entry.get("enabled")
+                if entry.get("installed")
+                and entry.get("enabled")
                 and entry.get("marketplaceName") == marketplace["name"]
             }
             if installed != {name}:
-                found.append(f"codex standalone install of {name} enabled {sorted(installed)}")
+                found.append(
+                    f"codex standalone install of {name} enabled {sorted(installed)}"
+                )
     return found
 
 
