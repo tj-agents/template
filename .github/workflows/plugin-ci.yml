@@ -55,6 +55,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: astral-sh/setup-uv@v10.3.0
       - name: regenerate generated files from authored sources
         if: inputs.generate_before_verify
         shell: pwsh
@@ -73,6 +74,16 @@ jobs:
       - name: repository tests
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          if (Test-Path pyproject.toml) {
+            uv sync --locked
+            uv run ruff format --check
+            uv run ruff check
+            uv run mypy
+            if (Test-Path .agents/tests/test_*.py) { uv run pytest }
+            exit $LASTEXITCODE
+          }
           if (Test-Path .agents/tests/test_*.py) {
             python -B -m unittest discover -s .agents/tests -p "test_*.py"
             exit $LASTEXITCODE
