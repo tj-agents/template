@@ -900,6 +900,12 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
     )
     assert new_plugin.returncode == 0, new_plugin.stdout + new_plugin.stderr
     example = tmp_path / "example"
+    skill = example / ".agents/example/utility/sweep/SKILL.md"
+    skill.write_text(
+        skill.read_text(encoding="utf-8")
+        + "\n```text\nInput: fixture\nOutput: verified\n```\n",
+        encoding="utf-8",
+    )
     adapter_check = package / "skills/check/scripts/check.py"
     canonical_check = package / ".agents/template/utility/check/scripts/check.py"
     check = subprocess.run(

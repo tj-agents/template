@@ -15,4 +15,6 @@ Owns when to take a dependency and which ones are chosen.
 
 ## Agreed
 
-_Nothing yet._ Propose a rule through `{{namespace}}:learning`'s convention procedure.
+_Unfinished starter._ Propose a rule through `{{namespace}}:learning`'s convention procedure, then replace this
+with the agreed rule and a concrete fenced code, command, configuration, or input/output example before
+committing. The guidance-example check rejects this placeholder.
