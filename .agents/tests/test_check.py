@@ -36,7 +36,7 @@ class RenderedRepositoryTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.directory = tempfile.TemporaryDirectory()
         destination = Path(self.directory.name)
-        extra = {"stack": ["--detect-file", "build.zig"], "tool": [], "utility": ["--skill", "sweep"]}[self.kind]
+        extra = {"stack": ["--detect-file", "build.zig"], "tool": [], "utility": ["--skill", "sweep"], "profile": ["--skill", "current"]}[self.kind]
         result = run(
             str(NEW_PLUGIN),
             "--repository", f"owner/{self.name}",
@@ -304,6 +304,48 @@ class UtilityCheckTests(RenderedRepositoryTestCase):
         skill.write_text(text.replace("name: sweep", "name: notes").replace("kind: utility", "kind: knowledge"), encoding="utf-8")
         self.regenerate()
         self.assert_problem("a utility repository has only utility skills")
+
+
+class ProfileCheckTests(RenderedRepositoryTestCase):
+    kind = "profile"
+    name = "personal"
+
+    def test_a_new_profile_conforms(self) -> None:
+        self.assertEqual([], check.check(self.root))
+
+    def test_profile_needs_a_policy_in_its_main_plugin(self) -> None:
+        policy = self.root / ".agents/personal/policy/current"
+        utility = self.root / ".agents/personal/utility/current"
+        utility.parent.mkdir()
+        policy.rename(utility)
+        policy.parent.rmdir()
+        self.edit(".agents/personal/utility/current/SKILL.md", "kind: policy", "kind: utility")
+        self.regenerate()
+        self.assert_problem("a profile repository needs at least one policy skill")
+
+    def test_profile_rejects_knowledge_kind(self) -> None:
+        policy = self.root / ".agents/personal/policy/current"
+        knowledge = self.root / ".agents/personal/knowledge/current"
+        knowledge.parent.mkdir()
+        policy.rename(knowledge)
+        policy.parent.rmdir()
+        self.edit(".agents/personal/knowledge/current/SKILL.md", "kind: policy", "kind: knowledge")
+        self.regenerate()
+        self.assert_problem("a profile repository has only policy, convention, workflow, utility skills")
+
+    def test_profile_is_always_applicable_once_selected(self) -> None:
+        path = self.root / ".agents/tiers/personal.json"
+        tier = json.loads(path.read_text())
+        tier.update(applies="stack-present", detect={"files": ["personal.json"]})
+        path.write_text(json.dumps(tier), encoding="utf-8")
+        self.assert_problem("a profile repository applies always")
+
+    def test_profile_dependency_projection_is_checked(self) -> None:
+        path = self.root / "plugins/personal/harness.json"
+        harness = json.loads(path.read_text())
+        harness["requires"]["plugins"] = ["personal-agents/personal"]
+        path.write_text(json.dumps(harness), encoding="utf-8")
+        self.assert_problem("plugins/personal/harness.json: effective dependency projection is missing or differs")
 
 
 class SeveralPluginsTests(RenderedRepositoryTestCase):

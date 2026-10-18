@@ -1,0 +1,16 @@
+---
+name: {{skill}}
+description: {{description}}
+kind: policy
+domain: {{namespace}}
+profile: core
+applicability: projects explicitly selecting {{namespace}}
+requires: {{namespace}}
+provenance: house
+---
+
+# {{skill}}
+
+_Nothing yet._ Define the projects covered, the required behavior and the evidence that establishes it.
+For mandatory session delivery, declare the policy's host hooks in the shipped harness manifest and verify
+the actual Claude and Codex entry points; skill discovery alone does not prove that a policy was loaded.

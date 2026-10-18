@@ -1,7 +1,7 @@
 # Personal-project standards
 
-Status: authorized side workstream; ready for investigation and implementation.
-Owner: the single successor launched for this goal. The originating session retains the Concertable CLI launch repair and owns no Template or personal implementation writes after handoff.
+Status: active; Template profile support is the first delivery slice.
+Owner: Codex session 01a14fcb-9d5d-7530-9fc7-8d3452d4760a acknowledged the handoff on 2026-10-18 and owns this workstream. The originating session retains the Concertable CLI launch repair and owns no Template or personal implementation writes after handoff.
 Checkout: C:/Users/tommy/source/repos/tj-agents/template/.worktrees/Feature-PersonalProfile
 Branch: Feature/PersonalProfile
 Initial base: 50b7e59 (fetched Template origin/main).
@@ -46,3 +46,19 @@ Before writing governed code in a newly created repository, apply its owning plu
 2. Record the chosen concise policy wording, applicability/enforcement approach, acceptance evidence, and delivery slices here. The user delegated these bounded wording/design choices; do not stop at a proposal when authorized implementation can proceed.
 3. Implement and deliver Template's policy/profile support with meaningful generator/checker/scaffold coverage. Then scaffold `tj-agents/personal` through Template, author the required policy, integrate its canonical marketplace selection and verify real loading/adoption in covered personal projects.
 4. Assess Core personal-only candidates against evidence and avoid copying instruction bodies or adding generic requirements with no concrete benefit. Report the delivered policy, adoption coverage, tests and any genuine unresolved gate honestly.
+
+## Decisions and progress — 2026-10-18
+
+- Pickup verified by reading the handoff and this goal; native session claimed `personal-projects/standards` in the session store. No second writer is authorized. The checkout is clean at the recorded base and has no commits missing from fetched `origin/main`.
+- Use the repository type `profile`: it describes a reusable selection of project policies, distinct from a teaching stack or an executable utility. It must contain a policy, may contain supporting conventions/workflows/utilities, and always applies after explicit selection. There is no directory-name or home-directory heuristic. Profiles inherit only the canonical `tj-agents/base` capability dependency.
+- Required policy wording: "Keep one current supported solution. When replacing behavior, remove the superseded names, aliases, fallbacks, adapters, configuration formats and branches. Migrate all known callers, project declarations, installed registrations, generated artifacts and live entry points in the same cutover. Verify the entry points people actually use on supported platforms; source edits, generation, unit tests and version commands alone do not prove completion. Do not add a compatibility exception independently. Surface an explicit contrary user requirement as a deliberate policy decision."
+- Mandatory loading will reuse Core's shipped harness requirements and host instruction delivery, with one authored policy body. Source inspection confirms Core already delivers policy bodies with source hashes and provides `--instruction-fragment` support. Detailed adopter/host coverage remains to verify; discovery and `always` applicability alone are not acceptance evidence.
+- The bounded design choices are explicitly delegated in this goal despite no `.agents/settings.json` default delegation. Investigation is L3; specified implementation is L4, with the current owner retained because no in-session capability switch is available. No model switch or subordinate dispatch is claimed.
+
+## Delivery slices and acceptance
+
+1. **Template profile support** — current branch `Feature/PersonalProfile`, base `50b7e59`, no PR yet. Add generator type, policy skeleton, standard/checker rules, dependency projection, focused tests and documentation; expected under 400 substantive lines plus generated adapters/payloads. Keep vendored generator byte-identical to its source. Acceptance: profile scaffold/check round trip; missing policy, invalid kind/detection/name and dependency drift failures; required full tests and generation check; reviewed candidate and Template CI before merge.
+2. **Personal plugin and marketplace** — only after slice 1 lands. Scaffold `tj-agents/personal` through Template's supported command, select owning standards before governed implementation, author the concise policy and its mandatory host transport, publish through the canonical marketplace. Acceptance: fresh scaffold, Template checks, host instruction evidence, marketplace selection and payload checks. Record exact repositories, branches and PRs when created.
+3. **Explicit adoption and policy ownership** — inventory known tj-agents and Concertable selections; preserve employer scope and unrelated work. Add personal selection with committed declarations and drift checks, verify actual supported host entry points, and assess Core-only candidates from evidence. Keep generic mechanisms in Core and one authored policy definition. Record coverage and unresolved platform evidence here.
+
+Current tooling: default shell runner fails during helper setup; the approved escalated runner works. Read-only Node access and process execution work within the sandbox, but Git metadata writes and session-store access require the approved runner. GitHub authentication is available through that runner. These are host permission constraints, not evidence of a source defect in this workstream.

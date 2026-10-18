@@ -120,6 +120,9 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
         else:
             if applies not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
                 problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
+    for required_kind in standard.get("required_kinds", []):
+        if not any(skill["kind"] == required_kind for skill in plugins[namespace].values()):
+            problems.append(f"plugin {namespace}: a {kind} repository needs at least one {required_kind} skill")
     for name, rule in standard["skills"].items():
         owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
         candidates = [skills[name] for skills in owners if name in skills]
@@ -171,7 +174,7 @@ def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -
 
 
 def check_effective_dependency_projection(root: Path, config: dict, generated: dict[str, bytes]) -> list[str]:
-    if config["type"] != "stack":
+    if config["type"] not in ("stack", "profile"):
         return []
     paths = [path for path in generated if path == ".claude-plugin/marketplace.json" or path.endswith(("/selection.json", "/harness.json", "/.claude-plugin/plugin.json"))]
     present = [path for path in paths if (root / path).is_file()]

@@ -1,6 +1,6 @@
 # Template
 
-Meta-scaffolder for plugin repositories. Every stack, tool and utility plugin repository shares one layout, one
+Meta-scaffolder for plugin repositories. Every stack, tool, utility and profile plugin repository shares one layout, one
 vendored generator and one CI workflow, all owned here. Install the Template package to use these procedures
 and resources.
 
@@ -10,7 +10,7 @@ Install `template@template-agents`.
 
 ## Skills
 
-- `template:new-plugin` creates a stack, tool or utility plugin repository.
+- `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
 
@@ -21,6 +21,11 @@ Install `template@template-agents`.
 | stack | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | applies where the stack is detected |
 | tool | `knowledge`, `direction` (knowledge); `learning` (policy) | always |
 | utility | the utility skills it needs | always |
+| profile | a policy named by `--skill`, with supporting policies, conventions, workflows and utilities as needed | always, in projects that explicitly select it |
+
+A profile bundles project policies without a stack's teaching and knowledge scaffolding. It depends on
+`base@tj-agents` through the canonical marketplace. Declare mandatory host delivery in its shipped harness manifest;
+an `always` tier makes a selected profile applicable, but does not itself load instructions into a session.
 
 ## Shared CI
 
