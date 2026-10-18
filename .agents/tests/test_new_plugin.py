@@ -81,29 +81,27 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
     assert harness["plugin"] == f"{name}-agents/{name}"
     plugins = harness["requires"]["plugins"]
     if "tj-agents/base" in plugins:
-        assert plugins == [
-            f"{name}-agents/{name}",
-            "tj-agents/base",
-            "tj-agents/engineering",
-            "tj-agents/machine",
-        ]
         selection = json.loads(
             (repository / f"plugins/{name}/selection.json").read_text(encoding="utf-8")
         )
-        assert selection["dependencies"] == [
-            "tj-agents/base",
-            "tj-agents/engineering",
-            "tj-agents/machine",
+        kind = json.loads((repository / ".agents/plugins/template.json").read_text())[
+            "type"
         ]
+        dependencies = (
+            ["tj-agents/base"]
+            if kind == "profile"
+            else ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"]
+        )
+        assert plugins == [f"{name}-agents/{name}", *dependencies]
+        assert selection["dependencies"] == dependencies
         claude = json.loads(
             (repository / f"plugins/{name}/.claude-plugin/plugin.json").read_text(
                 encoding="utf-8"
             )
         )
         assert claude["dependencies"] == [
-            "base@tj-agents",
-            "engineering@tj-agents",
-            "machine@tj-agents",
+            f"{identity.split('/')[1]}@{identity.split('/')[0]}"
+            for identity in dependencies
         ]
         marketplace = json.loads(
             (repository / ".claude-plugin/marketplace.json").read_text(encoding="utf-8")
@@ -188,6 +186,35 @@ def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     assert skills(tmp_path, "tools") == {"utility": {"sweep"}}
     assert_repository_is_current(tmp_path, "tools")
+
+
+def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> None:
+    result = create(tmp_path, "personal", "profile", "--skill", "current")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert skills(tmp_path, "personal") == {"policy": {"current"}}
+    repository = tmp_path / "personal"
+    tier = json.loads((repository / ".agents/tiers/personal.json").read_text())
+    assert tier["applies"] == "always"
+    assert "detect" not in tier
+    assert "explicitly select" in (repository / "AGENTS.md").read_text()
+    assert_repository_is_current(tmp_path, "personal")
+
+
+@pytest.mark.parametrize(
+    "flags,message",
+    [
+        ([], "needs --skill"),
+        (["--skill", "Bad"], "needs --skill"),
+        (["--skill", "current", "--detect-file", "x"], "only a stack"),
+    ],
+)
+def test_profile_requires_a_policy_name_and_rejects_detection(
+    tmp_path: Path, flags: list[str], message: str
+) -> None:
+    result = create(tmp_path, "personal", "profile", *flags)
+    assert result.returncode == 2
+    assert message in result.stderr
+    assert not (tmp_path / "personal").exists()
 
 
 def test_vendored_files_match_template_and_ci_follows_main(tmp_path: Path) -> None:

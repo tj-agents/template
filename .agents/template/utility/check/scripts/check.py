@@ -7,7 +7,7 @@ import json
 import sys
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 sys.dont_write_bytecode = True
 
@@ -16,7 +16,18 @@ NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
 STANDARD = json.loads((SKILL_DIRECTORY / "standard.json").read_text(encoding="utf-8"))
 
 type JSONObject = dict[str, Any]
-type SkillRecord = dict[str, Any]
+
+
+class SkillRecord(TypedDict):
+    plugin: str
+    name: str
+    kind: str
+    body: str
+    metadata: dict[str, str]
+    directory: str
+    files: list[str]
+
+
 type PluginSkills = dict[str, SkillRecord]
 type Plugins = dict[str, PluginSkills]
 
@@ -165,6 +176,14 @@ def check_standard(
                     f".agents/tiers/{namespace}.json: a {kind} repository "
                     f"applies {standard['applies']}"
                 )
+    for required_kind in standard.get("required_kinds", []):
+        if not any(
+            skill["kind"] == required_kind for skill in plugins[namespace].values()
+        ):
+            problems.append(
+                f"plugin {namespace}: a {kind} repository needs at least "
+                f"one {required_kind} skill"
+            )
     for name, rule in standard["skills"].items():
         owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
         candidates = [skills[name] for skills in owners if name in skills]
@@ -240,7 +259,7 @@ def check_names(plugins: Plugins, aliases: dict[str, JSONObject]) -> list[str]:
 def check_effective_dependency_projection(
     root: Path, config: JSONObject, generated: dict[str, bytes]
 ) -> list[str]:
-    if config["type"] != "stack":
+    if config["type"] not in ("stack", "profile"):
         return []
     paths = [
         path

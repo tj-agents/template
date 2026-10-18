@@ -11,7 +11,7 @@ import shutil
 import stat
 from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, TypedDict
 
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
@@ -32,7 +32,7 @@ REQUIRED_METADATA = (
     "requires",
     "provenance",
 )
-REPOSITORY_TYPES = ("stack", "tool", "utility")
+REPOSITORY_TYPES = ("stack", "tool", "utility", "profile")
 RESERVED_AGENT_DIRS = {"continuation", "plugins", "tiers", "tests", "hooks"}
 IGNORED_PARTS = {"__pycache__"}
 IGNORED_SUFFIXES = {".pyc"}
@@ -68,7 +68,18 @@ TJ_AGENTS_MARKETPLACE = "tj-agents"
 TJ_AGENTS_MARKETPLACE_REPOSITORY = "tj-agents/marketplace"
 
 type JSONObject = dict[str, Any]
-type SkillRecord = dict[str, Any]
+
+
+class SkillRecord(TypedDict):
+    plugin: str
+    name: str
+    kind: str
+    body: str
+    metadata: dict[str, str]
+    directory: str
+    files: list[str]
+
+
 type PluginSkills = dict[str, SkillRecord]
 type Plugins = dict[str, PluginSkills]
 type Dependencies = dict[str, list[str]]
@@ -421,7 +432,11 @@ def validate_local_dependency_cycles(
 def effective_dependencies(
     config: JSONObject, source: str, dependencies: Dependencies
 ) -> list[str]:
-    inherited = STACK_CORE_DEPENDENCIES if config["type"] == "stack" else ()
+    inherited: tuple[str, ...] = (
+        STACK_CORE_DEPENDENCIES if config["type"] == "stack" else ()
+    )
+    if config["type"] == "profile":
+        inherited = ("tj-agents/base",)
     return list(dict.fromkeys((*inherited, *dependencies.get(source, []))))
 
 
@@ -715,7 +730,7 @@ def harness_body(
     marketplace: str,
     output: dict[str, bytes],
     dependencies: list[str],
-    stack: bool,
+    inherit_core: bool,
 ) -> str | None:
     relative = f"{MANIFEST_ROOT}/harness/{package}.json"
     path = root / relative
@@ -764,7 +779,7 @@ def harness_body(
             raise ValueError(
                 f"{relative}: source root {value!r} is not shipped in {package}"
             )
-    if not stack:
+    if not inherit_core:
         return body
     requires = manifest.get("requires")
     if not isinstance(requires, dict):
@@ -938,13 +953,13 @@ def build(root: Path) -> dict[str, bytes]:
             templates["claude"]["name"],
             output,
             effective,
-            config["type"] == "stack",
+            config["type"] in ("stack", "profile"),
         )
         if harness is not None:
             emit(f"plugins/{package}/harness.json", harness)
         for host in HOSTS:
             manifest = manifests[host][package]
-            if host == "claude" and config["type"] == "stack":
+            if host == "claude" and config["type"] in ("stack", "profile"):
                 manifest = {**manifest, "dependencies": claude_dependencies(effective)}
             emit(f"plugins/{package}/.{host}-plugin/plugin.json", dump(manifest))
 
@@ -979,7 +994,7 @@ def build(root: Path) -> dict[str, bytes]:
         templates["claude"]["name"],
     )
     claude_marketplace = {**templates["claude"], "plugins": claude_entries}
-    if config["type"] == "stack" and claude_marketplaces:
+    if config["type"] in ("stack", "profile") and claude_marketplaces:
         claude_marketplace["allowCrossMarketplaceDependenciesOn"] = claude_marketplaces
     emit(MARKETPLACE_OUTPUTS["claude"], dump(claude_marketplace))
     emit(
