@@ -27,21 +27,71 @@
         "Bash(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
         "PowerShell(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
         "Bash(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
-        "PowerShell(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)"
+        "PowerShell(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
+        "Bash(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py:*)",
+        "PowerShell(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py:*)",
+        "Bash(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py:*)",
+        "PowerShell(python3 -B ${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py:*)"
       ],
       "codex_prefix_rules": [
         {
           "pattern": [
-            ["python", "python.exe", "python3", "py"],
+            [
+              "python",
+              "python.exe",
+              "python3",
+              "py"
+            ],
             "-B",
             "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py"
           ],
           "justification": "Reads a declared repository's changed authored skills and reports a missing concrete fenced example; it does not change repository or session state",
           "match": [
-            ["python", "-B", "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py", "--root", "${PROJECT_ROOT}", "--base", "origin/main"]
+            [
+              "python",
+              "-B",
+              "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py",
+              "--root",
+              "${PROJECT_ROOT}",
+              "--base",
+              "origin/main"
+            ]
           ],
           "not_match": [
-            ["python", "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py"]
+            [
+              "python",
+              "${PLUGIN_ROOT}/skills/check/scripts/check_examples.py"
+            ]
+          ]
+        },
+        {
+          "pattern": [
+            [
+              "python",
+              "python.exe",
+              "python3",
+              "py"
+            ],
+            "-B",
+            "${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py"
+          ],
+          "justification": "Reads declared repository documents and route tables against supplied shipped skill inventories and reports unresolved identities",
+          "match": [
+            [
+              "python",
+              "-B",
+              "${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py",
+              "--root",
+              "${PROJECT_ROOT}",
+              "--reference-path",
+              "${PROJECT_ROOT}/.agents/routes"
+            ]
+          ],
+          "not_match": [
+            [
+              "python",
+              "${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py"
+            ]
           ]
         }
       ]
