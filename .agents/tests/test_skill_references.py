@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -212,3 +214,109 @@ def test_exact_external_declaration_needs_rationale_and_rejects_wildcard(
     assert any(
         "exact namespace:skill" in item for item in checker.check([tmp_path], [config])
     )
+
+
+def test_explicit_route_and_document_callers_follow_the_shipped_producer(
+    tmp_path: Path,
+) -> None:
+    consumer, producer = tmp_path / "consumer", tmp_path / "producer"
+    skill(producer, "react", "state-client")
+    skill(producer, "react", "style")
+    route = write(
+        consumer,
+        ".agents/routes/app.json",
+        json.dumps({"routes": [{"path": "app/.*", "skills": ["react:client-state"]}]}),
+    )
+    document = write(consumer, "standards/STATE.md", "Load `react:client-state`.")
+    write(consumer, ".agents/routes/registry.json", '{"repos": {}, "profiles": {}}')
+    inputs = [route.parent, document.parent, route]
+    problems = checker.check(
+        [consumer, producer], source_roots=[consumer], reference_paths=inputs
+    )
+    assert len(problems) == 2
+    assert all("missing skill react:client-state" in problem for problem in problems)
+    route.write_text(json.dumps({"routes": [{"skills": ["react:state-client"]}]}))
+    document.write_text("Load `react:state-client`.")
+    assert (
+        checker.check(
+            [consumer, producer], source_roots=[consumer], reference_paths=inputs
+        )
+        == []
+    )
+    (producer / "plugins/react/skills/state-client/SKILL.md").unlink()
+    assert (
+        len(
+            checker.check(
+                [consumer, producer], source_roots=[consumer], reference_paths=inputs
+            )
+        )
+        == 2
+    )
+
+
+@pytest.mark.parametrize(
+    "body", ["{", "[]", "{}", '{"routes": {}}', '{"routes": [{"skills": "old"}]}']
+)
+def test_explicit_route_inputs_reject_malformed_tables(
+    tmp_path: Path, body: str
+) -> None:
+    route = write(tmp_path, ".agents/routes/app.json", body)
+    assert checker.check([tmp_path], reference_paths=[route])
+
+
+def test_reference_paths_cannot_read_outside_scanned_roots(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    outside = write(tmp_path, "outside/private.md", "Load `private:secret`.")
+    original = Path.read_text
+
+    def scoped_read(path: Path, *args: Any, **kwargs: Any) -> str:
+        assert path != outside, "outside reference must not be opened"
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", scoped_read)
+    problems = checker.check([consumer], reference_paths=[outside, consumer / "absent"])
+    assert len(problems) == 2
+    assert "outside scanned repositories" in problems[0]
+    assert "does not exist" in problems[1]
+
+
+def test_cli_checks_explicit_caller_tables_against_sibling_inventory(
+    tmp_path: Path,
+) -> None:
+    consumer, producer = tmp_path / "consumer", tmp_path / "producer"
+    skill(producer, "react", "style")
+    route = write(
+        consumer,
+        ".agents/routes/app.json",
+        '{"routes": [{"skills": ["react:typescript-style"]}]}',
+    )
+    args = [
+        sys.executable,
+        str(ROOT / ".agents/template/utility/check/scripts/check_skill_references.py"),
+        "--root",
+        str(consumer),
+        "--root",
+        str(producer),
+        "--source-root",
+        str(consumer),
+        "--reference-path",
+        str(route.parent),
+    ]
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
+    assert result.returncode == 1
+    assert "missing skill react:typescript-style" in result.stderr
+    route.write_text('{"routes": [{"skills": ["react:style"]}]}')
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr
+
+
+def test_explicit_unsupported_reference_file_is_not_a_passing_empty_scan(
+    tmp_path: Path,
+) -> None:
+    path = write(tmp_path, "routes.yaml", "routes: []")
+    problems = checker.check([tmp_path], reference_paths=[path])
+    assert len(problems) == 1
+    assert "expected Markdown or route JSON" in problems[0]

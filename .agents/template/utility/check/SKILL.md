@@ -51,7 +51,8 @@ and `server-state/`. A skill's published name is its folder path below the kind 
 `.agents/react/convention/state/client/SKILL.md` publishes `react:state-client`, and `result/carriers/` keeps the name
 `result-carriers`. A family folder can hold its own `SKILL.md` as the family's shared rules; inside a skill
 folder, only a folder with its own `SKILL.md` is a member, and anything else ships as that skill's files.
-Renaming a published skill keeps its old name as a compatibility alias until its `removeAfter` date.
+In projects without a selected policy that forbids compatibility aliases, renaming a published skill keeps
+its old name until its `removeAfter` date. Apply the consuming project's explicit policy and published commitments.
 
 ## What it enforces
 
@@ -92,6 +93,16 @@ Known plugin namespaces resolve qualified names; unknown namespaces need explici
 Bare names marked as skills resolve locally first, then uniquely across the corpus. Missing and ambiguous names fail
 with file and line evidence. `--source-root` restricts authored scanning while every `--root` supplies inventory;
 without it, every root is scanned. Public CI inventories the current repository, Template, core, react and dotnet.
+
+Use `--reference-path` for active canonical documents or route tables outside the default skill layout.
+Markdown references and JSON `routes[].skills[]` resolve against the same shipped inventories; directories
+include Markdown and route JSON, while repository/profile registry metadata carries no skill references.
+Paths must stay inside the scanned repositories. Missing paths and malformed route tables fail the check.
+
+```bash
+python -B .agents/template/utility/check/scripts/check_skill_references.py --root ../app --root ../react --source-root ../app --reference-path ../app/.agents/routes --reference-path ../app/standards
+# A route still requiring a retired producer skill fails with its file and missing identity.
+```
 
 A repository may declare exact external identities in `.agents/plugins/skill-references.json` under
 `external_skills`, mapping each `namespace:skill` to its rationale. This covers standards shipped outside

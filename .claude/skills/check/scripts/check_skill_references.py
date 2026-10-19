@@ -126,36 +126,113 @@ def external_skills(configs: Sequence[Path]) -> tuple[set[str], list[str]]:
     return identities, problems
 
 
+def reference_problem(
+    reference: str, local: str | None, shipped: set[str], known: set[str]
+) -> str | None:
+    if ":" in reference:
+        candidates = [reference] if reference in known else []
+    elif local and f"{local}:{reference}" in shipped:
+        candidates = [f"{local}:{reference}"]
+    else:
+        candidates = sorted(
+            name for name in known if name.split(":", 1)[1] == reference
+        )
+    if not candidates:
+        return f"missing skill {reference}"
+    if len(candidates) > 1:
+        return f"ambiguous skill {reference}: {', '.join(candidates)}"
+    return None
+
+
+def extra_references(
+    paths: Sequence[Path],
+    source_roots: list[Path],
+    namespaces: set[str],
+    seen: set[Path],
+    problems: list[str],
+) -> Iterator[tuple[Path, int, str]]:
+    roots = [root.resolve() for root in source_roots]
+    for requested in paths:
+        path = requested.resolve()
+        if not any(path.is_relative_to(root) for root in roots):
+            problems.append(
+                f"{requested}:1: reference path is outside scanned repositories"
+            )
+            continue
+        if not path.exists():
+            problems.append(f"{path}:1: reference path does not exist")
+            continue
+        if path.is_file() and path.suffix.lower() not in {".md", ".json"}:
+            problems.append(f"{path}:1: expected Markdown or route JSON")
+            continue
+        files = sorted(path.rglob("*")) if path.is_dir() else [path]
+        for file in files:
+            if not file.is_file() or file.suffix.lower() not in {".md", ".json"}:
+                continue
+            resolved = file.resolve()
+            if not any(resolved.is_relative_to(root) for root in roots):
+                problems.append(
+                    f"{file}:1: reference file is outside scanned repositories"
+                )
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            try:
+                body = file.read_text(encoding="utf-8")
+                if file.suffix.lower() == ".md":
+                    for number, line in enumerate(body.splitlines(), 1):
+                        for reference in references(line, namespaces):
+                            yield file, number, reference
+                    continue
+                table = json.loads(body)
+                if not isinstance(table, dict):
+                    raise ValueError("expected a route table object")
+                if "routes" not in table and {"repos", "profiles"} <= table.keys():
+                    continue
+                if not isinstance(table.get("routes"), list):
+                    raise ValueError("expected a routes array")
+                for index, row in enumerate(table["routes"]):
+                    if (
+                        not isinstance(row, dict)
+                        or not isinstance(row.get("skills"), list)
+                        or any(not isinstance(name, str) for name in row["skills"])
+                    ):
+                        raise ValueError(f"route {index} needs a skills array of names")
+                    for reference in row["skills"]:
+                        yield file, 1, reference
+            except (OSError, ValueError) as error:
+                problems.append(f"{file}:1: {error}")
+
+
 def check(
     roots: list[Path],
     configs: Sequence[Path] = (),
     source_roots: list[Path] | None = None,
+    reference_paths: Sequence[Path] = (),
 ) -> list[str]:
     shipped = inventory(roots)
     external, problems = external_skills(configs)
     known = shipped | external
     namespaces = {name.split(":", 1)[0] for name in known}
-    for root in source_roots if source_roots is not None else roots:
+    scanned = source_roots if source_roots is not None else roots
+    seen: set[Path] = set()
+    for root in scanned:
         for path, local in authored(root):
+            seen.add(path.resolve())
             for number, line in enumerate(
                 path.read_text(encoding="utf-8").splitlines(), 1
             ):
                 for reference in references(line, namespaces):
-                    if ":" in reference:
-                        candidates = [reference] if reference in known else []
-                    elif local and f"{local}:{reference}" in shipped:
-                        candidates = [f"{local}:{reference}"]
-                    else:
-                        candidates = sorted(
-                            name for name in known if name.split(":", 1)[1] == reference
-                        )
-                    if not candidates:
-                        problems.append(f"{path}:{number}: missing skill {reference}")
-                    elif len(candidates) > 1:
-                        problems.append(
-                            f"{path}:{number}: ambiguous skill {reference}: "
-                            f"{', '.join(candidates)}"
-                        )
+                    problem = reference_problem(reference, local, shipped, known)
+                    if problem:
+                        problems.append(f"{path}:{number}: {problem}")
+    for path, number, reference in extra_references(
+        reference_paths, scanned, namespaces, seen, problems
+    ):
+        problem = reference_problem(reference, None, shipped, known)
+        if problem:
+            problems.append(f"{path}:{number}: {problem}")
     return problems
 
 
@@ -167,6 +244,13 @@ def main() -> int:
         action="append",
         type=Path,
         help="scan only these source roots; --root still supplies inventory",
+    )
+    parser.add_argument(
+        "--reference-path",
+        action="append",
+        type=Path,
+        default=[],
+        help="check active Markdown or route-JSON paths inside scanned repositories",
     )
     parser.add_argument("--config", action="append", type=Path, default=[])
     arguments = parser.parse_args()
@@ -183,7 +267,7 @@ def main() -> int:
     )
     if source_roots is not None and any(root not in roots for root in source_roots):
         parser.error("every --source-root must also be an inventory --root")
-    problems = check(roots, configs, source_roots)
+    problems = check(roots, configs, source_roots, arguments.reference_path)
     for problem in problems:
         print(problem, file=sys.stderr)
     if not problems:
