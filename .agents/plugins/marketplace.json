@@ -1,5 +1,5 @@
 {
-  "name": "template-agents",
+  "name": "tj-agents",
   "interface": {
     "displayName": "Template"
   },
