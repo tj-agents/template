@@ -93,7 +93,7 @@ def test_each_publication_uses_a_separate_home_and_accepts_only_itself(
                         "name": selected[home],
                         "installed": True,
                         "enabled": True,
-                        "marketplaceName": "demo-agents",
+                        "marketplaceName": "tj-agents",
                     }
                 ]
             }
@@ -105,7 +105,7 @@ def test_each_publication_uses_a_separate_home_and_accepts_only_itself(
     marketplace.write_text(
         json.dumps(
             {
-                "name": "demo-agents",
+                "name": "tj-agents",
                 "plugins": [{"name": "demo"}, {"name": "template"}],
             }
         ),
@@ -135,13 +135,13 @@ def test_an_implicit_second_install_is_rejected(
                         "name": "demo",
                         "installed": True,
                         "enabled": True,
-                        "marketplaceName": "demo-agents",
+                        "marketplaceName": "tj-agents",
                     },
                     {
                         "name": "template",
                         "installed": True,
                         "enabled": True,
-                        "marketplaceName": "demo-agents",
+                        "marketplaceName": "tj-agents",
                     },
                 ]
             }
@@ -151,7 +151,7 @@ def test_an_implicit_second_install_is_rejected(
     marketplace = tmp_path / ".agents/plugins/marketplace.json"
     marketplace.parent.mkdir(parents=True)
     marketplace.write_text(
-        json.dumps({"name": "demo-agents", "plugins": [{"name": "demo"}]}),
+        json.dumps({"name": "tj-agents", "plugins": [{"name": "demo"}]}),
         encoding="utf-8",
     )
     monkeypatch.setattr(validate_hosts, "run", fake_run)

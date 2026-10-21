@@ -79,21 +79,22 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
         (repository / f"plugins/{name}/harness.json").read_text(encoding="utf-8")
     )
     marketplaces = {entry["id"] for entry in harness["requires"]["marketplaces"]}
-    assert harness["plugin"] == f"{name}-agents/{name}"
+    assert harness["plugin"] == f"tj-agents/{name}"
+    assert marketplaces == {"tj-agents"}
     plugins = harness["requires"]["plugins"]
-    if "tj-agents/base" in plugins:
+    kind = json.loads((repository / ".agents/plugins/template.json").read_text())[
+        "type"
+    ]
+    if kind in ("stack", "profile"):
         selection = json.loads(
             (repository / f"plugins/{name}/selection.json").read_text(encoding="utf-8")
         )
-        kind = json.loads((repository / ".agents/plugins/template.json").read_text())[
-            "type"
-        ]
         dependencies = (
             ["tj-agents/base"]
             if kind == "profile"
             else ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"]
         )
-        assert plugins == [f"{name}-agents/{name}", *dependencies]
+        assert plugins == [f"tj-agents/{name}", *dependencies]
         assert selection["dependencies"] == dependencies
         claude = json.loads(
             (repository / f"plugins/{name}/.claude-plugin/plugin.json").read_text(
@@ -107,9 +108,15 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
         marketplace = json.loads(
             (repository / ".claude-plugin/marketplace.json").read_text(encoding="utf-8")
         )
-        assert marketplace["allowCrossMarketplaceDependenciesOn"] == ["tj-agents"]
+        assert "allowCrossMarketplaceDependenciesOn" not in marketplace
     else:
-        assert plugins == [f"{name}-agents/{name}", "base-agents/base"]
+        assert plugins == [f"tj-agents/{name}", "tj-agents/base"]
+    for output in (
+        ".claude-plugin/marketplace.json",
+        ".agents/plugins/marketplace.json",
+    ):
+        published = json.loads((repository / output).read_text(encoding="utf-8"))
+        assert published["name"] == "tj-agents"
     assert all(
         identity.split("/")[0] in marketplaces
         for identity in [harness["plugin"], *harness["requires"]["plugins"]]
@@ -347,7 +354,7 @@ def test_reserved_core_dependency_namespace_fails_before_writing(
     result = create(tmp_path, "base", "utility", "--skill", "sweep", *flags)
     assert result.returncode == 2
     assert "namespace base is reserved" in result.stderr
-    assert "base-agents/base" in result.stderr
+    assert "tj-agents/base" in result.stderr
     assert list(tmp_path.iterdir()) == []
 
 

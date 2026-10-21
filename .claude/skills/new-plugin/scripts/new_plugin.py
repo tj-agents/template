@@ -16,6 +16,8 @@ GENERATOR_TEMPLATE = TEMPLATES / "repository/.agents/sync_generated.py.in"
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^([A-Za-z0-9_.-]+)/([a-z][a-z0-9-]*)$")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
+MARKETPLACE = "tj-agents"
+MARKETPLACE_REPOSITORY = "tj-agents/marketplace"
 VENDORED = (
     ".agents/sync_generated.py",
     ".agents/sync-generated.ps1",
@@ -170,7 +172,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         "description": arguments.description,
         "author": arguments.author,
         "learner": arguments.learner,
-        "marketplace": f"{namespace}-agents",
+        "marketplace": MARKETPLACE,
         "category": arguments.category,
         "keywords_json": json.dumps(keywords),
         "default_prompt": DEFAULT_PROMPTS[arguments.type].format(
@@ -181,18 +183,13 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         "harness_requires_json": json.dumps(
             {
                 "marketplaces": [
-                    {"id": f"{namespace}-agents", "repository": arguments.repository}
-                ]
+                    {"id": MARKETPLACE, "repository": MARKETPLACE_REPOSITORY}
+                ],
+                "plugins": [f"{MARKETPLACE}/{namespace}"]
                 + (
                     []
                     if arguments.type in ("stack", "profile")
-                    else [{"id": "base-agents", "repository": "tj-agents/core"}]
-                ),
-                "plugins": [f"{namespace}-agents/{namespace}"]
-                + (
-                    []
-                    if arguments.type in ("stack", "profile")
-                    else ["base-agents/base"]
+                    else [f"{MARKETPLACE}/base"]
                 ),
                 "hooks": [],
                 "permissions": {"claude_allow": [], "codex_prefix_rules": []},
@@ -259,7 +256,7 @@ def validate(arguments: argparse.Namespace) -> Path:
         raise ValueError("--repository must be owner/name with a lowercase name")
     if arguments.repository.split("/", 1)[1] == "base":
         raise ValueError(
-            "namespace base is reserved: base-agents/base is the required "
+            f"namespace base is reserved: {MARKETPLACE}/base is the required "
             "core dependency identity"
         )
     if not arguments.description.strip():

@@ -2,7 +2,7 @@
 
 {{description}}
 
-Published as plugin `{{namespace}}` from this repository's `{{marketplace}}` marketplace.
+Published as `{{namespace}}@{{marketplace}}` from the shared `{{marketplace}}` marketplace.
 
 ## Skills
 
