@@ -6,7 +6,7 @@ It links to Core's generic documentation guidance for authoring decisions.
 
 ## Install
 
-Install `template@template-agents`.
+Install `template@tj-agents`.
 
 ## Skills
 
@@ -56,7 +56,8 @@ Utility tiers default to `always`; an explicitly scoped utility may declare `sta
 predicates. Core validates their detailed shape. New repositories include a self/dependency harness manifest under
 `.agents/plugins/manifests/harness/`; the generator ships any declared manifest as `plugins/<plugin>/harness.json`.
 Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
-`marketplace/plugin` identities; the generator preserves external identities for the consuming harness.
+`tj-agents/<plugin>` identities. `tj-agents` is the only marketplace: the generator names both repository
+marketplace files `tj-agents`, drops any other harness marketplace, and `template:check` fails on any other.
 
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill

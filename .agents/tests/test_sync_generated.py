@@ -51,12 +51,8 @@ def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
     )
     for host in ("claude", "codex"):
         templates = {
-            "claude": {
-                "name": "demo-agents",
-                "description": "Demo.",
-                "owner": {"name": "Owner"},
-            },
-            "codex": {"name": "demo-agents", "interface": {"displayName": "Demo"}},
+            "claude": {"description": "Demo.", "owner": {"name": "Owner"}},
+            "codex": {"interface": {"displayName": "Demo"}},
         }
         write_json(
             root / f".agents/plugins/manifests/{host}/marketplace.json", templates[host]
@@ -155,19 +151,27 @@ def test_external_selection_dependency_is_preserved_and_shape_checked(
     make_repository(tmp_path)
     path = tmp_path / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text(encoding="utf-8"))
-    payloads["dependencies"] = {"demo": ["base-agents/machine"]}
+    payloads["dependencies"] = {"demo": ["tj-agents/work"]}
     write_json(path, payloads)
-    assert json.loads(build(tmp_path)["plugins/demo/selection.json"])[
-        "dependencies"
-    ] == [
+    output = build(tmp_path)
+    assert json.loads(output["plugins/demo/selection.json"])["dependencies"] == [
         "tj-agents/base",
         "tj-agents/engineering",
         "tj-agents/machine",
-        "base-agents/machine",
+        "tj-agents/work",
+    ]
+    assert json.loads(output["plugins/demo/.claude-plugin/plugin.json"])[
+        "dependencies"
+    ] == [
+        "base@tj-agents",
+        "engineering@tj-agents",
+        "machine@tj-agents",
+        "work@tj-agents",
     ]
     invalid_dependencies: tuple[Any, ...] = (
-        "base-agents/*",
-        "base-agents/machine/extra",
+        "base-agents/machine",
+        "tj-agents/*",
+        "tj-agents/machine/extra",
         "unknown",
         {},
     )
@@ -185,14 +189,14 @@ def test_optional_harness_is_shipped_without_requiring_migration(
     assert "plugins/demo/harness.json" not in build(tmp_path)
     manifest = {
         "schema_version": 1,
-        "plugin": "demo-agents/demo",
+        "plugin": "tj-agents/demo",
         "source_roots": [".agents/demo"],
         "requires": {},
     }
     write_json(tmp_path / ".agents/plugins/manifests/harness/demo.json", manifest)
     generated = json.loads(build(tmp_path)["plugins/demo/harness.json"])
     assert generated["requires"]["plugins"] == [
-        "demo-agents/demo",
+        "tj-agents/demo",
         "tj-agents/base",
         "tj-agents/engineering",
         "tj-agents/machine",
@@ -265,7 +269,7 @@ def test_publications_share_one_source_and_keep_one_local_adapter_set(
             tmp_path / f".agents/plugins/manifests/harness/{package}.json",
             {
                 "schema_version": 1,
-                "plugin": f"demo-agents/{package}",
+                "plugin": f"tj-agents/{package}",
                 "source_roots": [".agents/demo"],
                 "requires": {},
             },
@@ -286,7 +290,7 @@ def test_publications_share_one_source_and_keep_one_local_adapter_set(
         )
         assert (
             json.loads(output[f"plugins/{package}/harness.json"])["plugin"]
-            == f"demo-agents/{package}"
+            == f"tj-agents/{package}"
         )
     assert (
         sum(
@@ -627,17 +631,23 @@ def test_dependencies_reject_local_aliases_and_self_dependencies(
     payloads["dependencies"] = {"extra": ["template"]}
     write_json(demo_root / ".agents/plugins/payloads.json", payloads)
     assert_rejected(demo_root, "extra cannot depend on local alias template")
-    payloads["dependencies"] = {"demo": ["demo-agents/demo"]}
+    payloads["dependencies"] = {"demo": ["tj-agents/demo"]}
     write_json(demo_root / ".agents/plugins/payloads.json", payloads)
-    assert_rejected(demo_root, "demo cannot depend on demo-agents/demo")
+    assert_rejected(demo_root, "demo cannot depend on tj-agents/demo; name a package")
+    payloads["dependencies"] = {"demo": ["tj-agents/extra"]}
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "demo cannot depend on tj-agents/extra; name a package")
     payloads["dependencies"] = {"demo": ["demo-agents/missing"]}
     write_json(demo_root / ".agents/plugins/payloads.json", payloads)
-    assert_rejected(demo_root, "demo cannot depend on demo-agents/missing")
+    assert_rejected(
+        demo_root,
+        "demo cannot depend on demo-agents/missing; another repository's package",
+    )
 
 
 VALID_HARNESS = {
     "schema_version": 1,
-    "plugin": "demo-agents/demo",
+    "plugin": "tj-agents/demo",
     "source_roots": [".agents/demo"],
     "requires": {},
 }
@@ -648,8 +658,21 @@ HARNESS_ENVELOPE_CASES: list[tuple[Any, str]] = [
     ({**VALID_HARNESS, "schema_version": True}, "schema_version must be 1"),
     ({**VALID_HARNESS, "schema_version": 2}, "schema_version must be 1"),
     (
-        {**VALID_HARNESS, "plugin": "demo-agents/other"},
-        "plugin must be demo-agents/demo",
+        {**VALID_HARNESS, "plugin": "tj-agents/other"},
+        "plugin must be tj-agents/demo",
+    ),
+    (
+        {**VALID_HARNESS, "plugin": "demo-agents/demo"},
+        "plugin must be tj-agents/demo",
+    ),
+    ({**VALID_HARNESS, "requires": None}, "requires must be a JSON object"),
+    (
+        {**VALID_HARNESS, "requires": {"plugins": ["base-agents/base"]}},
+        "requires.plugins lists only tj-agents/<package> identities",
+    ),
+    (
+        {**VALID_HARNESS, "requires": {"plugins": "tj-agents/base"}},
+        "requires.plugins lists only tj-agents/<package> identities",
     ),
     (
         {**VALID_HARNESS, "source_roots": None},
@@ -710,7 +733,7 @@ def test_harness_rejects_unreadable_json(
 ) -> None:
     valid = {
         "schema_version": 1,
-        "plugin": "demo-agents/demo",
+        "plugin": "tj-agents/demo",
         "source_roots": [".agents/demo"],
         "requires": {},
     }
@@ -726,7 +749,7 @@ def test_harness_rejects_unreadable_json(
 
     monkeypatch.setattr(sync_generated, "read", locked)
     with pytest.raises(ValueError, match="unreadable JSON"):
-        sync_generated.harness_body(demo_root, "demo", "demo-agents", {}, [], False)
+        sync_generated.harness_body(demo_root, "demo", {}, [], False)
 
 
 def test_harness_cannot_claim_another_publication_source(demo_root: Path) -> None:
@@ -736,7 +759,7 @@ def test_harness_cannot_claim_another_publication_source(demo_root: Path) -> Non
         demo_root / ".agents/plugins/manifests/harness/template.json",
         {
             "schema_version": 1,
-            "plugin": "demo-agents/template",
+            "plugin": "tj-agents/template",
             "source_roots": [".agents/extra"],
             "requires": {},
         },
@@ -781,6 +804,70 @@ def test_marketplace_templates_do_not_list_plugins(demo_root: Path) -> None:
     path = demo_root / ".agents/plugins/manifests/claude/marketplace.json"
     write_json(path, {**json.loads(path.read_text()), "plugins": []})
     assert_rejected(demo_root, "plugin entries are generated")
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_marketplace_templates_do_not_name_the_marketplace(
+    demo_root: Path, host: str
+) -> None:
+    path = demo_root / f".agents/plugins/manifests/{host}/marketplace.json"
+    write_json(path, {"name": "demo-agents", **json.loads(path.read_text())})
+    assert_rejected(demo_root, "its tj-agents name and plugin entries are generated")
+
+
+def test_every_marketplace_is_tj_agents_without_cross_marketplace_grants(
+    demo_root: Path,
+) -> None:
+    output = build(demo_root)
+    for path in (".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json"):
+        marketplace = json.loads(output[path])
+        assert marketplace["name"] == "tj-agents"
+        assert "allowCrossMarketplaceDependenciesOn" not in marketplace
+
+
+@pytest.mark.parametrize("kind", ["stack", "tool", "utility", "profile"])
+def test_harness_drops_every_marketplace_but_tj_agents(
+    demo_root: Path, kind: str
+) -> None:
+    config = demo_root / ".agents/plugins/template.json"
+    write_json(config, {**json.loads(config.read_text()), "type": kind})
+    write_json(
+        demo_root / ".agents/plugins/manifests/harness/demo.json",
+        {
+            **VALID_HARNESS,
+            "requires": {
+                "marketplaces": [
+                    {"id": "demo-agents", "repository": "owner/demo"},
+                    {"id": "base-agents", "repository": "tj-agents/core"},
+                ],
+                "plugins": ["tj-agents/demo", "tj-agents/work"],
+            },
+        },
+    )
+    harness = json.loads(build(demo_root)["plugins/demo/harness.json"])
+    assert harness["plugin"] == "tj-agents/demo"
+    assert harness["requires"]["marketplaces"] == [
+        {"id": "tj-agents", "repository": "tj-agents/marketplace"}
+    ]
+    inherited = {
+        "stack": ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"],
+        "profile": ["tj-agents/base"],
+    }
+    assert harness["requires"]["plugins"] == (
+        ["tj-agents/demo", *inherited[kind]]
+        if kind in inherited
+        else ["tj-agents/demo", "tj-agents/work"]
+    )
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_manifest_dependencies_name_only_tj_agents(demo_root: Path, host: str) -> None:
+    path = demo_root / f".agents/plugins/manifests/{host}/demo.json"
+    manifest = json.loads(path.read_text())
+    write_json(path, {**manifest, "dependencies": ["base@tj-agents", "extra"]})
+    build(demo_root)
+    write_json(path, {**manifest, "dependencies": ["base@base-agents"]})
+    assert_rejected(demo_root, f"the {host} manifest dependencies are bare packages")
 
 
 def test_legacy_template_config_pin_is_rejected(demo_root: Path) -> None:
