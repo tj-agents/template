@@ -1,7 +1,7 @@
 # Portable repository plugin configuration
 
 Prerequisite of Tommy's approved optional work-items implementation, 2026-10-16.
-Owner: codex:01a1415f-6448-7123-8b17-c7fb67aee637. Defect: BUGS.md B001.
+Owner: codex:01a1415f-6448-7123-8b17-c7fb67aee637. Defect: B001 (resolved via PR24, merged eab0c1f65eb9e6597bf6340a217d8f0bb48352d0).
 Base: fresh origin/main in isolated temporary clone. Branch: Fix/RepositoryPluginConfiguration.
 Scope: named machine-owned configuration allowlist, focused regression, canonical CI owner and
 Template 1.6.1 release. No existing consumer migrations or unrelated generator changes.
