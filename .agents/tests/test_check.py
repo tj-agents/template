@@ -768,10 +768,82 @@ def test_profile_is_always_applicable_once_selected(personal_repo: Path) -> None
     assert_problem(personal_repo, "a profile repository applies always")
 
 
+FOREIGN_MARKETPLACE_CASES: list[tuple[str, Callable[[Any], None], str]] = [
+    (
+        "plugins/zig/harness.json",
+        lambda harness: harness.update(plugin="zig-agents/zig"),
+        "plugin uses marketplace zig-agents",
+    ),
+    (
+        "plugins/zig/harness.json",
+        lambda harness: harness["requires"]["marketplaces"].append(
+            {"id": "base-agents", "repository": "tj-agents/core"}
+        ),
+        "id uses marketplace base-agents",
+    ),
+    (
+        "plugins/zig/harness.json",
+        lambda harness: harness["requires"]["plugins"].append("base-agents/base"),
+        "plugins uses marketplace base-agents",
+    ),
+    (
+        "plugins/zig/.claude-plugin/plugin.json",
+        lambda manifest: manifest["dependencies"].append("base@base-agents"),
+        "dependencies uses marketplace base-agents",
+    ),
+    (
+        "plugins/zig/.claude-plugin/plugin.json",
+        lambda manifest: manifest["dependencies"].append(
+            {"name": "base", "marketplace": "base-agents"}
+        ),
+        "marketplace uses marketplace base-agents",
+    ),
+    (
+        "plugins/zig/selection.json",
+        lambda selection: selection["dependencies"].append("base-agents/machine"),
+        "dependencies uses marketplace base-agents",
+    ),
+    (
+        ".agents/plugins/payloads.json",
+        lambda payloads: payloads.update(dependencies={"zig": ["base-agents/base"]}),
+        "dependencies uses marketplace base-agents",
+    ),
+    (
+        ".claude-plugin/marketplace.json",
+        lambda marketplace: marketplace.update(name="zig-agents"),
+        "name uses marketplace zig-agents",
+    ),
+    (
+        ".claude-plugin/marketplace.json",
+        lambda marketplace: marketplace.update(
+            allowCrossMarketplaceDependenciesOn=["base-agents"]
+        ),
+        "allowCrossMarketplaceDependenciesOn uses marketplace base-agents",
+    ),
+    (
+        ".agents/plugins/manifests/codex/marketplace.json",
+        lambda marketplace: marketplace.update(name="zig-agents"),
+        "name uses marketplace zig-agents",
+    ),
+]
+
+
+@pytest.mark.parametrize("relative,change,fragment", FOREIGN_MARKETPLACE_CASES)
+def test_a_foreign_marketplace_reference_fails(
+    zig_repo: Path, relative: str, change: Callable[[Any], None], fragment: str
+) -> None:
+    assert check.check(zig_repo) == []
+    path = zig_repo / relative
+    document = json.loads(path.read_text(encoding="utf-8"))
+    change(document)
+    path.write_text(json.dumps(document), encoding="utf-8")
+    assert_problem(zig_repo, f"{relative}: {fragment}; tj-agents is the only")
+
+
 def test_profile_dependency_projection_is_checked(personal_repo: Path) -> None:
     path = personal_repo / "plugins/personal/harness.json"
     harness = json.loads(path.read_text())
-    harness["requires"]["plugins"] = ["personal-agents/personal"]
+    harness["requires"]["plugins"] = ["tj-agents/personal"]
     path.write_text(json.dumps(harness), encoding="utf-8")
     assert_problem(
         personal_repo,
