@@ -6,6 +6,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from collections.abc import Iterator
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any, TypedDict
@@ -17,6 +18,18 @@ NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
 STANDARD = json.loads((SKILL_DIRECTORY / "standard.json").read_text(encoding="utf-8"))
 
 type JSONObject = dict[str, Any]
+
+IDENTITY_FILES = (
+    ".agents/plugins/payloads.json",
+    ".agents/plugins/manifests/*/*.json",
+    ".claude-plugin/marketplace.json",
+    ".agents/plugins/marketplace.json",
+    "plugins/*/harness.json",
+    "plugins/*/selection.json",
+    "plugins/*/.claude-plugin/plugin.json",
+    "plugins/*/.codex-plugin/plugin.json",
+)
+IDENTITY_FIELDS = {"plugin", "plugins", "dependencies"}
 
 
 class SkillRecord(TypedDict):
@@ -363,6 +376,49 @@ def check_names(plugins: Plugins, aliases: dict[str, JSONObject]) -> list[str]:
     return problems
 
 
+def marketplace_references(value: Any, field: str = "") -> Iterator[tuple[str, str]]:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if (field == "marketplaces" and key == "id") or key == "marketplace":
+                yield key, str(item)
+            else:
+                nested = field if field == "dependencies" else key
+                yield from marketplace_references(item, nested)
+    elif isinstance(value, list):
+        for item in value:
+            yield from marketplace_references(item, field)
+    elif isinstance(value, str):
+        if field == "allowCrossMarketplaceDependenciesOn":
+            yield field, value
+        elif field in IDENTITY_FIELDS and "@" in value:
+            yield field, value.rsplit("@", 1)[1]
+        elif field in IDENTITY_FIELDS and "/" in value:
+            yield field, value.split("/", 1)[0]
+
+
+def check_marketplace_identity(root: Path) -> list[str]:
+    marketplace = generator.TJ_AGENTS_MARKETPLACE
+    problems = []
+    paths = sorted({path for pattern in IDENTITY_FILES for path in root.glob(pattern)})
+    for path in paths:
+        relative = path.relative_to(root).as_posix()
+        try:
+            document = json.loads(text(path))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        found = list(marketplace_references(document))
+        named = isinstance(document, dict) and "name" in document
+        if path.name == "marketplace.json" and named:
+            found.append(("name", str(document["name"])))
+        problems += [
+            f"{relative}: {field} uses marketplace {name}; {marketplace} is "
+            "the only marketplace"
+            for field, name in found
+            if name != marketplace
+        ]
+    return problems
+
+
 def check_effective_dependency_projection(
     root: Path, config: JSONObject, generated: dict[str, bytes]
 ) -> list[str]:
@@ -454,6 +510,7 @@ def check(
     namespace = match.group(1)
     problems = check_vendored(root, config["repository"])
     problems += check_files(root)
+    problems += check_marketplace_identity(root)
     try:
         plugins = generator.discover(root, namespace)
     except (

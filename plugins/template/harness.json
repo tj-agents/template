@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "plugin": "template-agents/template",
+  "plugin": "tj-agents/template",
   "source_roots": [
     ".agents/template/utility/check",
     ".agents/template/utility/new-plugin",
@@ -9,17 +9,13 @@
   "requires": {
     "marketplaces": [
       {
-        "id": "template-agents",
-        "repository": "tj-agents/template"
-      },
-      {
-        "id": "base-agents",
-        "repository": "tj-agents/core"
+        "id": "tj-agents",
+        "repository": "tj-agents/marketplace"
       }
     ],
     "plugins": [
-      "template-agents/template",
-      "base-agents/base"
+      "tj-agents/template",
+      "tj-agents/base"
     ],
     "hooks": [],
     "permissions": {

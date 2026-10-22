@@ -1,5 +1,4 @@
 {
-  "name": "{{marketplace}}",
   "description": "{{description}}",
   "owner": {
     "name": "{{author}}"

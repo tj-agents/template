@@ -70,6 +70,7 @@ its old name until its `removeAfter` date. Apply the consuming project's explici
     harness requirements include the canonical `tj-agents/base` capability.
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
+- Manifests, harnesses, selections and payloads name no marketplace but `tj-agents`.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
 - Every added or updated canonical `SKILL.md` contains a meaningful fenced code, command, configuration, or
   input/output example. `check_examples.py` is the standalone form for an explicit `--base`/`--head` range or
