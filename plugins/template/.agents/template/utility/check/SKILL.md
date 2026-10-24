@@ -11,7 +11,7 @@ provenance: house
 
 # Plugin repository check
 
-Every plugin repository, Template included, has the same layout. The repository name is the plugin namespace.
+Every plugin repository, Template included, has the same layout. The repository name identifies its main plugin namespace; separately named sibling plugins may share the repository.
 
 ```text
 <repo>/
@@ -43,6 +43,18 @@ python <skill-directory>/scripts/check.py --root <repository>
 CI supplies its exact `--base` and `--head` range. Locally, the checker considers working, staged and untracked
 skills against `HEAD`, plus commits since `origin/main` when that ref is available. A fresh or non-Git repository
 checks every skill. Run update to refresh vendored files when they differ.
+
+## Template adoption
+
+New plugin scaffolds declare Template in `.agents/plugins.json`. Check existing coding repositories,
+including applications without Template layout, with `--adoption`. This checks declaration drift only;
+use Core's `machine:plugin-selection` settings check and native project admission/installation to prove
+both hosts load it. The explicit adoption check permits a staged rollout without making unrelated
+layout checks fail before existing repositories migrate.
+
+```bash
+python <skill-directory>/scripts/check.py --root ../coding-repository --adoption
+```
 
 ## Skill families
 
@@ -93,7 +105,7 @@ It excludes historical plans, generated adapters, test fixtures and vendored tem
 Known plugin namespaces resolve qualified names; unknown namespaces need explicit skill wording or an invocation.
 Bare names marked as skills resolve locally first, then uniquely across the corpus. Missing and ambiguous names fail
 with file and line evidence. `--source-root` restricts authored scanning while every `--root` supplies inventory;
-without it, every root is scanned. Public CI inventories the current repository, Template, core, react and dotnet.
+without it, every root is scanned. Public CI inventories the current repository, Template, Core, React, .NET and Rust, including its sibling plugins.
 
 Use `--reference-path` for active canonical documents or route tables outside the default skill layout.
 Markdown references and JSON `routes[].skills[]` resolve against the same shipped inventories; directories
