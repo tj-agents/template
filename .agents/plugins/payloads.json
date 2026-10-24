@@ -3,5 +3,10 @@
     "template": [
       "template"
     ]
+  },
+  "dependencies": {
+    "template": [
+      "tj-agents/engineering"
+    ]
   }
 }
