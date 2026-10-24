@@ -10,9 +10,18 @@ Install `template@tj-agents`.
 
 ## Skills
 
+- `template:new-skill` resolves concern ownership and scope before delegating to the current host's native creator.
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
+
+## Create a skill
+
+Use `template:new-skill` before authoring a new skill in an existing plugin. It applies Template's
+ownership, naming and applicability constraints, then delegates to the discovered native creator.
+The repository names the main plugin; separately selectable sibling namespaces can share it.
+The selected Template tier supplies session routing and a canonical-skill write gate through Core.
+Native creator availability and fresh host loading are verified separately from source selection.
 
 ## Repository types
 
@@ -32,7 +41,7 @@ an `always` tier makes a selected profile applicable, but does not itself load i
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
 The workflow checks generated outputs, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
 its unittest suite), Template's skill-content and layout validation, core's tier payload check, and
-installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React and .NET with
+installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React, .NET and Rust with
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
 
@@ -62,4 +71,4 @@ marketplace files `tj-agents`, drops any other harness marketplace, and `templat
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
 identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
-against Template, Core, React and .NET, using `GITHUB_TOKEN` unless an optional read token is supplied.
+against Template, Core, React, .NET and Rust, using `GITHUB_TOKEN` unless an optional read token is supplied.
