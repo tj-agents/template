@@ -15,7 +15,7 @@ Apply this constraint before native authoring. Template owns the shared contract
 the native creator owns the authoring method. Keep the existing goal and authorization.
 
 ```text
-Naming example: a React validation concern is react:validation, with Zod explicitly selected.
+Naming example: React namespace, validation concern; Zod is explicitly selected.
 Request: add SQLx persistence guidance for a Rust/Tauri application.
 Resolve: rust-sqlx:persistence, a separately selected sibling plugin in tj-agents/rust.
 Scope: SQLx pools, bound queries and transactions; SQLite rules explicitly scoped.
