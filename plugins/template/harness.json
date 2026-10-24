@@ -3,7 +3,8 @@
   "plugin": "tj-agents/template",
   "source_roots": [
     ".agents/template/utility/check",
-    ".agents/template/utility/new-plugin",
+    ".agents/template/utility/new/plugin",
+    ".agents/template/utility/new/skill",
     ".agents/template/utility/update"
   ],
   "requires": {
@@ -15,7 +16,8 @@
     ],
     "plugins": [
       "tj-agents/template",
-      "tj-agents/base"
+      "tj-agents/base",
+      "tj-agents/engineering"
     ],
     "hooks": [],
     "permissions": {
