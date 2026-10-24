@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-NEW_PLUGIN = ROOT / ".agents/template/utility/new-plugin/scripts/new_plugin.py"
+NEW_PLUGIN = ROOT / ".agents/template/utility/new/plugin/scripts/new_plugin.py"
 UPDATE = ROOT / ".agents/template/utility/update/scripts/update.py"
 
 
@@ -144,6 +144,18 @@ def commit_initial_repository(root: Path) -> None:
 
 def test_a_new_stack_repository_conforms(zig_repo: Path) -> None:
     assert check.check(zig_repo) == []
+
+
+def test_template_adoption_drift_is_reported(zig_repo: Path) -> None:
+    selection_path = zig_repo / ".agents/plugins.json"
+    selection = json.loads(selection_path.read_text(encoding="utf-8"))
+    selection["plugins"].remove("template@tj-agents")
+    selection_path.write_text(json.dumps(selection), encoding="utf-8")
+    result = run(str(CHECK), "--root", str(zig_repo), "--adoption")
+    assert result.returncode == 1
+    assert "select template@tj-agents" in result.stderr
+    selection_path.unlink()
+    assert "Template selection is required" in check.check_adoption(zig_repo)[0]
 
 
 def test_normal_check_rejects_a_changed_skill_without_a_real_example(
