@@ -1,0 +1,9 @@
+{
+  "agents_may_merge": false,
+  "required_checks": [
+    "verify / hosts",
+    "verify / verify (ubuntu-latest)",
+    "verify / verify (windows-latest)"
+  ],
+  "ci_pushes_default_branch": true
+}
