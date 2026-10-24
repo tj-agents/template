@@ -25,6 +25,7 @@ Finish: Template generation/checks, evidence routes, then fresh Claude and Codex
 
 ## Resolve the brief
 
+Load `engineering:skill-authoring` for the shared existence, sizing, naming and collision rules.
 Inspect the capability index, existing skills, repository instructions and selected policy. Extend the
 existing concern owner when it already covers the behavior. Keep product behavior in its application.
 Name ordinary ecosystem concerns by purpose: `react:validation` can use explicitly selected Zod without
