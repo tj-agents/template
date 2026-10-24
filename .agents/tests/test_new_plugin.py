@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / ".agents/template/utility/new-plugin"
+SKILL = ROOT / ".agents/template/utility/new/plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
