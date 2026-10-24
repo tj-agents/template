@@ -12,7 +12,7 @@ provenance: house
 # New plugin repository
 
 Creates `<destination>/<name>/` from this skill's `templates/` and builds its generated outputs. The repository
-name is the plugin namespace, so `<owner>/zig` publishes skills as `zig:<name>`.
+name identifies the main plugin namespace, so `<owner>/zig` publishes skills as `zig:<name>`.
 
 ## Create a plugin repository
 
@@ -50,6 +50,10 @@ starter until that example exists. Conventions grow through the new repository's
    repositories are public so the shared marketplace can install them and CI runs.
 2. Only while a repository plugin CI reads is private: `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>`.
 3. Add the plugin to the shared marketplace's `catalog.json` and regenerate it.
+
+After Git initialization, use `machine:plugin-selection` with the scaffolded `.agents/plugins.json`
+to generate both native host settings and complete project admission/installation. Preserve other
+selections. CI workflow imports alone do not install Template.
 
 ## Validation
 

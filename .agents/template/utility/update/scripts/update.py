@@ -15,7 +15,9 @@ from typing import Any
 
 sys.dont_write_bytecode = True
 
-NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new-plugin"
+NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new/plugin"
+if not NEW_PLUGIN.is_dir():
+    NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new-plugin"
 
 
 def load_new_plugin() -> Any:
@@ -42,7 +44,7 @@ def update(root: Path, dry_run: bool) -> list[str]:
             f"{config_path}: repository must be owner/name with a lowercase name"
         )
     owns_templates = (
-        root / ".agents/template/utility/new-plugin/templates/repository"
+        root / ".agents/template/utility/new/plugin/templates/repository"
     ).is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
