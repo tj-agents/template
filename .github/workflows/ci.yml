@@ -19,6 +19,7 @@ jobs:
     if: github.event_name == 'push'
     needs: verify
     runs-on: windows-latest
+    environment: regenerate
     permissions:
       contents: write
     concurrency:
@@ -28,6 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          ssh-key: ${{ secrets.REGENERATE_DEPLOY_KEY }}
 
       - name: regenerate committed packages from authored sources
         shell: pwsh
