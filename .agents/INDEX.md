@@ -5,5 +5,6 @@ Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's n
 ## template
 
 - `check` — utility — core — `.agents/template/utility/check/SKILL.md`
-- `new-plugin` — utility — core — `.agents/template/utility/new-plugin/SKILL.md`
+- `new-plugin` — utility — core — `.agents/template/utility/new/plugin/SKILL.md`
+- `new-skill` — utility — core — `.agents/template/utility/new/skill/SKILL.md`
 - `update` — utility — core — `.agents/template/utility/update/SKILL.md`

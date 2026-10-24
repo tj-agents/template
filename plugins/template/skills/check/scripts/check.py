@@ -14,7 +14,9 @@ from typing import Any, TypedDict
 sys.dont_write_bytecode = True
 
 SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
-NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
+NEW_PLUGIN = SKILL_DIRECTORY.parent / "new/plugin"
+if not NEW_PLUGIN.is_dir():
+    NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
 STANDARD = json.loads((SKILL_DIRECTORY / "standard.json").read_text(encoding="utf-8"))
 
 type JSONObject = dict[str, Any]
@@ -170,7 +172,7 @@ def check_skill_examples(
 
 
 def owns_templates(root: Path) -> bool:
-    return (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
+    return (root / ".agents/template/utility/new/plugin/templates/repository").is_dir()
 
 
 def check_vendored(root: Path, repository: str) -> list[str]:
@@ -478,6 +480,21 @@ def check_effective_dependency_projection(
     return problems
 
 
+def check_adoption(root: Path) -> list[str]:
+    """Observe declaration drift; Core owns schema and native settings validation."""
+    relative = ".agents/plugins.json"
+    try:
+        selection = json.loads(text(root / relative))
+    except (OSError, ValueError) as error:
+        return [f"{relative}: Template selection is required ({error})"]
+    plugins = selection.get("plugins") if isinstance(selection, dict) else None
+    if not isinstance(plugins, list) or "template@tj-agents" not in plugins:
+        return [
+            f"{relative}: select template@tj-agents through machine:plugin-selection"
+        ]
+    return []
+
+
 def check(
     root: Path,
     base: str | None = None,
@@ -562,12 +579,21 @@ def check(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--adoption",
+        action="store_true",
+        help="Check Template selection only, including non-plugin coding repositories",
+    )
     parser.add_argument("--base")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--merge-base", action="store_true")
     arguments = parser.parse_args()
     root = arguments.root.resolve()
-    problems = check(root, arguments.base, arguments.head, arguments.merge_base)
+    problems = (
+        check_adoption(root)
+        if arguments.adoption
+        else check(root, arguments.base, arguments.head, arguments.merge_base)
+    )
     for problem in problems:
         print(problem, file=sys.stderr)
     if problems:

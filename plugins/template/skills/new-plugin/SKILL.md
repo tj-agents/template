@@ -11,5 +11,5 @@ provenance: house
 
 # New plugin repository
 
-Read and follow the [canonical definition](../../.agents/template/utility/new-plugin/SKILL.md) in full.
+Read and follow the [canonical definition](../../.agents/template/utility/new/plugin/SKILL.md) in full.
 This discovery entry is generated; edit the referenced `.agents/` definition.
