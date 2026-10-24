@@ -15,6 +15,7 @@ Apply this constraint before native authoring. Template owns the shared contract
 the native creator owns the authoring method. Keep the existing goal and authorization.
 
 ```text
+Naming example: a React validation concern is react:validation, with Zod explicitly selected.
 Request: add SQLx persistence guidance for a Rust/Tauri application.
 Resolve: rust-sqlx:persistence, a separately selected sibling plugin in tj-agents/rust.
 Scope: SQLx pools, bound queries and transactions; SQLite rules explicitly scoped.
@@ -28,7 +29,7 @@ Finish: Template generation/checks, evidence routes, then fresh Claude and Codex
 Load `engineering:skill-authoring` for the shared existence, sizing, naming and collision rules.
 Inspect the capability index, existing skills, repository instructions and selected policy. Extend the
 existing concern owner when it already covers the behavior. Keep product behavior in its application.
-Name ordinary ecosystem concerns by purpose: `react:validation` can use explicitly selected Zod without
+Name ordinary ecosystem concerns by purpose: React validation can use explicitly selected Zod without
 claiming Zod is required by React. Give a framework its own selectable namespace when its execution model,
 lifecycle or substantial API practices warrant one, such as `efcore:specification` or `tauri:commands`.
 Disambiguate cross-ecosystem library names: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
