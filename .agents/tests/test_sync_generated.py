@@ -597,6 +597,161 @@ def test_missing_skill_directory_file(demo_root: Path) -> None:
     assert_rejected(demo_root, "scripts/missing.py does not resolve")
 
 
+def test_resources_ship_files_and_recursive_directories_and_track_freshness(
+    demo_root: Path,
+) -> None:
+    write(demo_root / ".agents/hooks/host.json", '{"hook": true}\n')
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    write(demo_root / ".agents/demo/resources/nested/data.txt", "resource\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/hooks/host.json",
+                    "destination": "hooks/host.json",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime",
+                    "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/resources",
+                    "destination": "resources",
+                },
+            ],
+        },
+    )
+    output = build(demo_root)
+    assert output["plugins/demo/hooks/host.json"] == b'{"hook": true}\n'
+    assert output["plugins/demo/runtime/runner.py"] == b"print('run')\n"
+    assert output["plugins/demo/resources/nested/data.txt"] == b"resource\n"
+    assert synchronize(demo_root, check=False)[0] == 0
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('changed')\n")
+    code, report = synchronize(demo_root, check=True)
+    assert code == 1
+    assert "STALE: plugins/demo/runtime/runner.py" in report
+
+
+def test_resources_reject_unsafe_missing_undeclared_and_colliding_mappings(
+    demo_root: Path,
+) -> None:
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    payloads: dict[str, Any] = {"payloads": {"demo": ["demo"]}, "resources": []}
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "non-skill resource directories must be declared")
+
+    payloads["resources"] = [
+        {
+            "plugin": "missing",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "resource plugin must be a declared package")
+
+    payloads["resources"][0]["plugin"] = "demo"
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/missing.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "is missing")
+
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/../runtime/runner.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "unsafe resource source")
+
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/runner.py"
+    payloads["resources"][0]["destination"] = "../runner.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "unsafe resource destination")
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        },
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        },
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "duplicate resource output")
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "skills/tool/SKILL.md",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "Duplicate generated output")
+
+
+def test_resources_reject_linked_inputs(
+    demo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = demo_root / ".agents/demo/runtime/runner.py"
+    write(source, "print('run')\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime/runner.py",
+                    "destination": "runtime/runner.py",
+                }
+            ],
+        },
+    )
+    original = sync_generated.is_link_or_junction
+
+    def linked(path: Path) -> bool:
+        return path == source or original(path)
+
+    monkeypatch.setattr(sync_generated, "is_link_or_junction", linked)
+    assert_rejected(demo_root, "contains a link or junction")
+
+
+def test_host_adapters_are_appended_only_for_the_declared_host(demo_root: Path) -> None:
+    source = ".agents/plugins/adapters/codex/demo/tool.md"
+    write(demo_root / source, "## Codex behavior\n\nUse Codex-specific controls.\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "host_adapters": [
+                {"skill": "demo:tool", "host": "codex", "source": source}
+            ],
+        },
+    )
+    output = build(demo_root)
+    codex = output[".codex/skills/tool/SKILL.md"].decode()
+    claude = output[".claude/skills/tool/SKILL.md"].decode()
+    package = output["plugins/demo/skills/tool/SKILL.md"].decode()
+    assert "## Codex behavior" in codex
+    assert "## Codex behavior" not in claude
+    assert "## Codex behavior" not in package
+
+    payloads = json.loads(
+        (demo_root / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["host_adapters"][0]["source"] = (
+        ".agents/plugins/adapters/codex/demo/other.md"
+    )
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "host adapter source must be")
+
+
 def test_payloads_select_known_sources_and_retain_identity_publications(
     demo_root: Path,
 ) -> None:

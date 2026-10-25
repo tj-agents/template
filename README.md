@@ -68,6 +68,11 @@ Existing repositories can add one when needed. Selection dependencies accept loc
 `tj-agents/<plugin>` identities. `tj-agents` is the only marketplace: the generator names both repository
 marketplace files `tj-agents`, drops any other harness marketplace, and `template:check` fails on any other.
 
+`payloads.json` may also ship explicit package resources: a file or recursive directory from `.agents/hooks`, or
+the owning plugin's `.agents/<plugin>/runtime` or `resources` directory, maps into `plugins/<package>/<destination>`.
+Optional host discovery extensions append from the exact declared
+`.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source, while the canonical skill body remains singular.
+
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
 identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
