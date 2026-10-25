@@ -26,7 +26,8 @@ Every plugin repository, Template included, has the same layout. The repository 
     <plugin>/<kind>/<family>/<member>/SKILL.md   a family groups related skills; <family>/SKILL.md is optional
     tiers/<plugin>.json
     plugins/template.json               repository and type
-    plugins/payloads.json               published plugins, dependencies, compatibility aliases
+    plugins/payloads.json               published plugins, dependencies, compatibility aliases, mapped resources and host adapters
+    plugins/adapters/<host>/<plugin>/<skill>.md  optional host-only discovery extension body
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
     sync_generated.py  sync-generated.ps1  vendored
@@ -83,6 +84,14 @@ its old name until its `removeAfter` date. Apply the consuming project's explici
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
 - Manifests, harnesses, selections and payloads name no marketplace but `tj-agents`.
+- `payloads.json` may map a regular file or recursive directory from `.agents/hooks`, any declared canonical
+  plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside its `SKILL.md`
+  (never the body itself), into a declared `plugins/<package>/` destination. Runtime and resources directories
+  are permitted only when mapped. Its optional
+  `host_adapters` entries append a host-specific extension body from the exact
+  `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` path to that host's generated discovery
+  entry and installed target-host skill entry; shared instruction remains only in the canonical `SKILL.md`.
+  Packages with extensions retain `skills/` for Claude and generate `codex-skills/` with a matching Codex manifest.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
 - Every added or updated canonical `SKILL.md` contains a meaningful fenced code, command, configuration, or
   input/output example. `check_examples.py` is the standalone form for an explicit `--base`/`--head` range or

@@ -224,6 +224,7 @@ def test_ships_skill_local_files_beside_the_package_and_adapter_entries(
     ):
         assert f"{directory}/scripts/run.py" in output
         assert f"{directory}/templates/notes.md" in output
+    assert "plugins/demo/codex-skills/tool/SKILL.md" not in output
     assert (
         "canonical definition](../../.agents/demo/utility/tool/SKILL.md)"
         in output[f"{adapter}/SKILL.md"].decode()
@@ -595,6 +596,292 @@ def test_missing_skill_directory_file(demo_root: Path) -> None:
         ),
     )
     assert_rejected(demo_root, "scripts/missing.py does not resolve")
+
+
+def test_resources_ship_files_and_recursive_directories_and_track_freshness(
+    demo_root: Path,
+) -> None:
+    write(demo_root / ".agents/hooks/host.json", '{"hook": true}\n')
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    write(demo_root / ".agents/demo/resources/nested/data.txt", "resource\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/hooks/host.json",
+                    "destination": "hooks/host.json",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime",
+                    "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/resources",
+                    "destination": "resources",
+                },
+            ],
+        },
+    )
+    output = build(demo_root)
+    assert output["plugins/demo/hooks/host.json"] == b'{"hook": true}\n'
+    assert output["plugins/demo/runtime/runner.py"] == b"print('run')\n"
+    assert output["plugins/demo/resources/nested/data.txt"] == b"resource\n"
+    assert synchronize(demo_root, check=False)[0] == 0
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('changed')\n")
+    code, report = synchronize(demo_root, check=True)
+    assert code == 1
+    assert "STALE: plugins/demo/runtime/runner.py" in report
+
+
+def test_resources_allow_declared_cross_plugin_runtime_and_skill_assets(
+    tmp_path: Path,
+) -> None:
+    make_repository(tmp_path, ("demo", "extra"))
+    write(tmp_path / ".agents/extra/runtime/shared.py", "print('shared')\n")
+    write_json(
+        tmp_path / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"], "extra": ["extra"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/extra/runtime",
+                    "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/extra/utility/tool/scripts",
+                    "destination": "helpers",
+                },
+            ],
+        },
+    )
+    output = build(tmp_path)
+    assert output["plugins/demo/runtime/shared.py"] == b"print('shared')\n"
+    assert output["plugins/demo/helpers/run.py"] == b"print('run')\n"
+
+    payloads = json.loads(
+        (tmp_path / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["resources"][1]["source"] = ".agents/extra/utility/tool/SKILL.md"
+    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(tmp_path, "discovered skill asset path")
+
+    payloads["resources"][1]["source"] = ".agents/missing/runtime/shared.py"
+    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(tmp_path, "declared canonical plugin")
+
+
+def test_resources_ignore_python_caches_and_remain_fresh(demo_root: Path) -> None:
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    write(
+        demo_root / ".agents/demo/runtime/__pycache__/runner.cpython-312.pyc",
+        "bytecode\n",
+    )
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime",
+                    "destination": "runtime",
+                }
+            ],
+        },
+    )
+    output = build(demo_root)
+    assert output["plugins/demo/runtime/runner.py"] == b"print('run')\n"
+    assert not any("__pycache__" in path or path.endswith(".pyc") for path in output)
+    assert synchronize(demo_root, check=False)[0] == 0
+    assert synchronize(demo_root, check=True)[0] == 0
+
+
+def test_resources_reject_prefix_collisions_before_generated_output_mutation(
+    demo_root: Path,
+) -> None:
+    assert synchronize(demo_root, check=False)[0] == 0
+    generated_skill = demo_root / "plugins/demo/skills/tool/SKILL.md"
+    original = generated_skill.read_bytes()
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    payloads: dict[str, Any] = {
+        "payloads": {"demo": ["demo"]},
+        "resources": [
+            {
+                "plugin": "demo",
+                "source": ".agents/demo/runtime/runner.py",
+                "destination": "runtime/runner.py",
+            },
+            {
+                "plugin": "demo",
+                "source": ".agents/demo/runtime/runner.py",
+                "destination": "runtime",
+            },
+        ],
+    }
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    with pytest.raises(ValueError, match="Duplicate generated output"):
+        synchronize(demo_root, check=False)
+    assert generated_skill.read_bytes() == original
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "skills",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    with pytest.raises(ValueError, match="Duplicate generated output"):
+        synchronize(demo_root, check=False)
+    assert generated_skill.read_bytes() == original
+
+
+def test_resources_reject_unsafe_missing_undeclared_and_colliding_mappings(
+    demo_root: Path,
+) -> None:
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    payloads: dict[str, Any] = {"payloads": {"demo": ["demo"]}, "resources": []}
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "non-skill resource directories must be declared")
+
+    payloads["resources"] = [
+        {
+            "plugin": "missing",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "resource plugin must be a declared package")
+
+    payloads["resources"][0]["plugin"] = "demo"
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/missing.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "is missing")
+
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/../runtime/runner.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "unsafe resource source")
+
+    payloads["resources"][0]["source"] = ".agents/demo/runtime/runner.py"
+    payloads["resources"][0]["destination"] = "../runner.py"
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "unsafe resource destination")
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        },
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "runtime/runner.py",
+        },
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "duplicate resource output")
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "skills/tool/SKILL.md",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "Duplicate generated output")
+
+
+def test_resources_reject_linked_inputs(
+    demo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = demo_root / ".agents/demo/runtime/runner.py"
+    write(source, "print('run')\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime/runner.py",
+                    "destination": "runtime/runner.py",
+                }
+            ],
+        },
+    )
+    original = sync_generated.is_link_or_junction
+
+    def linked(path: Path) -> bool:
+        return path == source or original(path)
+
+    monkeypatch.setattr(sync_generated, "is_link_or_junction", linked)
+    assert_rejected(demo_root, "contains a link or junction")
+
+
+def test_host_adapters_are_appended_only_for_the_declared_host(demo_root: Path) -> None:
+    codex_source = ".agents/plugins/adapters/codex/demo/tool.md"
+    claude_source = ".agents/plugins/adapters/claude/demo/tool.md"
+    write(
+        demo_root / codex_source, "## Codex behavior\n\nUse Codex-specific controls.\n"
+    )
+    write(
+        demo_root / claude_source,
+        "## Claude behavior\n\nUse Claude-specific controls.\n",
+    )
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "host_adapters": [
+                {"skill": "demo:tool", "host": "codex", "source": codex_source},
+                {"skill": "demo:tool", "host": "claude", "source": claude_source},
+            ],
+        },
+    )
+    output = build(demo_root)
+    codex = output[".codex/skills/tool/SKILL.md"].decode()
+    claude = output[".claude/skills/tool/SKILL.md"].decode()
+    claude_package = output["plugins/demo/skills/tool/SKILL.md"].decode()
+    codex_package = output["plugins/demo/codex-skills/tool/SKILL.md"].decode()
+    canonical = output["plugins/demo/.agents/demo/utility/tool/SKILL.md"].decode()
+    assert "## Codex behavior" in codex
+    assert "## Claude behavior" not in codex
+    assert "## Claude behavior" in claude
+    assert "## Codex behavior" not in claude
+    assert "## Claude behavior" in claude_package
+    assert "## Codex behavior" not in claude_package
+    assert "## Codex behavior" in codex_package
+    assert "## Claude behavior" not in codex_package
+    assert "Run `<skill-directory>/scripts/run.py`." in canonical
+    assert "Run `<skill-directory>/scripts/run.py`." not in claude_package
+    assert "Run `<skill-directory>/scripts/run.py`." not in codex_package
+    assert (
+        json.loads(output["plugins/demo/.claude-plugin/plugin.json"])["skills"]
+        == "./skills/"
+    )
+    assert (
+        json.loads(output["plugins/demo/.codex-plugin/plugin.json"])["skills"]
+        == "./codex-skills/"
+    )
+
+    payloads = json.loads(
+        (demo_root / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["host_adapters"][0]["source"] = (
+        ".agents/plugins/adapters/codex/demo/other.md"
+    )
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "host adapter source must be")
 
 
 def test_payloads_select_known_sources_and_retain_identity_publications(
