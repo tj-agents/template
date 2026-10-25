@@ -224,6 +224,7 @@ def test_ships_skill_local_files_beside_the_package_and_adapter_entries(
     ):
         assert f"{directory}/scripts/run.py" in output
         assert f"{directory}/templates/notes.md" in output
+    assert "plugins/demo/codex-skills/tool/SKILL.md" not in output
     assert (
         "canonical definition](../../.agents/demo/utility/tool/SKILL.md)"
         in output[f"{adapter}/SKILL.md"].decode()
@@ -637,6 +638,45 @@ def test_resources_ship_files_and_recursive_directories_and_track_freshness(
     assert "STALE: plugins/demo/runtime/runner.py" in report
 
 
+def test_resources_allow_declared_cross_plugin_runtime_and_skill_assets(
+    tmp_path: Path,
+) -> None:
+    make_repository(tmp_path, ("demo", "extra"))
+    write(tmp_path / ".agents/extra/runtime/shared.py", "print('shared')\n")
+    write_json(
+        tmp_path / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"], "extra": ["extra"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/extra/runtime",
+                    "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/extra/utility/tool/scripts",
+                    "destination": "helpers",
+                },
+            ],
+        },
+    )
+    output = build(tmp_path)
+    assert output["plugins/demo/runtime/shared.py"] == b"print('shared')\n"
+    assert output["plugins/demo/helpers/run.py"] == b"print('run')\n"
+
+    payloads = json.loads(
+        (tmp_path / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["resources"][1]["source"] = ".agents/extra/utility/tool/SKILL.md"
+    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(tmp_path, "discovered skill asset path")
+
+    payloads["resources"][1]["source"] = ".agents/missing/runtime/shared.py"
+    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(tmp_path, "declared canonical plugin")
+
+
 def test_resources_reject_unsafe_missing_undeclared_and_colliding_mappings(
     demo_root: Path,
 ) -> None:
@@ -723,24 +763,50 @@ def test_resources_reject_linked_inputs(
 
 
 def test_host_adapters_are_appended_only_for_the_declared_host(demo_root: Path) -> None:
-    source = ".agents/plugins/adapters/codex/demo/tool.md"
-    write(demo_root / source, "## Codex behavior\n\nUse Codex-specific controls.\n")
+    codex_source = ".agents/plugins/adapters/codex/demo/tool.md"
+    claude_source = ".agents/plugins/adapters/claude/demo/tool.md"
+    write(
+        demo_root / codex_source, "## Codex behavior\n\nUse Codex-specific controls.\n"
+    )
+    write(
+        demo_root / claude_source,
+        "## Claude behavior\n\nUse Claude-specific controls.\n",
+    )
     write_json(
         demo_root / ".agents/plugins/payloads.json",
         {
             "payloads": {"demo": ["demo"]},
             "host_adapters": [
-                {"skill": "demo:tool", "host": "codex", "source": source}
+                {"skill": "demo:tool", "host": "codex", "source": codex_source},
+                {"skill": "demo:tool", "host": "claude", "source": claude_source},
             ],
         },
     )
     output = build(demo_root)
     codex = output[".codex/skills/tool/SKILL.md"].decode()
     claude = output[".claude/skills/tool/SKILL.md"].decode()
-    package = output["plugins/demo/skills/tool/SKILL.md"].decode()
+    claude_package = output["plugins/demo/skills/tool/SKILL.md"].decode()
+    codex_package = output["plugins/demo/codex-skills/tool/SKILL.md"].decode()
+    canonical = output["plugins/demo/.agents/demo/utility/tool/SKILL.md"].decode()
     assert "## Codex behavior" in codex
+    assert "## Claude behavior" not in codex
+    assert "## Claude behavior" in claude
     assert "## Codex behavior" not in claude
-    assert "## Codex behavior" not in package
+    assert "## Claude behavior" in claude_package
+    assert "## Codex behavior" not in claude_package
+    assert "## Codex behavior" in codex_package
+    assert "## Claude behavior" not in codex_package
+    assert "Run `<skill-directory>/scripts/run.py`." in canonical
+    assert "Run `<skill-directory>/scripts/run.py`." not in claude_package
+    assert "Run `<skill-directory>/scripts/run.py`." not in codex_package
+    assert (
+        json.loads(output["plugins/demo/.claude-plugin/plugin.json"])["skills"]
+        == "./skills/"
+    )
+    assert (
+        json.loads(output["plugins/demo/.codex-plugin/plugin.json"])["skills"]
+        == "./codex-skills/"
+    )
 
     payloads = json.loads(
         (demo_root / ".agents/plugins/payloads.json").read_text(encoding="utf-8")

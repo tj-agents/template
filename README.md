@@ -68,10 +68,12 @@ Existing repositories can add one when needed. Selection dependencies accept loc
 `tj-agents/<plugin>` identities. `tj-agents` is the only marketplace: the generator names both repository
 marketplace files `tj-agents`, drops any other harness marketplace, and `template:check` fails on any other.
 
-`payloads.json` may also ship explicit package resources: a file or recursive directory from `.agents/hooks`, or
-the owning plugin's `.agents/<plugin>/runtime` or `resources` directory, maps into `plugins/<package>/<destination>`.
-Optional host discovery extensions append from the exact declared
-`.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source, while the canonical skill body remains singular.
+`payloads.json` may also ship explicit package resources: a file or recursive directory from `.agents/hooks`, a
+declared canonical plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside
+that plugin's canonical `SKILL.md`, maps into `plugins/<package>/<destination>`. Optional host discovery extensions
+append from the exact declared `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source, while the canonical skill
+body remains singular. Packages with host extensions keep Claude entries in `skills/` and ship separate Codex entries
+in `codex-skills/`; their generated Codex manifest selects that latter path.
 
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
