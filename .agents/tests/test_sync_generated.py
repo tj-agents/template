@@ -884,6 +884,34 @@ def test_host_adapters_are_appended_only_for_the_declared_host(demo_root: Path) 
     assert_rejected(demo_root, "host adapter source must be")
 
 
+def test_host_adapter_assets_validate_against_pending_generated_outputs(
+    demo_root: Path,
+) -> None:
+    codex_source = ".agents/plugins/adapters/codex/demo/tool.md"
+    claude_source = ".agents/plugins/adapters/claude/demo/tool.md"
+    write(demo_root / ".agents/demo/utility/tool/scripts/use.py", "print('use')\n")
+    write(demo_root / codex_source, "Use [helper](scripts/use.py).\n")
+    write(demo_root / claude_source, "Use [helper](scripts/use.py).\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "host_adapters": [
+                {"skill": "demo:tool", "host": "codex", "source": codex_source},
+                {"skill": "demo:tool", "host": "claude", "source": claude_source},
+            ],
+        },
+    )
+    assert not (demo_root / ".codex").exists()
+    output = build(demo_root)
+    for host in (".codex/skills/tool", ".claude/skills/tool"):
+        assert "[helper](scripts/use.py)" in output[f"{host}/SKILL.md"].decode()
+        assert output[f"{host}/scripts/use.py"] == b"print('use')\n"
+
+    write(demo_root / codex_source, "Use [missing](scripts/missing.py).\n")
+    assert_rejected(demo_root, "does not resolve from")
+
+
 def test_payloads_select_known_sources_and_retain_identity_publications(
     demo_root: Path,
 ) -> None:
