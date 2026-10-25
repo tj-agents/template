@@ -318,6 +318,7 @@ def test_vendored_files_match_template_and_ci_follows_main(tmp_path: Path) -> No
         assert (ROOT / relative).read_bytes() == (repository / relative).read_bytes(), (
             relative
         )
+    assert "/target/\n" in (repository / ".gitignore").read_text(encoding="utf-8")
     ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "uses: owner/template/.github/workflows/plugin-ci.yml@main" in ci
     assert "template_ref: main" in ci
