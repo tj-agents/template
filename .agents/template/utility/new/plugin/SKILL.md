@@ -51,7 +51,7 @@ starter until that example exists. Conventions grow through the new repository's
 2. Only while a repository plugin CI reads is private: `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>`.
 3. Add the plugin to the shared marketplace's `catalog.json` and regenerate it.
 
-After Git initialization, use `machine:plugin-selection` with the scaffolded `.agents/plugins.json`
+After Git initialization, use `agent:plugins` with the scaffolded `.agents/plugins.json`
 to generate both native host settings and complete project admission/installation. Preserve other
 selections. CI workflow imports alone do not install Template.
 
