@@ -7,11 +7,12 @@ with each skill's scripts and templates beside it; related skills share a family
 `.gitattributes`, `.gitignore`, `CLAUDE.md` and `.github/workflows/ci.yml` are vendored from Template's main branch.
 Change them in Template, then run `template:update` to refresh the exact vendored content.
 
-`payloads.json` can ship declared package resources from `.agents/hooks` or the owning plugin's
-`.agents/<plugin>/runtime` and `resources` folders. Map each file or directory explicitly; those non-skill
-folders are otherwise invalid. Host-specific discovery extensions live only at the exact
-`.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source declared in `host_adapters`; keep the shared
-instruction in the canonical `SKILL.md`.
+`payloads.json` can ship declared package resources from `.agents/hooks`, any declared canonical plugin's
+`.agents/<plugin>/runtime` and `resources` folders, or its discovered skill assets (never `SKILL.md`). Map each
+file or directory explicitly; non-skill runtime/resources folders are otherwise invalid. Host-specific discovery
+extensions live only at the exact `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source declared in
+`host_adapters`; keep shared instruction in the canonical `SKILL.md`. An extended package keeps its Claude skills in
+`skills/` and gets `codex-skills/`, selected by its generated Codex manifest.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
 `pwsh .agents/sync-generated.ps1` after authored changes and require `pwsh .agents/sync-generated.ps1 -Check`

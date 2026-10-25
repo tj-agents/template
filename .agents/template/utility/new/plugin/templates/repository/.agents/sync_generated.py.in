@@ -275,15 +275,11 @@ def resource_source_parts(source: str) -> tuple[str | None, str]:
         )
     if path.parts[1] == "hooks":
         return None, "hooks"
-    if (
-        len(path.parts) >= 3
-        and NAME.fullmatch(path.parts[1])
-        and path.parts[2] in PLUGIN_RESOURCE_DIRS
-    ):
+    if len(path.parts) >= 3 and NAME.fullmatch(path.parts[1]):
         return path.parts[1], path.parts[2]
     raise ValueError(
         ".agents/plugins/payloads.json: resource source must be .agents/hooks "
-        "or .agents/<plugin>/runtime or resources"
+        "or a path below .agents/<plugin>"
     )
 
 
@@ -303,7 +299,7 @@ def mapped_resource_directories(payloads: Any) -> set[tuple[str, str]]:
                 "source and destination"
             )
         owner, directory = resource_source_parts(resource["source"])
-        if owner is not None:
+        if owner is not None and directory in PLUGIN_RESOURCE_DIRS:
             mapped.add((owner, directory))
     return mapped
 
@@ -531,8 +527,32 @@ def resource_files(root: Path, source: str) -> list[Path]:
     return files
 
 
+def validate_skill_asset_source(
+    root: Path, source: str, files: list[Path], skills: PluginSkills
+) -> None:
+    if not files:
+        raise ValueError(
+            ".agents/plugins/payloads.json: skill asset source must contain shipped "
+            "files"
+        )
+    assets = {
+        f"{skill['directory']}/{file}"
+        for skill in skills.values()
+        for file in skill["files"]
+    }
+    selected = {file.relative_to(root).as_posix() for file in files}
+    if not selected.issubset(assets):
+        raise ValueError(
+            ".agents/plugins/payloads.json: resource source must be a runtime, "
+            "resources, hooks or discovered skill asset path"
+        )
+
+
 def validate_resources(
-    root: Path, payloads: JSONObject, publications: dict[str, str]
+    root: Path,
+    payloads: JSONObject,
+    publications: dict[str, str],
+    plugins: Plugins,
 ) -> dict[str, list[tuple[Path, str]]]:
     resources = payloads.get("resources", [])
     if not isinstance(resources, list):
@@ -564,15 +584,18 @@ def validate_resources(
                 ".agents/plugins/payloads.json: each resource declares string "
                 "plugin, source and destination"
             )
-        owner, _ = resource_source_parts(source)
-        if owner is not None and owner != publications[package]:
+        owner, directory = resource_source_parts(source)
+        if owner is not None and owner not in plugins:
             raise ValueError(
-                ".agents/plugins/payloads.json: resource source must belong to its "
-                "published plugin"
+                ".agents/plugins/payloads.json: resource source must name a declared "
+                "canonical plugin"
             )
         target = safe_package_destination(destination)
         source_path = checked_resource_path(root, source)
-        for file in resource_files(root, source):
+        files = resource_files(root, source)
+        if owner is not None and directory not in PLUGIN_RESOURCE_DIRS:
+            validate_skill_asset_source(root, source, files, plugins[owner])
+        for file in files:
             suffix = (
                 () if source_path.is_file() else file.relative_to(source_path).parts
             )
@@ -1086,7 +1109,7 @@ def build(root: Path) -> dict[str, bytes]:
     payloads = load(root / ".agents/plugins/payloads.json")
     plugins = discover(root, namespace, mapped_resource_directories(payloads))
     publications = validate_payloads(payloads, plugins)
-    resources = validate_resources(root, payloads, publications)
+    resources = validate_resources(root, payloads, publications, plugins)
     host_adapters = validate_host_adapters(root, payloads, plugins)
     validate_tiers(root, plugins, repository)
     manifests, templates = load_manifests(root, publications, repository)
@@ -1095,6 +1118,7 @@ def build(root: Path) -> dict[str, bytes]:
     dependencies = payloads.get("dependencies", {})
     validate_publication_dependencies(publications, dependencies)
     single_plugin = len(plugins) == 1
+    plugins_with_host_adapters = {plugin for plugin, _, _ in host_adapters}
 
     output: dict[str, bytes] = {}
     canonical_locations: dict[tuple[str, str], list[str]] = {}
@@ -1152,6 +1176,9 @@ def build(root: Path) -> dict[str, bytes]:
             canonical_dir = f"plugins/{package}/{skill['directory']}"
             package_adapter_dir = f"plugins/{package}/skills/{skill['name']}"
             package_adapter = adapter_body(skill, package_adapter_dir, canonical_dir)
+            claude_extension = host_adapters.get((source, skill["name"], "claude"))
+            if claude_extension is not None:
+                package_adapter += "\n" + claude_extension.rstrip() + "\n"
             emit_skill(canonical_dir, skill, skill["body"])
             emit_skill(package_adapter_dir, skill, package_adapter)
             canonical_locations.setdefault((source, skill["name"]), []).append(
@@ -1160,6 +1187,16 @@ def build(root: Path) -> dict[str, bytes]:
             adapter_locations.append(
                 (skill, package_adapter, package_adapter_dir, False, True)
             )
+            if source in plugins_with_host_adapters:
+                codex_adapter_dir = f"plugins/{package}/codex-skills/{skill['name']}"
+                codex_adapter = adapter_body(skill, codex_adapter_dir, canonical_dir)
+                codex_extension = host_adapters.get((source, skill["name"], "codex"))
+                if codex_extension is not None:
+                    codex_adapter += "\n" + codex_extension.rstrip() + "\n"
+                emit_skill(codex_adapter_dir, skill, codex_adapter)
+                adapter_locations.append(
+                    (skill, codex_adapter, codex_adapter_dir, False, True)
+                )
 
         for source_file, destination in resources.get(package, []):
             emit(destination, source_file.read_bytes())
@@ -1214,6 +1251,8 @@ def build(root: Path) -> dict[str, bytes]:
             manifest = manifests[host][package]
             if host == "claude" and config["type"] in ("stack", "profile"):
                 manifest = {**manifest, "dependencies": claude_dependencies(effective)}
+            if host == "codex" and source in plugins_with_host_adapters:
+                manifest = {**manifest, "skills": "./codex-skills/"}
             emit(f"plugins/{package}/.{host}-plugin/plugin.json", dump(manifest))
 
     emit(".agents/INDEX.md", "\n".join(repository_index))
