@@ -49,7 +49,7 @@ checks every skill. Run update to refresh vendored files when they differ.
 
 New plugin scaffolds declare Template in `.agents/plugins.json`. Check existing coding repositories,
 including applications without Template layout, with `--adoption`. This checks declaration drift only;
-use Core's `machine:plugin-selection` settings check and native project admission/installation to prove
+use Core's `agent:plugins` settings check and native project admission/installation to prove
 both hosts load it. The explicit adoption check permits a staged rollout without making unrelated
 layout checks fail before existing repositories migrate.
 
