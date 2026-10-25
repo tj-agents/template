@@ -45,6 +45,12 @@ jobs:
           repository: ${{ github.repository_owner }}/core
           path: .core
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: tj-agents/agent
+          path: .agent
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: tj-agents/react
@@ -122,7 +128,7 @@ jobs:
           python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
       - name: authored skill references resolve in the public corpus
         shell: pwsh
-        run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .react --root .dotnet --root .rust --source-root .
+        run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .template --root .core --root .agent --root .react --root .dotnet --root .rust --source-root .
       - name: tier payloads conform to the shipped shape
         shell: pwsh
         run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
