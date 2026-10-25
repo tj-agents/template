@@ -56,7 +56,14 @@ GENERATED_ROOTS = (
     ".agents/INDEX.md",
 )
 TIER_MATCHERS = ("files", "globs", "content", "remote")
-PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+PAYLOAD_FIELDS = {
+    "payloads",
+    "dependencies",
+    "compatibilitySkillAliases",
+    "resources",
+    "host_adapters",
+}
+PLUGIN_RESOURCE_DIRS = {"runtime", "resources"}
 TJ_AGENTS_MARKETPLACE = "tj-agents"
 TJ_AGENTS_MARKETPLACE_REPOSITORY = "tj-agents/marketplace"
 DEPENDENCY = re.compile(rf"^{TJ_AGENTS_MARKETPLACE}/[a-z0-9][a-z0-9-]*$")
@@ -251,7 +258,59 @@ def collect_skills(
         collect_skills(root, plugin, kind, member, parts, namespace, skills)
 
 
-def discover(root: Path, namespace: str) -> Plugins:
+def resource_source_parts(source: str) -> tuple[str | None, str]:
+    path = PurePosixPath(source)
+    if (
+        "\\" in source
+        or ":" in source
+        or "\x00" in source
+        or path.is_absolute()
+        or ".." in path.parts
+        or path.as_posix() != source
+        or len(path.parts) < 2
+        or path.parts[0] != ".agents"
+    ):
+        raise ValueError(
+            f".agents/plugins/payloads.json: unsafe resource source {source!r}"
+        )
+    if path.parts[1] == "hooks":
+        return None, "hooks"
+    if (
+        len(path.parts) >= 3
+        and NAME.fullmatch(path.parts[1])
+        and path.parts[2] in PLUGIN_RESOURCE_DIRS
+    ):
+        return path.parts[1], path.parts[2]
+    raise ValueError(
+        ".agents/plugins/payloads.json: resource source must be .agents/hooks "
+        "or .agents/<plugin>/runtime or resources"
+    )
+
+
+def mapped_resource_directories(payloads: Any) -> set[tuple[str, str]]:
+    if not isinstance(payloads, dict):
+        return set()
+    resources = payloads.get("resources", [])
+    if not isinstance(resources, list):
+        raise ValueError(".agents/plugins/payloads.json: resources must be a list")
+    mapped: set[tuple[str, str]] = set()
+    for resource in resources:
+        if not isinstance(resource, dict) or not isinstance(
+            resource.get("source"), str
+        ):
+            raise ValueError(
+                ".agents/plugins/payloads.json: each resource declares plugin, "
+                "source and destination"
+            )
+        owner, directory = resource_source_parts(resource["source"])
+        if owner is not None:
+            mapped.add((owner, directory))
+    return mapped
+
+
+def discover(
+    root: Path, namespace: str, mapped_resources: set[tuple[str, str]]
+) -> Plugins:
     agents = root / ".agents"
     plugins: Plugins = {}
     for plugin_dir in sorted(
@@ -268,6 +327,13 @@ def discover(root: Path, namespace: str) -> Plugins:
         for kind_dir in sorted(
             path for path in plugin_dir.iterdir() if not ignored(path)
         ):
+            if kind_dir.name in PLUGIN_RESOURCE_DIRS:
+                if (plugin, kind_dir.name) not in mapped_resources:
+                    raise ValueError(
+                        f".agents/{plugin}/{kind_dir.name}: non-skill resource "
+                        "directories must be declared in payloads resources"
+                    )
+                continue
             if not kind_dir.is_dir() or not NAME.fullmatch(kind_dir.name):
                 raise ValueError(
                     f".agents/{plugin}/{kind_dir.name}: only kind folders "
@@ -399,6 +465,188 @@ def validate_payloads(payloads: JSONObject, plugins: Plugins) -> dict[str, str]:
                     f"{plugin}:{alias}: an alias keeps its replacement's profile"
                 )
     return publications
+
+
+def safe_package_destination(destination: str) -> PurePosixPath:
+    path = PurePosixPath(destination)
+    if (
+        "\\" in destination
+        or ":" in destination
+        or "\x00" in destination
+        or path.is_absolute()
+        or not path.parts
+        or "." in path.parts
+        or ".." in path.parts
+        or path.as_posix() != destination
+    ):
+        raise ValueError(
+            ".agents/plugins/payloads.json: unsafe resource destination "
+            f"{destination!r}"
+        )
+    return path
+
+
+def checked_resource_path(root: Path, source: str) -> Path:
+    path = root.joinpath(*PurePosixPath(source).parts)
+    if not path.exists():
+        raise ValueError(
+            f".agents/plugins/payloads.json: resource source {source!r} is missing"
+        )
+    root_path = root.resolve()
+    current = root_path
+    for part in path.relative_to(root).parts:
+        current = current / part
+        if is_link_or_junction(current):
+            raise ValueError(
+                ".agents/plugins/payloads.json: resource source "
+                f"{source!r} contains a link or junction"
+            )
+    resolved = path.resolve()
+    if not resolved.is_relative_to(root_path):
+        raise ValueError(
+            f".agents/plugins/payloads.json: resource source {source!r} escapes "
+            "the repository"
+        )
+    return path
+
+
+def resource_files(root: Path, source: str) -> list[Path]:
+    path = checked_resource_path(root, source)
+    if path.is_file():
+        return [path]
+    if not path.is_dir():
+        raise ValueError(
+            f".agents/plugins/payloads.json: resource source {source!r} is not a file "
+            "or directory"
+        )
+    files: list[Path] = []
+    for entry in sorted(path.rglob("*")):
+        if is_link_or_junction(entry):
+            raise ValueError(
+                ".agents/plugins/payloads.json: resource source "
+                f"{source!r} contains a link or junction"
+            )
+        if entry.is_file():
+            files.append(entry)
+    return files
+
+
+def validate_resources(
+    root: Path, payloads: JSONObject, publications: dict[str, str]
+) -> dict[str, list[tuple[Path, str]]]:
+    resources = payloads.get("resources", [])
+    if not isinstance(resources, list):
+        raise ValueError(".agents/plugins/payloads.json: resources must be a list")
+    mapped: dict[str, list[tuple[Path, str]]] = {}
+    destinations: set[str] = set()
+    for resource in resources:
+        if not isinstance(resource, dict) or set(resource) != {
+            "plugin",
+            "source",
+            "destination",
+        }:
+            raise ValueError(
+                ".agents/plugins/payloads.json: each resource declares exactly "
+                "plugin, source and destination"
+            )
+        package, source, destination = (
+            resource["plugin"],
+            resource["source"],
+            resource["destination"],
+        )
+        if not isinstance(package, str) or package not in publications:
+            raise ValueError(
+                ".agents/plugins/payloads.json: resource plugin must be a declared "
+                "package"
+            )
+        if not isinstance(source, str) or not isinstance(destination, str):
+            raise ValueError(
+                ".agents/plugins/payloads.json: each resource declares string "
+                "plugin, source and destination"
+            )
+        owner, _ = resource_source_parts(source)
+        if owner is not None and owner != publications[package]:
+            raise ValueError(
+                ".agents/plugins/payloads.json: resource source must belong to its "
+                "published plugin"
+            )
+        target = safe_package_destination(destination)
+        source_path = checked_resource_path(root, source)
+        for file in resource_files(root, source):
+            suffix = (
+                () if source_path.is_file() else file.relative_to(source_path).parts
+            )
+            generated = PurePosixPath(
+                "plugins", package, *target.parts, *suffix
+            ).as_posix()
+            if generated in destinations:
+                raise ValueError(
+                    ".agents/plugins/payloads.json: duplicate resource output "
+                    f"{generated}"
+                )
+            destinations.add(generated)
+            mapped.setdefault(package, []).append((file, generated))
+    return mapped
+
+
+def validate_host_adapters(
+    root: Path, payloads: JSONObject, plugins: Plugins
+) -> dict[tuple[str, str, str], str]:
+    adapters = payloads.get("host_adapters", [])
+    if not isinstance(adapters, list):
+        raise ValueError(".agents/plugins/payloads.json: host_adapters must be a list")
+    result: dict[tuple[str, str, str], str] = {}
+    for adapter in adapters:
+        if not isinstance(adapter, dict) or set(adapter) != {"skill", "host", "source"}:
+            raise ValueError(
+                ".agents/plugins/payloads.json: each host adapter declares exactly "
+                "skill, host and source"
+            )
+        qualified, host, source = (
+            adapter["skill"],
+            adapter["host"],
+            adapter["source"],
+        )
+        if not isinstance(qualified, str) or ":" not in qualified:
+            raise ValueError(
+                ".agents/plugins/payloads.json: host adapter skill must be plugin:name"
+            )
+        plugin, name = qualified.split(":", 1)
+        if plugin not in plugins or name not in plugins[plugin]:
+            raise ValueError(
+                ".agents/plugins/payloads.json: host adapter skill must name an "
+                "existing canonical skill"
+            )
+        if host not in HOSTS or not isinstance(source, str):
+            raise ValueError(
+                ".agents/plugins/payloads.json: host adapter host must be claude or "
+                "codex with a string source"
+            )
+        expected = f".agents/plugins/adapters/{host}/{plugin}/{name}.md"
+        if source != expected:
+            raise ValueError(
+                f".agents/plugins/payloads.json: host adapter source must be {expected}"
+            )
+        key = (plugin, name, host)
+        if key in result:
+            raise ValueError(
+                ".agents/plugins/payloads.json: duplicate host adapter for "
+                f"{qualified} on {host}"
+            )
+        path = checked_resource_path(root, source)
+        if not path.is_file():
+            raise ValueError(
+                ".agents/plugins/payloads.json: host adapter source "
+                f"{source!r} is not a file"
+            )
+        body = read(path)
+        if not body.strip() or body.startswith("---\n"):
+            raise ValueError(
+                ".agents/plugins/payloads.json: host adapter source must be a "
+                "nonempty extension body, not a canonical skill"
+            )
+        result[key] = body
+    return result
 
 
 def validate_local_dependency_cycles(
@@ -835,9 +1083,11 @@ def claude_dependencies(dependencies: list[str]) -> list[str]:
 def build(root: Path) -> dict[str, bytes]:
     config = load_config(root)
     namespace, repository = config["namespace"], config["repository"]
-    plugins = discover(root, namespace)
     payloads = load(root / ".agents/plugins/payloads.json")
+    plugins = discover(root, namespace, mapped_resource_directories(payloads))
     publications = validate_payloads(payloads, plugins)
+    resources = validate_resources(root, payloads, publications)
+    host_adapters = validate_host_adapters(root, payloads, plugins)
     validate_tiers(root, plugins, repository)
     manifests, templates = load_manifests(root, publications, repository)
     validate_skill_references(plugins)
@@ -872,9 +1122,12 @@ def build(root: Path) -> dict[str, bytes]:
     for source, skills in plugins.items():
         ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
         for skill in ordered:
-            for adapter_root in ADAPTER_ROOTS.values():
+            for host, adapter_root in ADAPTER_ROOTS.items():
                 adapter_dir = f"{adapter_root}/{adapter_name(skill, single_plugin)}"
                 host_adapter = adapter_body(skill, adapter_dir)
+                extension = host_adapters.get((source, skill["name"], host))
+                if extension is not None:
+                    host_adapter += "\n" + extension.rstrip() + "\n"
                 emit_skill(adapter_dir, skill, host_adapter)
                 adapter_locations.append(
                     (skill, host_adapter, adapter_dir, True, False)
@@ -907,6 +1160,9 @@ def build(root: Path) -> dict[str, bytes]:
             adapter_locations.append(
                 (skill, package_adapter, package_adapter_dir, False, True)
             )
+
+        for source_file, destination in resources.get(package, []):
+            emit(destination, source_file.read_bytes())
 
         entries = [
             f"- `{skill['name']}` — {skill['kind']} — {skill['metadata']['profile']}"
