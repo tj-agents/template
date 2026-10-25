@@ -677,6 +677,72 @@ def test_resources_allow_declared_cross_plugin_runtime_and_skill_assets(
     assert_rejected(tmp_path, "declared canonical plugin")
 
 
+def test_resources_ignore_python_caches_and_remain_fresh(demo_root: Path) -> None:
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    write(
+        demo_root / ".agents/demo/runtime/__pycache__/runner.cpython-312.pyc",
+        "bytecode\n",
+    )
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime",
+                    "destination": "runtime",
+                }
+            ],
+        },
+    )
+    output = build(demo_root)
+    assert output["plugins/demo/runtime/runner.py"] == b"print('run')\n"
+    assert not any("__pycache__" in path or path.endswith(".pyc") for path in output)
+    assert synchronize(demo_root, check=False)[0] == 0
+    assert synchronize(demo_root, check=True)[0] == 0
+
+
+def test_resources_reject_prefix_collisions_before_generated_output_mutation(
+    demo_root: Path,
+) -> None:
+    assert synchronize(demo_root, check=False)[0] == 0
+    generated_skill = demo_root / "plugins/demo/skills/tool/SKILL.md"
+    original = generated_skill.read_bytes()
+    write(demo_root / ".agents/demo/runtime/runner.py", "print('run')\n")
+    payloads: dict[str, Any] = {
+        "payloads": {"demo": ["demo"]},
+        "resources": [
+            {
+                "plugin": "demo",
+                "source": ".agents/demo/runtime/runner.py",
+                "destination": "runtime/runner.py",
+            },
+            {
+                "plugin": "demo",
+                "source": ".agents/demo/runtime/runner.py",
+                "destination": "runtime",
+            },
+        ],
+    }
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    with pytest.raises(ValueError, match="Duplicate generated output"):
+        synchronize(demo_root, check=False)
+    assert generated_skill.read_bytes() == original
+
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/demo/runtime/runner.py",
+            "destination": "skills",
+        }
+    ]
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    with pytest.raises(ValueError, match="Duplicate generated output"):
+        synchronize(demo_root, check=False)
+    assert generated_skill.read_bytes() == original
+
+
 def test_resources_reject_unsafe_missing_undeclared_and_colliding_mappings(
     demo_root: Path,
 ) -> None:
