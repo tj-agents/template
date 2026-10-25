@@ -384,6 +384,26 @@ def test_generated_freshness_is_not_required(zig_repo: Path) -> None:
     assert check.check(zig_repo) == []
 
 
+def test_check_accepts_an_explicitly_mapped_plugin_runtime(zig_repo: Path) -> None:
+    runtime = zig_repo / ".agents/zig/runtime/runner.py"
+    runtime.parent.mkdir()
+    runtime.write_text("print('run')\n", encoding="utf-8")
+    payloads = json.loads(
+        (zig_repo / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["resources"] = [
+        {
+            "plugin": "zig",
+            "source": ".agents/zig/runtime",
+            "destination": "runtime",
+        }
+    ]
+    (zig_repo / ".agents/plugins/payloads.json").write_text(
+        json.dumps(payloads, indent=2) + "\n", encoding="utf-8"
+    )
+    assert check.check(zig_repo) == []
+
+
 def test_stack_generated_dependency_projection_must_match(zig_repo: Path) -> None:
     path = zig_repo / "plugins/zig/selection.json"
     selection = json.loads(path.read_text(encoding="utf-8"))
