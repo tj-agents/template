@@ -489,9 +489,7 @@ def check_adoption(root: Path) -> list[str]:
         return [f"{relative}: Template selection is required ({error})"]
     plugins = selection.get("plugins") if isinstance(selection, dict) else None
     if not isinstance(plugins, list) or "template@tj-agents" not in plugins:
-        return [
-            f"{relative}: select template@tj-agents through machine:plugin-selection"
-        ]
+        return [f"{relative}: select template@tj-agents through agent:plugins"]
     return []
 
 
