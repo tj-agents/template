@@ -529,7 +529,10 @@ def check(
     problems += check_files(root)
     problems += check_marketplace_identity(root)
     try:
-        plugins = generator.discover(root, namespace)
+        payloads = generator.load(root / ".agents/plugins/payloads.json")
+        plugins = generator.discover(
+            root, namespace, generator.mapped_resource_directories(payloads)
+        )
     except (
         ValueError,
         json.JSONDecodeError,
