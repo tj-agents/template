@@ -84,12 +84,14 @@ its old name until its `removeAfter` date. Apply the consuming project's explici
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
 - Manifests, harnesses, selections and payloads name no marketplace but `tj-agents`.
-- `payloads.json` may map a regular file or recursive directory from `.agents/hooks` or an owning
-  plugin's `.agents/<plugin>/runtime` or `resources` directory into a declared `plugins/<package>/`
-  destination. Runtime and resources directories are permitted only when mapped. Its optional
+- `payloads.json` may map a regular file or recursive directory from `.agents/hooks`, any declared canonical
+  plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside its `SKILL.md`
+  (never the body itself), into a declared `plugins/<package>/` destination. Runtime and resources directories
+  are permitted only when mapped. Its optional
   `host_adapters` entries append a host-specific extension body from the exact
   `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` path to that host's generated discovery
-  entry; shared skill instruction remains only in the canonical `SKILL.md`.
+  entry and installed target-host skill entry; shared instruction remains only in the canonical `SKILL.md`.
+  Packages with extensions retain `skills/` for Claude and generate `codex-skills/` with a matching Codex manifest.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
 - Every added or updated canonical `SKILL.md` contains a meaningful fenced code, command, configuration, or
   input/output example. `check_examples.py` is the standalone form for an explicit `--base`/`--head` range or
