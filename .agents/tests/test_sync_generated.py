@@ -2,6 +2,8 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -1353,6 +1355,113 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
         check=False,
     )
     assert canonical.returncode == 0, canonical.stdout + canonical.stderr
+
+
+def add_codex_hook(root: Path) -> None:
+    (root / ".codex/hooks").mkdir(parents=True)
+    shutil.copyfile(
+        ROOT / ".codex/hooks/snapshot.py",
+        root / ".codex/hooks/snapshot.py",
+    )
+    write(root / ".agents/hooks/probe.py", "print('probe ran')\n")
+    hook = {
+        "type": "command",
+        "command": 'python3 -B "${PLUGIN_ROOT}/hooks/probe.py"',
+        "commandWindows": 'python -B "${PLUGIN_ROOT}/hooks/probe.py"',
+    }
+    write_json(
+        root / ".agents/hooks/demo-codex.json",
+        {"hooks": {"SessionStart": [{"hooks": [hook]}]}},
+    )
+    path = root / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".agents/hooks/demo-codex.json",
+            "destination": "hooks/codex.json",
+        },
+        {
+            "plugin": "demo",
+            "source": ".agents/hooks/probe.py",
+            "destination": "hooks/probe.py",
+        },
+    ]
+    write_json(path, payloads)
+
+
+def install_package(output: dict[str, bytes], destination: Path) -> None:
+    for path, data in output.items():
+        relative = path.removeprefix("plugins/demo/")
+        if relative != path:
+            target = destination / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+
+
+def run_codex_hook(
+    command: str, package: Path, data: Path
+) -> subprocess.CompletedProcess[str]:
+    arguments = shlex.split(command.replace("${PLUGIN_ROOT}", package.as_posix()))
+    return subprocess.run(
+        [sys.executable, *arguments[1:]],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env={**os.environ, "PLUGIN_DATA": str(data)},
+        check=False,
+        timeout=30,
+    )
+
+
+def test_codex_hooks_run_through_a_verified_package_snapshot(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    output = sync_generated.build(tmp_path)
+    assert output["plugins/demo/hooks/codex/snapshot.py"] == (
+        ROOT / ".codex/hooks/snapshot.py"
+    ).read_bytes().replace(b"\r\n", b"\n")
+    hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"]["SessionStart"][
+        0
+    ]["hooks"][0]
+    assert hook["command"].startswith("python3 -I -B -c ")
+    assert hook["commandWindows"].startswith("python -I -B -c ")
+    package = tmp_path / "cache/demo/1.0.0"
+    install_package(output, package)
+
+    result = run_codex_hook(hook["command"], package, tmp_path / "data")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "probe ran\n"
+
+    (package / "hooks/probe.py").write_text("print('tampered')\n", encoding="utf-8")
+    result = run_codex_hook(hook["command"], package, tmp_path / "fresh-data")
+    assert result.returncode == 2
+    assert "integrity check failed" in result.stderr
+
+
+def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    write_json(
+        tmp_path / ".agents/hooks/demo-codex.json",
+        {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "python3 -B probe.py",
+                                "commandWindows": "python -B probe.py",
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+    )
+    with pytest.raises(ValueError, match="Unsupported Codex hook command"):
+        sync_generated.build(tmp_path)
 
 
 def test_template_generated_outputs_are_current() -> None:
