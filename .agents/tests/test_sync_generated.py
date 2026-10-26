@@ -1464,6 +1464,42 @@ def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> 
         sync_generated.build(tmp_path)
 
 
+def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    claude_hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "command"}]}]}}
+    write_json(tmp_path / ".claude/hooks/demo.json", claude_hooks)
+    path = tmp_path / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"].append(
+        {
+            "plugin": "demo",
+            "source": ".claude/hooks/demo.json",
+            "destination": "hooks/claude.json",
+        }
+    )
+    write_json(path, payloads)
+    output = sync_generated.build(tmp_path)
+    assert json.loads(output["plugins/demo/hooks/claude.json"]) == claude_hooks
+
+
+def test_host_resources_outside_hooks_are_rejected(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    write(tmp_path / ".claude/settings.json", "{}\n")
+    path = tmp_path / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".claude/settings.json",
+            "destination": "settings.json",
+        }
+    ]
+    write_json(path, payloads)
+    with pytest.raises(ValueError, match="host resource source must be below"):
+        sync_generated.build(tmp_path)
+
+
 def test_template_generated_outputs_are_current() -> None:
     with contextlib.redirect_stdout(io.StringIO()):
         assert sync_generated.synchronize(ROOT, check=True) == 0
