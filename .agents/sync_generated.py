@@ -49,6 +49,8 @@ MARKETPLACE_FIELDS = {
 }
 CODEX_POLICY = {"installation": "INSTALLED_BY_DEFAULT", "authentication": "ON_INSTALL"}
 CODEX_HOOK_LOADER = ".codex/hooks/snapshot.py"
+HOST_ROOTS = (".claude", ".codex")
+RESOURCE_ROOTS = (".agents", *HOST_ROOTS)
 CODEX_HOOK_MANIFEST = "hooks/codex.json"
 CODEX_HOOK_PACKAGE_LOADER = "hooks/codex/snapshot.py"
 CODEX_WINDOWS_COMMAND_BUDGET = 8191
@@ -274,18 +276,23 @@ def resource_source_parts(source: str) -> tuple[str | None, str]:
         or ".." in path.parts
         or path.as_posix() != source
         or len(path.parts) < 2
-        or path.parts[0] != ".agents"
+        or path.parts[0] not in RESOURCE_ROOTS
     ):
         raise ValueError(
             f".agents/plugins/payloads.json: unsafe resource source {source!r}"
         )
     if path.parts[1] == "hooks":
         return None, "hooks"
+    if path.parts[0] in HOST_ROOTS:
+        raise ValueError(
+            ".agents/plugins/payloads.json: a host resource source must be below "
+            f"{path.parts[0]}/hooks"
+        )
     if len(path.parts) >= 3 and NAME.fullmatch(path.parts[1]):
         return path.parts[1], path.parts[2]
     raise ValueError(
-        ".agents/plugins/payloads.json: resource source must be .agents/hooks "
-        "or a path below .agents/<plugin>"
+        ".agents/plugins/payloads.json: resource source must be .agents/hooks, "
+        ".claude/hooks, .codex/hooks or a path below .agents/<plugin>"
     )
 
 
