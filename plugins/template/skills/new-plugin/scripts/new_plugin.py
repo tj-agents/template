@@ -21,6 +21,7 @@ MARKETPLACE_REPOSITORY = "tj-agents/marketplace"
 VENDORED = (
     ".agents/sync_generated.py",
     ".agents/sync-generated.ps1",
+    ".codex/hooks/snapshot.py",
     ".gitattributes",
     ".gitignore",
     "CLAUDE.md",
