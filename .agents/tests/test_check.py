@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tj_template.plugins import migration
 
 ROOT = Path(__file__).resolve().parents[2]
 NEW_PLUGIN = ROOT / ".agents/template/utility/new/plugin/scripts/new_plugin.py"
@@ -32,9 +33,12 @@ EXAMPLE_PROBLEM = (
 )
 
 
-def run(*arguments: str) -> subprocess.CompletedProcess[str]:
+def run(
+    *arguments: str, environment: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-B", *arguments],
+        env=environment,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -657,7 +661,9 @@ def test_stack_tier_must_detect_its_stack(zig_repo: Path) -> None:
 
 def test_update_restores_vendored_files_and_removes_legacy_versions(
     zig_repo: Path,
+    template_source: tuple[str, dict[str, str]],
 ) -> None:
+    revision, environment = template_source
     edit(zig_repo, ".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
     path = zig_repo / ".agents/plugins/template.json"
     path.write_text(
@@ -680,8 +686,9 @@ def test_update_restores_vendored_files_and_removes_legacy_versions(
         "--root",
         str(zig_repo),
         "--template-ref",
-        "a" * 40,
+        revision,
         "--dry-run",
+        environment=environment,
     )
     assert "would update .gitignore" in dry.stdout
     assert "would update .agents/plugins/template.json" in dry.stdout
@@ -696,7 +703,8 @@ def test_update_restores_vendored_files_and_removes_legacy_versions(
         "--root",
         str(zig_repo),
         "--template-ref",
-        "a" * 40,
+        revision,
+        environment=environment,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "updated .agents/plugins/template.json" in result.stdout
@@ -709,7 +717,8 @@ def test_update_restores_vendored_files_and_removes_legacy_versions(
         "--root",
         str(zig_repo),
         "--template-ref",
-        "a" * 40,
+        revision,
+        environment=environment,
     )
     assert rerun.returncode == 0, rerun.stdout + rerun.stderr
     assert "already current" in rerun.stdout
@@ -730,7 +739,9 @@ def test_update_rejects_missing_template_pin(zig_repo: Path) -> None:
 
 def test_update_removes_copied_generators_without_executing_them(
     zig_repo: Path,
+    template_source: tuple[str, dict[str, str]],
 ) -> None:
+    revision, environment = template_source
     obsolete = [
         zig_repo / ".agents" / name
         for name in ("sync_generated.py", "sync-generated.ps1")
@@ -739,14 +750,104 @@ def test_update_removes_copied_generators_without_executing_them(
         path.write_text(
             "raise RuntimeError('obsolete generator executed')\n", encoding="utf-8"
         )
-    arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", "a" * 40)
-    preview = run(*arguments, "--dry-run")
+    callers = [
+        zig_repo / "README.md",
+        zig_repo / "AGENTS.md",
+        zig_repo / ".agents/zig/policy/learning/SKILL.md",
+    ]
+    for path in callers:
+        body = path.read_text(encoding="utf-8")
+        path.write_text(
+            body.replace(
+                "uv run --locked tj-template generate",
+                "pwsh .agents/sync-generated.ps1",
+            ).replace(
+                "uv run --locked tj-template check",
+                "pwsh .agents/sync-generated.ps1 -Check",
+            ),
+            encoding="utf-8",
+        )
+    arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", revision)
+    preview = run(*arguments, "--dry-run", environment=environment)
     assert preview.returncode == 0, preview.stdout + preview.stderr
     assert all(path.is_file() for path in obsolete)
-    result = run(*arguments)
+    result = run(*arguments, environment=environment)
     assert result.returncode == 0, result.stdout + result.stderr
     assert all(not path.exists() for path in obsolete)
+    assert all(
+        "sync-generated.ps1" not in path.read_text(encoding="utf-8") for path in callers
+    )
+    assert (zig_repo / "selected-generator.txt").read_text(
+        encoding="utf-8"
+    ) == "selected Git source"
     assert check.check(zig_repo) == []
+
+
+def test_update_repairs_missing_and_stale_generator_locks(
+    zig_repo: Path, template_source: tuple[str, dict[str, str]]
+) -> None:
+    revision, environment = template_source
+    project = zig_repo / "pyproject.toml"
+    body = project.read_text(encoding="utf-8").replace("a" * 40, revision)
+    project.write_text(body, encoding="utf-8")
+    lock = zig_repo / "uv.lock"
+    assert not lock.exists()
+    arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", revision)
+    first = run(*arguments, environment=environment)
+    assert first.returncode == 0, first.stdout + first.stderr
+    assert lock.is_file()
+    locked = lock.read_bytes()
+    project.write_text(
+        body.replace('version = "0.1.0"', 'version = "0.2.0"'), encoding="utf-8"
+    )
+    stale = run(*arguments, "--dry-run", environment=environment)
+    assert stale.returncode == 0, stale.stdout + stale.stderr
+    assert "uv.lock" in stale.stdout
+    assert lock.read_bytes() == locked
+    repaired = run(*arguments, environment=environment)
+    assert repaired.returncode == 0, repaired.stdout + repaired.stderr
+    assert lock.read_bytes() != locked
+
+
+def test_update_preserves_scripts_when_a_caller_needs_manual_migration(
+    zig_repo: Path,
+) -> None:
+    obsolete = zig_repo / ".agents/sync_generated.py"
+    obsolete.write_text("raise RuntimeError('obsolete')\n", encoding="utf-8")
+    caller = zig_repo / "scripts/custom.py"
+    caller.parent.mkdir()
+    caller.write_text(
+        'run(["python", ".agents/sync_generated.py"])\n', encoding="utf-8"
+    )
+    result = run(str(UPDATE), "--root", str(zig_repo), "--template-ref", "a" * 40)
+    assert result.returncode == 2
+    assert "scripts/custom.py" in result.stderr
+    assert obsolete.is_file()
+
+
+def test_generation_caller_rejects_a_linked_parent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "repository"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    target = outside / "README.md"
+    target.write_text("pwsh .agents/sync-generated.ps1\n", encoding="utf-8")
+    link = root / "docs"
+    try:
+        if sys.platform == "win32":
+            import _winapi
+
+            _winapi.CreateJunction(str(outside), str(link))
+        else:
+            link.symlink_to(outside, target_is_directory=True)
+    except OSError as error:
+        pytest.skip(f"cannot create a link here: {error}")
+    monkeypatch.setattr(migration, "authored_paths", lambda _root: [link / "README.md"])
+    with pytest.raises(ValueError, match="linked generation caller"):
+        migration.caller_changes(root)
+    assert target.read_text(encoding="utf-8") == "pwsh .agents/sync-generated.ps1\n"
 
 
 def test_a_new_tool_repository_conforms(helix_repo: Path) -> None:

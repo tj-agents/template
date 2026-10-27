@@ -1639,17 +1639,22 @@ def test_rejects_malformed_authored_plugin_directory(tmp_path: Path) -> None:
     )
 
 
-def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> None:
+def test_each_copied_package_runs_from_its_adapter_resources(
+    tmp_path: Path, template_source: tuple[str, dict[str, str]]
+) -> None:
+    revision, environment = template_source
     name = "template"
     package = tmp_path / name
     shutil.copytree(ROOT / f"plugins/{name}", package)
     new_plugin = subprocess.run(
         [
             sys.executable,
+            "-E",
+            "-S",
             "-B",
             str(package / "skills/new-plugin/scripts/new_plugin.py"),
             "--template-ref",
-            "a" * 40,
+            revision,
             "--repository",
             "owner/example",
             "--type",
@@ -1667,6 +1672,7 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
         text=True,
         encoding="utf-8",
         check=False,
+        env=environment,
     )
     assert new_plugin.returncode == 0, new_plugin.stdout + new_plugin.stderr
     example = tmp_path / "example"
@@ -1679,11 +1685,12 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
     adapter_check = package / "skills/check/scripts/check.py"
     canonical_check = package / ".agents/template/utility/check/scripts/check.py"
     check = subprocess.run(
-        [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+        [sys.executable, "-E", "-S", "-B", str(adapter_check), "--root", str(example)],
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=False,
+        env=environment,
     )
     assert check.returncode == 0, check.stdout + check.stderr
     gitignore = example / ".gitignore"
@@ -1691,21 +1698,24 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
         gitignore.read_text(encoding="utf-8") + "local/\n", encoding="utf-8"
     )
     drifted = subprocess.run(
-        [sys.executable, "-B", str(adapter_check), "--root", str(example)],
+        [sys.executable, "-E", "-S", "-B", str(adapter_check), "--root", str(example)],
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=False,
+        env=environment,
     )
     assert drifted.returncode == 1
     assert ".gitignore: differs from current Template" in drifted.stderr
     update = subprocess.run(
         [
             sys.executable,
+            "-E",
+            "-S",
             "-B",
             str(package / "skills/update/scripts/update.py"),
             "--template-ref",
-            "a" * 40,
+            revision,
             "--root",
             str(example),
         ],
@@ -1713,14 +1723,27 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
         text=True,
         encoding="utf-8",
         check=False,
+        env=environment,
     )
     assert update.returncode == 0, update.stdout + update.stderr
+    assert (example / "selected-generator.txt").read_text(
+        encoding="utf-8"
+    ) == "selected Git source"
     canonical = subprocess.run(
-        [sys.executable, "-B", str(canonical_check), "--root", str(example)],
+        [
+            sys.executable,
+            "-E",
+            "-S",
+            "-B",
+            str(canonical_check),
+            "--root",
+            str(example),
+        ],
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=False,
+        env=environment,
     )
     assert canonical.returncode == 0, canonical.stdout + canonical.stderr
 

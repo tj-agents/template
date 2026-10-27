@@ -46,12 +46,8 @@ def project_files(name: str, revision: str) -> dict[str, str]:
 
 
 def configure(root: Path, name: str, revision: str, dry_run: bool) -> bool:
-    """Update the generator dependency while preserving existing project settings.
-
-    Existing projects are edited and locked by uv. A freshly scaffolded project's
-    already matching declaration remains unchanged; its publishing step runs uv lock.
-    """
-    project = root if (root / "pyproject.toml").is_file() else root / TOOL_PROJECT
+    """Update and verify the generator dependency and its lock through uv."""
+    project = project_directory(root)
     path = project / "pyproject.toml"
     ancestor = root
     for part in (*project.relative_to(root).parts, "pyproject.toml"):
@@ -70,9 +66,7 @@ def configure(root: Path, name: str, revision: str, dry_run: bool) -> bool:
         source = (
             config.get("tool", {}).get("uv", {}).get("sources", {}).get("tj-template")
         )
-        if isinstance(source, dict) and source.get("workspace") is True:
-            return False
-        if (
+        if (isinstance(source, dict) and source.get("workspace") is True) or (
             any(
                 re.match(r"tj-template(?:\s|[<>=!~;@]|$)", item)
                 for item in dependencies
@@ -82,7 +76,25 @@ def configure(root: Path, name: str, revision: str, dry_run: bool) -> bool:
             and source.get("rev") == revision
             and source.get("subdirectory") == SUBDIRECTORY
         ):
-            return False
+            try:
+                checked = subprocess.run(
+                    ["uv", "lock", "--check", "--project", str(project)],
+                    capture_output=True,
+                    check=False,
+                )
+            except OSError as error:
+                raise ValueError(
+                    "uv is required to verify the generator lockfile"
+                ) from error
+            if checked.returncode == 0:
+                return False
+            if dry_run:
+                return True
+            try:
+                subprocess.run(["uv", "lock", "--project", str(project)], check=True)
+            except (OSError, subprocess.CalledProcessError) as error:
+                raise ValueError("Cannot repair the generator lockfile") from error
+            return True
     if dry_run:
         return True
     if not path.is_file():
@@ -109,3 +121,30 @@ def configure(root: Path, name: str, revision: str, dry_run: bool) -> bool:
             "Cannot install and lock the Template generator dependency"
         ) from error
     return True
+
+
+def project_directory(root: Path) -> Path:
+    """Locate the declared root project or the explicit tool-only project."""
+    return root if (root / "pyproject.toml").is_file() else root / TOOL_PROJECT
+
+
+def generate(root: Path) -> int:
+    """Execute exactly the generator locked by the consumer's project."""
+    try:
+        return subprocess.run(
+            [
+                "uv",
+                "run",
+                "--locked",
+                "--no-editable",
+                "--project",
+                str(project_directory(root)),
+                "tj-template",
+                "generate",
+                "--root",
+                str(root),
+            ],
+            check=False,
+        ).returncode
+    except OSError as error:
+        raise ValueError("Cannot run the locked Template generator") from error
