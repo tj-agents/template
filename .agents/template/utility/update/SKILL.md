@@ -22,6 +22,10 @@ before publishing. `--template-ref <full-commit>` selects an explicit candidate;
 
 The updater refreshes vendored root files, removes copied generators, a legacy config pin and top-level
 manifest versions, then generates through the installed package. `--dry-run` lists changes without writing.
+It migrates known PowerShell generation commands in authored Markdown. An unresolved source-code or
+configuration caller stops the update before script removal and names the paths to migrate. Matching
+dependency declarations still require a current lockfile; generation executes the consumer's selected
+package revision, rather than the updater skill's bundled version.
 Authored generator code belongs only to Template's package. Source changes to other vendored files belong
 in Template's repository templates.
 

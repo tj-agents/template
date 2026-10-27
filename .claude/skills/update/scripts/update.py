@@ -12,7 +12,7 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any
 
-from tj_template.plugins import dependencies, generation
+from tj_template.plugins import dependencies, generation, migration
 
 sys.dont_write_bytecode = True
 
@@ -50,11 +50,16 @@ def update(root: Path, dry_run: bool, revision: str) -> list[str]:
     changed: list[str] = []
     if generation.is_link_or_junction(root / ".agents"):
         raise ValueError("The .agents directory must not be a link or junction")
+    callers = migration.caller_changes(root)
     if dependencies.configure(
         root, config["repository"].split("/")[1], revision, dry_run
     ):
         changed.append("pyproject.toml and uv.lock")
-    for relative in (".agents/sync_generated.py", ".agents/sync-generated.ps1"):
+    for path, content in callers.items():
+        changed.append(path.relative_to(root).as_posix())
+        if not dry_run:
+            path.write_text(content, encoding="utf-8", newline="\n")
+    for relative in migration.RETIRED_SCRIPTS:
         path = root / relative
         if path.exists():
             changed.append(relative)
@@ -120,7 +125,7 @@ def main() -> int:
     if arguments.dry_run or not changed:
         print("already current" if not changed else "dry run: nothing written")
         return 0
-    return generation.synchronize(root, check=False)
+    return dependencies.generate(root)
 
 
 if __name__ == "__main__":
