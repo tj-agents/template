@@ -75,6 +75,22 @@ append from the exact declared `.agents/plugins/adapters/<host>/<plugin>/<skill>
 body remains singular. Packages with host extensions keep Claude entries in `skills/` and ship separate Codex entries
 in `codex-skills/`; their generated Codex manifest selects that latter path.
 
+A Python library resource replaces `source` with its distribution name. The distribution must be a runtime
+dependency in `pyproject.toml`, resolved by committed `uv.lock`. Generation uses `uv run --locked --no-editable`
+to collect its installed pure Python wheel; it never imports the library. Declare every distribution needed
+at runtime. Native extensions, `.pth` import hooks and records outside the installed package root are rejected.
+Installation receipts and caches are omitted; package code, data, licenses and stable wheel metadata ship.
+Host adapters establish their shipped package root, then use normal public imports. Neither generation nor
+runtime locates a sibling source checkout.
+
+Resources mapped beneath `skills/<skill>/` also ship beside that skill's repository-local Claude and
+Codex scripts, and beside a separate installed Codex entry when declared. This keeps all generated
+entry points able to import the same bundled library. Authored source runs in the project's uv environment.
+
+```json
+{"plugin": "demo", "distribution": "owner-library", "destination": ".agents/demo/runtime"}
+```
+
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
 plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
 identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
