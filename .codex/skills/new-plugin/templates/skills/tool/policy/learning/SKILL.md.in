@@ -41,4 +41,4 @@ not. Check that it landed: ask them to explain it back, or to write the next pie
 - A concept {{learner}} says they are struggling with goes back to 🟡.
 - Delivery mode never updates `{{namespace}}:knowledge`.
 - To update: edit `.agents/{{namespace}}/knowledge/knowledge/SKILL.md` in `{{repository}}`, run
-  `pwsh .agents/sync-generated.ps1`, then commit and push.
+  `uv run --locked tj-template generate`, then commit and push.

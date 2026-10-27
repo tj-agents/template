@@ -2,7 +2,7 @@
 name = "template"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["tj-template"]
 
 [dependency-groups]
 dev = [
@@ -14,8 +14,14 @@ dev = [
 [tool.uv]
 package = false
 
+[tool.uv.workspace]
+members = ["packages/tj-template"]
+
+[tool.uv.sources]
+tj-template = { workspace = true }
+
 [tool.ruff]
-include = [".agents/**/*.py", ".github/**/*.py"]
+include = [".agents/**/*.py", ".github/**/*.py", "packages/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "PIE", "RET", "RUF"]
@@ -23,10 +29,10 @@ select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "P
 [tool.mypy]
 strict = true
 warn_unreachable = true
-files = [".agents", ".github/scripts"]
+files = [".agents", ".github/scripts", "packages/tj-template"]
 
 [tool.pytest]
 strict = true
-testpaths = [".agents/tests"]
+testpaths = [".agents/tests", "packages/tj-template/tests"]
 addopts = ["--import-mode=importlib", "-ra"]
 filterwarnings = ["error"]

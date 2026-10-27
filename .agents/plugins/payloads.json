@@ -8,5 +8,37 @@
     "template": [
       "tj-agents/engineering"
     ]
-  }
+  },
+  "resources": [
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": "skills/new-plugin/scripts"
+    },
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": ".agents/template/utility/new/plugin/scripts"
+    },
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": "skills/check/scripts"
+    },
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": ".agents/template/utility/check/scripts"
+    },
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": "skills/update/scripts"
+    },
+    {
+      "plugin": "template",
+      "distribution": "tj-template",
+      "destination": ".agents/template/utility/update/scripts"
+    }
+  ]
 }

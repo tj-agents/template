@@ -15,8 +15,6 @@ CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
 EXAMPLES_CHECK = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
-    ".agents/sync_generated.py",
-    ".agents/sync-generated.ps1",
     ".gitattributes",
     ".gitignore",
     "CLAUDE.md",
@@ -52,6 +50,8 @@ def create(
 ) -> subprocess.CompletedProcess[str]:
     return run(
         str(SCRIPT),
+        "--template-ref",
+        "a" * 40,
         "--repository",
         f"owner/{name}",
         "--type",
@@ -136,10 +136,11 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
         ), adapter
         assert adapter.is_file()
     result = run(
-        str(repository / ".agents/sync_generated.py"),
+        "-m",
+        "tj_template",
+        "check",
         "--root",
         str(repository),
-        "--check",
     )
     assert result.returncode == 0, result.stdout + result.stderr
     for path in repository.rglob("*"):

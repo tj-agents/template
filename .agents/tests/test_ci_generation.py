@@ -32,12 +32,13 @@ def assert_generation_precedes(job_body: str, following: str) -> None:
     assert job_body.index(current) < job_body.index(following)
     assert "if: inputs.generate_before_verify" in generate
     assert (
-        "./.agents/sync-generated.ps1\n"
+        "uv run --locked --no-editable --project .template "
+        "tj-template generate --root .\n"
         "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in generate
     )
     assert "if:" not in current
     assert (
-        "./.agents/sync-generated.ps1 -Check\n"
+        "uv run --locked --no-editable --project .template tj-template check --root .\n"
         "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in current
     )
 

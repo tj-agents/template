@@ -1,5 +1,4 @@
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -9,18 +8,12 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pytest
+from tj_template.plugins import generation
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location(
-    "sync_generated", ROOT / ".agents" / "sync_generated.py"
-)
-assert SPEC is not None
-assert SPEC.loader is not None
-sync_generated: Any = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(sync_generated)
 
 
 def skill_text(
@@ -127,7 +120,7 @@ def add_publication(root: Path, package: str, source: str) -> None:
 
 
 def build(root: Path) -> dict[str, bytes]:
-    return cast(dict[str, bytes], sync_generated.build(root))
+    return generation.build(root)
 
 
 def assert_rejected(root: Path, message: str) -> None:
@@ -138,7 +131,7 @@ def assert_rejected(root: Path, message: str) -> None:
 def synchronize(root: Path, check: bool) -> tuple[int, str]:
     stream = io.StringIO()
     with contextlib.redirect_stdout(stream):
-        code = sync_generated.synchronize(root, check)
+        code = generation.synchronize(root, check)
     return code, stream.getvalue()
 
 
@@ -188,8 +181,8 @@ def installed_distribution(
         calls.append(command)
         return subprocess.CompletedProcess(command, 0, json.dumps(metadata), "")
 
-    monkeypatch.setattr(sync_generated.shutil, "which", lambda _name: "uv")
-    monkeypatch.setattr(sync_generated.subprocess, "run", resolve)
+    monkeypatch.setattr(shutil, "which", lambda _name: "uv")
+    monkeypatch.setattr(subprocess, "run", resolve)
     return site, metadata, calls
 
 
@@ -249,7 +242,7 @@ def test_distribution_resources_reject_escaping_records(
     _site, metadata, _calls = installed_distribution
     metadata["files"] = [record]
     with pytest.raises(ValueError, match="Unsafe Python distribution record"):
-        sync_generated.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(demo_root, "fixture-lib")
 
 
 def test_distribution_resources_reach_separate_installed_codex_entry(
@@ -303,7 +296,7 @@ def test_distribution_resources_reject_unsupported_installs(
     _site, metadata, _calls = installed_distribution
     metadata.update(change)
     with pytest.raises(ValueError, match=message):
-        sync_generated.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(demo_root, "fixture-lib")
 
 
 def test_distribution_resources_require_declared_locked_runtime_dependency(
@@ -311,10 +304,10 @@ def test_distribution_resources_require_declared_locked_runtime_dependency(
     installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
 ) -> None:
     with pytest.raises(ValueError, match="not a runtime dependency"):
-        sync_generated.distribution_files(demo_root, "undeclared")
+        generation.distribution_files(demo_root, "undeclared")
     (demo_root / "uv.lock").unlink()
     with pytest.raises(ValueError, match=r"require a regular uv\.lock"):
-        sync_generated.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(demo_root, "fixture-lib")
 
 
 def test_distribution_resources_reject_links(
@@ -329,7 +322,7 @@ def test_distribution_resources_reject_links(
         pytest.skip("symlink creation unavailable")
     metadata["files"] = ["linked/__init__.py"]
     with pytest.raises(ValueError, match="Linked Python distribution resource"):
-        sync_generated.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(demo_root, "fixture-lib")
 
 
 def test_distribution_collision_does_not_mutate_installed_output(
@@ -868,17 +861,19 @@ def test_package_adapters_cannot_link_to_another_package(
 ) -> None:
     make_repository(demo_root, ("demo", "extra"))
     assert "plugins/extra/INDEX.md" in build(demo_root)
-    adapter_body = sync_generated.adapter_body
+    adapter_body = generation.adapter_body
 
     def cross_package_adapter(
-        skill: dict[str, Any], adapter_dir: str, canonical_dir: str | None = None
+        skill: generation.SkillRecord,
+        adapter_dir: str,
+        canonical_dir: str | None = None,
     ) -> str:
         body: str = adapter_body(skill, adapter_dir, canonical_dir)
         if adapter_dir == "plugins/demo/skills/style":
             return body + "See [the extra package](../../../extra/INDEX.md).\n"
         return body
 
-    monkeypatch.setattr(sync_generated, "adapter_body", cross_package_adapter)
+    monkeypatch.setattr(generation, "adapter_body", cross_package_adapter)
     assert_rejected(
         demo_root, "does not resolve from generated plugins/demo/skills/style"
     )
@@ -1138,12 +1133,12 @@ def test_resources_reject_linked_inputs(
             ],
         },
     )
-    original = sync_generated.is_link_or_junction
+    original = generation.is_link_or_junction
 
     def linked(path: Path) -> bool:
         return path == source or original(path)
 
-    monkeypatch.setattr(sync_generated, "is_link_or_junction", linked)
+    monkeypatch.setattr(generation, "is_link_or_junction", linked)
     assert_rejected(demo_root, "contains a link or junction")
 
 
@@ -1381,9 +1376,9 @@ def test_harness_rejects_unreadable_json(
     def locked(path: Path) -> str:
         raise OSError("locked")
 
-    monkeypatch.setattr(sync_generated, "read", locked)
+    monkeypatch.setattr(generation, "read", locked)
     with pytest.raises(ValueError, match="unreadable JSON"):
-        sync_generated.harness_body(demo_root, "demo", {}, [], False)
+        generation.harness_body(demo_root, "demo", {}, [], False)
 
 
 def test_harness_cannot_claim_another_publication_source(demo_root: Path) -> None:
@@ -1553,7 +1548,9 @@ def run_generator_cli(root: Path) -> subprocess.CompletedProcess[str]:
         [
             sys.executable,
             "-B",
-            str(ROOT / ".agents/sync_generated.py"),
+            "-m",
+            "tj_template",
+            "generate",
             "--root",
             str(root),
         ],
@@ -1562,6 +1559,56 @@ def run_generator_cli(root: Path) -> subprocess.CompletedProcess[str]:
         encoding="utf-8",
         check=False,
     )
+
+
+def test_installed_wheel_command_generates_and_checks_outside_the_producer(
+    demo_root: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    uv = shutil.which("uv")
+    assert uv is not None
+    wheels = tmp_path_factory.mktemp("generator-wheel")
+    subprocess.run(
+        [uv, "build", "--package", "tj-template", "--wheel", "--out-dir", str(wheels)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    wheel = next(wheels.glob("*.whl"))
+    environment = {
+        key: value for key, value in os.environ.items() if key != "PYTHONPATH"
+    }
+
+    def command(operation: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                uv,
+                "run",
+                "--no-project",
+                "--isolated",
+                "--with",
+                str(wheel),
+                "tj-template",
+                operation,
+            ],
+            cwd=demo_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=120,
+        )
+
+    generated = command("generate")
+    assert generated.returncode == 0, generated.stdout + generated.stderr
+    checked = command("check")
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    index = demo_root / "plugins/demo/INDEX.md"
+    index.write_text("changed\n", encoding="utf-8")
+    stale = command("check")
+    assert stale.returncode == 1, stale.stdout + stale.stderr
+    assert "STALE: plugins/demo/INDEX.md" in stale.stdout
+    assert index.read_text(encoding="utf-8") == "changed\n"
 
 
 def test_reserves_continuation_runtime_state(tmp_path: Path) -> None:
@@ -1601,6 +1648,8 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
             sys.executable,
             "-B",
             str(package / "skills/new-plugin/scripts/new_plugin.py"),
+            "--template-ref",
+            "a" * 40,
             "--repository",
             "owner/example",
             "--type",
@@ -1655,6 +1704,8 @@ def test_each_copied_package_runs_from_its_adapter_resources(tmp_path: Path) -> 
             sys.executable,
             "-B",
             str(package / "skills/update/scripts/update.py"),
+            "--template-ref",
+            "a" * 40,
             "--root",
             str(example),
         ],
@@ -1738,7 +1789,7 @@ def run_codex_hook(
 def test_codex_hooks_run_through_a_verified_package_snapshot(tmp_path: Path) -> None:
     make_repository(tmp_path)
     add_codex_hook(tmp_path)
-    output = sync_generated.build(tmp_path)
+    output = generation.build(tmp_path)
     assert output["plugins/demo/hooks/codex/snapshot.py"] == (
         ROOT / ".codex/hooks/snapshot.py"
     ).read_bytes().replace(b"\r\n", b"\n")
@@ -1782,7 +1833,7 @@ def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> 
         },
     )
     with pytest.raises(ValueError, match="Unsupported Codex hook command"):
-        sync_generated.build(tmp_path)
+        generation.build(tmp_path)
 
 
 def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> None:
@@ -1800,7 +1851,7 @@ def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> N
         }
     )
     write_json(path, payloads)
-    output = sync_generated.build(tmp_path)
+    output = generation.build(tmp_path)
     assert json.loads(output["plugins/demo/hooks/claude.json"]) == claude_hooks
 
 
@@ -1817,7 +1868,7 @@ def test_host_runtime_ships_from_its_host_directory(tmp_path: Path) -> None:
         }
     ]
     write_json(path, payloads)
-    output = sync_generated.build(tmp_path)
+    output = generation.build(tmp_path)
     assert output["plugins/demo/.agents/demo/runtime/codex/client.py"] == b"VALUE = 1\n"
 
 
@@ -1835,7 +1886,7 @@ def test_host_resources_outside_hooks_are_rejected(tmp_path: Path) -> None:
     ]
     write_json(path, payloads)
     with pytest.raises(ValueError, match="host resource source must be below"):
-        sync_generated.build(tmp_path)
+        generation.build(tmp_path)
 
 
 def test_codex_hook_bootstrap_compiles_only_simple_statements(tmp_path: Path) -> None:
@@ -1844,9 +1895,9 @@ def test_codex_hook_bootstrap_compiles_only_simple_statements(tmp_path: Path) ->
     with (tmp_path / ".codex/hooks/bootstrap.py").open("a", encoding="utf-8") as stream:
         stream.write("if package_root:\n    pass\n")
     with pytest.raises(ValueError, match="only simple statements"):
-        sync_generated.build(tmp_path)
+        generation.build(tmp_path)
 
 
 def test_template_generated_outputs_are_current() -> None:
     with contextlib.redirect_stdout(io.StringIO()):
-        assert sync_generated.synchronize(ROOT, check=True) == 0
+        assert generation.synchronize(ROOT, check=True) == 0

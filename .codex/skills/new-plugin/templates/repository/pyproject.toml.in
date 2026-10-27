@@ -6,6 +6,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "tj-template",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "ruff>=0.17.1",
@@ -13,6 +14,9 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+tj-template = { git = "https://github.com/tj-agents/template", rev = "{{template_ref}}", subdirectory = "packages/tj-template" }
 
 [tool.ruff]
 include = [".agents/**/*.py"]

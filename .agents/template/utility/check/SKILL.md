@@ -30,7 +30,6 @@ Every plugin repository, Template included, has the same layout. The repository 
     plugins/adapters/<host>/<plugin>/<skill>.md  optional host-only discovery extension body
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
-    sync_generated.py  sync-generated.ps1  vendored
   generated: .agents/INDEX.md  .claude/skills/  .codex/skills/  .claude-plugin/marketplace.json
              .agents/plugins/marketplace.json  plugins/<plugin>/
 ```
