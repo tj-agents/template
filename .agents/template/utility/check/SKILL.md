@@ -119,14 +119,13 @@ with file and line evidence. `--source-root` restricts authored scanning while e
 without it, every root is scanned. Plugin CI resolves the current repository's references through the marketplace.
 HTML comments, such as generated-block markers, are not references.
 
-Use `--reference-path` for active canonical documents or route tables outside the default skill layout.
-Markdown references and JSON `routes[].skills[]` resolve against the same shipped inventories; directories
-include Markdown and route JSON, while repository/profile registry metadata carries no skill references.
-Paths must stay inside the scanned repositories. Missing paths and malformed route tables fail the check.
+Use `--reference-path` for active canonical documents outside the default skill layout. Markdown
+references resolve against the same shipped inventories as a directory's other Markdown files.
+Paths must stay inside the scanned repositories. Missing paths fail the check.
 
 ```bash
-python -B .agents/template/utility/check/scripts/check_skill_references.py --root ../app --root ../react --source-root ../app --reference-path ../app/.agents/routes --reference-path ../app/standards
-# A route still requiring a retired producer skill fails with its file and missing identity.
+python -B .agents/template/utility/check/scripts/check_skill_references.py --root ../app --root ../react --source-root ../app --reference-path ../app/standards
+# A standards document still requiring a retired producer skill fails with its file and missing identity.
 ```
 
 A repository may declare exact external identities in `.agents/plugins/skill-references.json` under
