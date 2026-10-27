@@ -84,7 +84,6 @@ CLAUDE_DEPENDENCY = re.compile(rf"^[a-z0-9][a-z0-9-]*(@{TJ_AGENTS_MARKETPLACE})?
 STACK_CORE_DEPENDENCIES = (
     "tj-agents/base",
     "tj-agents/engineering",
-    "tj-agents/machine",
 )
 
 type JSONObject = dict[str, Any]
