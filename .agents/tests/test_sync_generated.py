@@ -1753,6 +1753,139 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(tmp_path: Path) -> 
     assert "integrity check failed" in result.stderr
 
 
+def load_snapshot_loader() -> Any:
+    spec = importlib.util.spec_from_file_location(
+        "codex_hook_snapshot", ROOT / ".codex/hooks/snapshot.py"
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def snapshot_package(tmp_path: Path) -> tuple[Any, Path, str]:
+    loader = load_snapshot_loader()
+    package = tmp_path / "cache/demo/1.0.0"
+    write(package / "hooks/probe.py", "print('probe ran')\n")
+    return loader, package, loader.digest_tree(package)
+
+
+def counting_digests(monkeypatch: pytest.MonkeyPatch, loader: Any) -> list[Path]:
+    hashed: list[Path] = []
+    digest_tree = loader.digest_tree
+
+    def counted(root: Path) -> str:
+        hashed.append(Path(root))
+        return cast(str, digest_tree(root))
+
+    monkeypatch.setattr(loader, "digest_tree", counted)
+    return hashed
+
+
+def test_codex_hook_snapshot_is_reused_without_rehashing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loader, package, expected = snapshot_package(tmp_path)
+    hashed = counting_digests(monkeypatch, loader)
+    snapshots = tmp_path / "snapshots"
+
+    created = loader.snapshot_root(package, expected, snapshots)
+    assert created.parent == snapshots
+    assert (created / loader.MARKER).read_text(encoding="utf-8") == expected
+    assert len(hashed) == 2
+
+    shutil.rmtree(package)
+    assert loader.snapshot_root(package, expected, snapshots) == created
+    assert len(hashed) == 2
+
+
+def test_codex_hook_snapshot_without_a_matching_marker_is_rebuilt(
+    tmp_path: Path,
+) -> None:
+    loader, package, expected = snapshot_package(tmp_path)
+    snapshots = tmp_path / "snapshots"
+    snapshot = loader.snapshot_root(package, expected, snapshots)
+    partial = snapshot.with_name(snapshot.name + ".0123456789abcdef0123456789abcdef")
+    shutil.copytree(package, partial)
+
+    for marker in (None, "sha256:" + "0" * 64):
+        (snapshot / loader.MARKER).unlink()
+        (snapshot / "hooks/probe.py").write_text("print('stale')\n", encoding="utf-8")
+        if marker is not None:
+            (snapshot / loader.MARKER).write_text(marker, encoding="utf-8")
+        rebuilt = loader.snapshot_root(package, expected, snapshots)
+        assert rebuilt == snapshot
+        assert (rebuilt / loader.MARKER).read_text(encoding="utf-8") == expected
+        assert (rebuilt / "hooks/probe.py").read_text(encoding="utf-8") == (
+            "print('probe ran')\n"
+        )
+    assert partial.is_dir()
+
+
+def test_codex_hook_snapshot_creation_prunes_only_stale_siblings(
+    tmp_path: Path,
+) -> None:
+    loader, package, expected = snapshot_package(tmp_path)
+    snapshots = tmp_path / "snapshots"
+    stale = loader.time.time() - loader.RETENTION_SECONDS - 60
+
+    def sibling(name: str, used: float | None, marked: bool = True) -> Path:
+        path = snapshots / name
+        write(path / "hooks/probe.py", "print('old')\n")
+        if marked:
+            write(path / loader.MARKER, "sha256:old")
+        if used is not None:
+            os.utime(path / loader.MARKER if marked else path, (used, used))
+        return path
+
+    old = sibling("a" * 64, stale)
+    recent = sibling("b" * 64, None)
+    abandoned = sibling("c" * 64 + "." + "d" * 32, stale, marked=False)
+    foreign = sibling("notes", stale)
+
+    current = loader.snapshot_root(package, expected, snapshots)
+    assert not old.exists()
+    assert not abandoned.exists()
+    assert recent.is_dir()
+    assert foreign.is_dir()
+
+    os.utime(current / loader.MARKER, (stale, stale))
+    late = sibling("e" * 64, stale)
+    assert loader.snapshot_root(package, expected, snapshots) == current
+    assert late.is_dir()
+    assert loader.time.time() - (current / loader.MARKER).stat().st_mtime < 60
+
+
+def test_codex_hook_runs_from_the_live_package_when_snapshots_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    output = sync_generated.build(tmp_path)
+    hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"]["SessionStart"][
+        0
+    ]["hooks"][0]
+    package = tmp_path / "cache/demo/1.0.0"
+    install_package(output, package)
+    unusable = tmp_path / "data-is-a-file"
+    unusable.write_text("", encoding="utf-8")
+
+    result = run_codex_hook(hook["command"], package, unusable)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "probe ran\n"
+
+    data = tmp_path / "data"
+    assert run_codex_hook(hook["command"], package, data).returncode == 0
+    (snapshot,) = (data / "hook-snapshots").iterdir()
+    (snapshot / "hooks/codex/snapshot.py").write_text(
+        "raise SystemExit(9)\n", encoding="utf-8"
+    )
+    result = run_codex_hook(hook["command"], package, data)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "probe ran\n"
+
+
 def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> None:
     make_repository(tmp_path)
     add_codex_hook(tmp_path)
