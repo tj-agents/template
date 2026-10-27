@@ -1,0 +1,15 @@
+{
+  "name": "skill",
+  "displayName": "Skill",
+  "description": "Create and update skills through the native host creator with complete current-name migrations.",
+  "author": {
+    "name": "Tommy Seery"
+  },
+  "repository": "https://github.com/tj-agents/template",
+  "skills": "./skills/",
+  "keywords": [
+    "skills",
+    "authoring",
+    "native-creator"
+  ]
+}

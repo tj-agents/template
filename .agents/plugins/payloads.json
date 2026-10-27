@@ -2,27 +2,34 @@
   "payloads": {
     "template": [
       "template"
+    ],
+    "skill": [
+      "skill"
     ]
   },
   "dependencies": {
     "template": [
+      "tj-agents/engineering",
+      "skill"
+    ],
+    "skill": [
       "tj-agents/engineering"
     ]
   },
   "resources": [
     {
-      "plugin": "template",
-      "source": ".agents/hooks/pretooluse/new_skill.py",
-      "destination": "hooks/pretooluse/new_skill.py"
+      "plugin": "skill",
+      "source": ".agents/hooks/pretooluse/skill_authoring.py",
+      "destination": "hooks/pretooluse/skill_authoring.py"
     },
     {
-      "plugin": "template",
+      "plugin": "skill",
       "source": ".claude/hooks/pretooluse",
       "destination": "hooks/pretooluse/claude"
     },
     {
-      "plugin": "template",
-      "source": ".claude/hooks/template.json",
+      "plugin": "skill",
+      "source": ".claude/hooks/skill.json",
       "destination": "hooks/claude.json"
     }
   ]
