@@ -320,3 +320,37 @@ def test_explicit_unsupported_reference_file_is_not_a_passing_empty_scan(
     problems = checker.check([tmp_path], reference_paths=[path])
     assert len(problems) == 1
     assert "expected Markdown or route JSON" in problems[0]
+
+
+def test_published_roots_fetch_only_referenced_publishers(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / ".agents/demo/convention/style").mkdir(parents=True)
+    (source / ".agents/demo/convention/style/SKILL.md").write_text(
+        "Pair with `agent:handoff` and `cli:clip`.\n", encoding="utf-8"
+    )
+    fetched: list[str] = []
+
+    def fetch(repository: str, destination: Path) -> Path:
+        fetched.append(repository)
+        destination.mkdir(parents=True)
+        if repository == "owner/marketplace":
+            plugins = [
+                {"name": "agent", "repository": "agent"},
+                {"name": "cli", "repository": "cli"},
+                {"name": "dotnet", "repository": "dotnet"},
+            ]
+            (destination / "catalog.json").write_text(
+                json.dumps({"plugins": plugins}), encoding="utf-8"
+            )
+        return destination
+
+    roots = checker.published_roots(
+        "owner/marketplace", [source], tmp_path / "work", fetch
+    )
+    assert fetched == ["owner/marketplace", "owner/agent", "owner/cli"]
+    assert [root.name for root in roots] == ["agent", "cli"]
+
+
+def test_html_comment_markers_are_not_skill_references() -> None:
+    line = "<!-- BEGIN personal:current-solution sha256:abc -->"
+    assert checker.references(line, {"personal"}) == []

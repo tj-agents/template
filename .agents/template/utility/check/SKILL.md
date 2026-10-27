@@ -106,7 +106,9 @@ ship. Extra skills beyond the required set are allowed.
 
 ## Corpus skill references
 
-Run `python <skill-directory>/scripts/check_skill_references.py --root <repository> --root <sibling>`.
+Run `python <skill-directory>/scripts/check_skill_references.py --root <repository> --source-root <repository> --marketplace tj-agents/marketplace`.
+`--marketplace` reads the marketplace's plugin list and fetches only the repositories that publish a plugin the
+source references, into a temporary directory; set `SKILL_REFERENCES_TOKEN` for private repositories.
 Each root inventories actual shipped `plugins/*/skills/*/SKILL.md`, including compatibility aliases.
 The checker scans active authored skills and root AGENTS.md, CLAUDE.md and README.md, including descriptions.
 It excludes historical plans, generated adapters, test fixtures and vendored templates.
@@ -114,7 +116,8 @@ It excludes historical plans, generated adapters, test fixtures and vendored tem
 Known plugin namespaces resolve qualified names; unknown namespaces need explicit skill wording or an invocation.
 Bare names marked as skills resolve locally first, then uniquely across the corpus. Missing and ambiguous names fail
 with file and line evidence. `--source-root` restricts authored scanning while every `--root` supplies inventory;
-without it, every root is scanned. Public CI inventories the current repository, Template, Core, React, .NET and Rust, including its sibling plugins.
+without it, every root is scanned. Plugin CI resolves the current repository's references through the marketplace.
+HTML comments, such as generated-block markers, are not references.
 
 Use `--reference-path` for active canonical documents or route tables outside the default skill layout.
 Markdown references and JSON `routes[].skills[]` resolve against the same shipped inventories; directories
@@ -128,5 +131,5 @@ python -B .agents/template/utility/check/scripts/check_skill_references.py --roo
 
 A repository may declare exact external identities in `.agents/plugins/skill-references.json` under
 `external_skills`, mapping each `namespace:skill` to its rationale. This covers standards shipped outside
-the supplied corpus; wildcards and empty rationales fail. Extend the supplied corpus for sibling tj-agents plugins.
+the marketplace; wildcards and empty rationales fail.
 Detailed v3 tier predicates and harness requirements remain core's payload contract.

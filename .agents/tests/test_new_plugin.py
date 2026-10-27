@@ -92,7 +92,7 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
         dependencies = (
             ["tj-agents/base"]
             if kind == "profile"
-            else ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"]
+            else ["tj-agents/base", "tj-agents/engineering"]
         )
         assert plugins == [f"tj-agents/{name}", *dependencies]
         assert selection["dependencies"] == dependencies
