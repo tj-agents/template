@@ -1465,39 +1465,96 @@ def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> 
         sync_generated.build(tmp_path)
 
 
-def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> None:
+def test_host_hook_and_runtime_resources_ship_from_their_host_directories(
+    tmp_path: Path,
+) -> None:
     make_repository(tmp_path)
-    add_codex_hook(tmp_path)
     claude_hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "command"}]}]}}
+    codex_hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "command"}]}]}}
     write_json(tmp_path / ".claude/hooks/demo.json", claude_hooks)
-    path = tmp_path / ".agents/plugins/payloads.json"
-    payloads = json.loads(path.read_text(encoding="utf-8"))
-    payloads["resources"].append(
-        {
-            "plugin": "demo",
-            "source": ".claude/hooks/demo.json",
-            "destination": "hooks/claude.json",
-        }
-    )
-    write_json(path, payloads)
-    output = sync_generated.build(tmp_path)
-    assert json.loads(output["plugins/demo/hooks/claude.json"]) == claude_hooks
-
-
-def test_host_resources_outside_hooks_are_rejected(tmp_path: Path) -> None:
-    make_repository(tmp_path)
-    write(tmp_path / ".claude/settings.json", "{}\n")
+    write_json(tmp_path / ".codex/hooks/demo.json", codex_hooks)
+    write(tmp_path / ".claude/runtime/session.py", "claude\n")
+    write(tmp_path / ".codex/runtime/session.py", "codex\n")
     path = tmp_path / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text(encoding="utf-8"))
     payloads["resources"] = [
         {
             "plugin": "demo",
-            "source": ".claude/settings.json",
-            "destination": "settings.json",
+            "source": ".claude/hooks/demo.json",
+            "destination": "hooks/claude.json",
+        },
+        {
+            "plugin": "demo",
+            "source": ".codex/hooks/demo.json",
+            "destination": "hooks/codex-source.json",
+        },
+        {
+            "plugin": "demo",
+            "source": ".claude/runtime",
+            "destination": ".agents/demo/runtime/claude",
+        },
+        {
+            "plugin": "demo",
+            "source": ".codex/runtime",
+            "destination": ".agents/demo/runtime/codex",
+        },
+    ]
+    write_json(path, payloads)
+    output = sync_generated.build(tmp_path)
+    assert json.loads(output["plugins/demo/hooks/claude.json"]) == claude_hooks
+    assert json.loads(output["plugins/demo/hooks/codex-source.json"]) == codex_hooks
+    assert output["plugins/demo/.agents/demo/runtime/claude/session.py"] == b"claude\n"
+    assert output["plugins/demo/.agents/demo/runtime/codex/session.py"] == b"codex\n"
+
+
+@pytest.mark.parametrize(
+    ("source", "destination", "message"),
+    [
+        (
+            ".claude/settings.json",
+            "settings.json",
+            "host resource source must be below",
+        ),
+        (".codex/config.toml", "config.toml", "host resource source must be below"),
+        (
+            ".claude/skills/demo.md",
+            "skills/demo.md",
+            "host resource source must be below",
+        ),
+        (
+            ".claude/runtime/session.py",
+            ".agents/demo/runtime/codex",
+            "host runtime resource must target",
+        ),
+        (
+            ".codex/runtime/session.py",
+            ".agents/demo/runtime",
+            "host runtime resource must target",
+        ),
+        (
+            ".claude/runtime/../runtime/session.py",
+            ".agents/demo/runtime/claude",
+            "unsafe resource source",
+        ),
+    ],
+)
+def test_host_resource_sources_outside_matched_runtime_are_rejected(
+    tmp_path: Path, source: str, destination: str, message: str
+) -> None:
+    make_repository(tmp_path)
+    if "/runtime/" in source and "/../" not in source:
+        write(tmp_path / source, "runtime\n")
+    path = tmp_path / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": source,
+            "destination": destination,
         }
     ]
     write_json(path, payloads)
-    with pytest.raises(ValueError, match="host resource source must be below"):
+    with pytest.raises(ValueError, match=message):
         sync_generated.build(tmp_path)
 
 

@@ -288,9 +288,11 @@ def resource_source_parts(source: str) -> tuple[str | None, str]:
     if path.parts[1] == "hooks":
         return None, "hooks"
     if path.parts[0] in HOST_ROOTS:
+        if path.parts[1] == "runtime":
+            return None, "runtime"
         raise ValueError(
             ".agents/plugins/payloads.json: a host resource source must be below "
-            f"{path.parts[0]}/hooks"
+            f"{path.parts[0]}/hooks or {path.parts[0]}/runtime"
         )
     if len(path.parts) >= 3 and NAME.fullmatch(path.parts[1]):
         return path.parts[1], path.parts[2]
@@ -610,6 +612,16 @@ def validate_resources(
                 "canonical plugin"
             )
         target = safe_package_destination(destination)
+        source_root = PurePosixPath(source).parts[0]
+        if (
+            source_root in HOST_ROOTS
+            and directory == "runtime"
+            and target.parts[-2:] != ("runtime", source_root.removeprefix("."))
+        ):
+            raise ValueError(
+                ".agents/plugins/payloads.json: a host runtime resource must "
+                f"target a matching runtime/{source_root.removeprefix('.')} subtree"
+            )
         source_path = checked_resource_path(root, source)
         files = resource_files(root, source)
         if owner is not None and directory not in PLUGIN_RESOURCE_DIRS:
