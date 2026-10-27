@@ -6,13 +6,5 @@
   "owner_repository": [
     "tj-agents/template"
   ],
-  "session_context": "For requests to create, split, rename or consolidate a skill, load template:new-skill before the native skill creator; Template resolves ownership and scope first.",
-  "routes": [
-    {
-      "path": "(^|/)\\.agents/[^/]+/(convention|contract|policy|knowledge|utility|workflow)/.+/SKILL\\.md$",
-      "skills": [
-        "template:new-skill"
-      ]
-    }
-  ]
+  "session_context": "For requests to create, split, rename or consolidate a skill, load template:new-skill before the native skill creator; Template resolves ownership and scope first."
 }
