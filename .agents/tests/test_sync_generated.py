@@ -1790,13 +1790,13 @@ def test_codex_hook_snapshot_is_reused_without_rehashing(
     hashed = counting_digests(monkeypatch, loader)
     snapshots = tmp_path / "snapshots"
 
-    created = loader.snapshot_root(package, expected, snapshots)
+    created = loader.Snapshot.for_package(package, expected, snapshots).resolve()
     assert created.parent == snapshots
     assert (created / loader.MARKER).read_text(encoding="utf-8") == expected
     assert len(hashed) == 2
 
     shutil.rmtree(package)
-    assert loader.snapshot_root(package, expected, snapshots) == created
+    assert loader.Snapshot.for_package(package, expected, snapshots).resolve() == created
     assert len(hashed) == 2
 
 
@@ -1805,7 +1805,7 @@ def test_codex_hook_snapshot_without_a_matching_marker_is_rebuilt(
 ) -> None:
     loader, package, expected = snapshot_package(tmp_path)
     snapshots = tmp_path / "snapshots"
-    snapshot = loader.snapshot_root(package, expected, snapshots)
+    snapshot = loader.Snapshot.for_package(package, expected, snapshots).resolve()
     partial = snapshot.with_name(snapshot.name + ".0123456789abcdef0123456789abcdef")
     shutil.copytree(package, partial)
 
@@ -1814,7 +1814,7 @@ def test_codex_hook_snapshot_without_a_matching_marker_is_rebuilt(
         (snapshot / "hooks/probe.py").write_text("print('stale')\n", encoding="utf-8")
         if marker is not None:
             (snapshot / loader.MARKER).write_text(marker, encoding="utf-8")
-        rebuilt = loader.snapshot_root(package, expected, snapshots)
+        rebuilt = loader.Snapshot.for_package(package, expected, snapshots).resolve()
         assert rebuilt == snapshot
         assert (rebuilt / loader.MARKER).read_text(encoding="utf-8") == expected
         assert (rebuilt / "hooks/probe.py").read_text(encoding="utf-8") == (
@@ -1844,7 +1844,7 @@ def test_codex_hook_snapshot_creation_prunes_only_stale_siblings(
     abandoned = sibling("c" * 64 + "." + "d" * 32, stale, marked=False)
     foreign = sibling("notes", stale)
 
-    current = loader.snapshot_root(package, expected, snapshots)
+    current = loader.Snapshot.for_package(package, expected, snapshots).resolve()
     assert not old.exists()
     assert not abandoned.exists()
     assert recent.is_dir()
@@ -1852,7 +1852,7 @@ def test_codex_hook_snapshot_creation_prunes_only_stale_siblings(
 
     os.utime(current / loader.MARKER, (stale, stale))
     late = sibling("e" * 64, stale)
-    assert loader.snapshot_root(package, expected, snapshots) == current
+    assert loader.Snapshot.for_package(package, expected, snapshots).resolve() == current
     assert late.is_dir()
     assert loader.time.time() - (current / loader.MARKER).stat().st_mtime < 60
 
