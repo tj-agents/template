@@ -19,7 +19,14 @@
       "tj-agents/base",
       "tj-agents/engineering"
     ],
-    "hooks": [],
+    "hooks": [
+      {
+        "path": "hooks/pretooluse/claude/new_skill.py",
+        "hosts": [
+          "claude"
+        ]
+      }
+    ],
     "permissions": {
       "claude_allow": [
         "Bash(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
@@ -73,7 +80,7 @@
             "-B",
             "${PLUGIN_ROOT}/skills/check/scripts/check_skill_references.py"
           ],
-          "justification": "Reads declared repository documents and route tables against supplied shipped skill inventories and reports unresolved identities",
+          "justification": "Reads declared repository documents against supplied shipped skill inventories and reports unresolved identities",
           "match": [
             [
               "python",
@@ -82,7 +89,7 @@
               "--root",
               "${PROJECT_ROOT}",
               "--reference-path",
-              "${PROJECT_ROOT}/.agents/routes"
+              "${PROJECT_ROOT}/docs/standards.md"
             ]
           ],
           "not_match": [
