@@ -49,7 +49,7 @@ starter until that example exists. Conventions grow through the new repository's
 1. `uv lock`, `git init -b main`, commit, then `gh repo create <owner>/<name> --public --source . --push`; plugin
    repositories are public so the shared marketplace can install them and CI runs.
 2. Only while a repository plugin CI reads is private: `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>`.
-3. Add the plugin to the shared marketplace's `catalog.json` and regenerate it.
+3. Add the plugin to the shared marketplace's `plugins.json` and regenerate it.
 
 After Git initialization, use `agent:plugins` with the scaffolded `.agents/plugins.json`
 to generate both native host settings and complete project admission/installation. Preserve other

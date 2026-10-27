@@ -339,7 +339,7 @@ def test_published_roots_fetch_only_referenced_publishers(tmp_path: Path) -> Non
                 {"name": "cli", "repository": "cli"},
                 {"name": "dotnet", "repository": "dotnet"},
             ]
-            (destination / "catalog.json").write_text(
+            (destination / "plugins.json").write_text(
                 json.dumps({"plugins": plugins}), encoding="utf-8"
             )
         return destination
