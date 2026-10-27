@@ -159,7 +159,6 @@ def test_external_selection_dependency_is_preserved_and_shape_checked(
     assert json.loads(output["plugins/demo/selection.json"])["dependencies"] == [
         "tj-agents/base",
         "tj-agents/engineering",
-        "tj-agents/machine",
         "tj-agents/work",
     ]
     assert json.loads(output["plugins/demo/.claude-plugin/plugin.json"])[
@@ -167,7 +166,6 @@ def test_external_selection_dependency_is_preserved_and_shape_checked(
     ] == [
         "base@tj-agents",
         "engineering@tj-agents",
-        "machine@tj-agents",
         "work@tj-agents",
     ]
     invalid_dependencies: tuple[Any, ...] = (
@@ -201,7 +199,6 @@ def test_optional_harness_is_shipped_without_requiring_migration(
         "tj-agents/demo",
         "tj-agents/base",
         "tj-agents/engineering",
-        "tj-agents/machine",
     ]
     assert generated["requires"]["marketplaces"] == [
         {"id": "tj-agents", "repository": "tj-agents/marketplace"}
@@ -1167,7 +1164,7 @@ def test_harness_drops_every_marketplace_but_tj_agents(
         {"id": "tj-agents", "repository": "tj-agents/marketplace"}
     ]
     inherited = {
-        "stack": ["tj-agents/base", "tj-agents/engineering", "tj-agents/machine"],
+        "stack": ["tj-agents/base", "tj-agents/engineering"],
         "profile": ["tj-agents/base"],
     }
     assert harness["requires"]["plugins"] == (
