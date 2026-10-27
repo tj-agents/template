@@ -87,7 +87,11 @@ its old name until its `removeAfter` date. Apply the consuming project's explici
 - `payloads.json` may map a regular file or recursive directory from `.agents/hooks`, any declared canonical
   plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside its `SKILL.md`
   (never the body itself), into a declared `plugins/<package>/` destination. Runtime and resources directories
-  are permitted only when mapped. Its optional
+  are permitted only when mapped. A resource may instead declare `distribution` with a Python distribution
+  name from the project's runtime dependencies and committed `uv.lock`. Generation collects a locked,
+  non-editable pure Python wheel through uv, rejecting import hooks, links and escaping records. Declare
+  each required distribution; adapters import from their shipped package root. See the repository README
+  for the resource format. Its optional
   `host_adapters` entries append a host-specific extension body from the exact
   `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` path to that host's generated discovery
   entry and installed target-host skill entry; shared instruction remains only in the canonical `SKILL.md`.
