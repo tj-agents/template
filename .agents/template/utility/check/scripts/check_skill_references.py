@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Resolve authored skill references against explicitly supplied shipped
-repositories."""
+"""Resolve authored skill references against the shipped repositories that publish
+the referenced plugins."""
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
-from collections.abc import Iterator, Sequence
+import tempfile
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
 IDENTITY = r"[a-z][a-z0-9-]*"
@@ -21,6 +24,9 @@ NAMED_LIST = re.compile(
     rf"(?:\bskills\s*:?\s+(?P<prefix>{BACKTICK_LIST})|(?P<suffix>{BACKTICK_LIST})\s+skills\b)",
     re.IGNORECASE,
 )
+COMMENT = re.compile(r"<!--.*?-->")
+MARKETPLACE_PLUGINS = "catalog.json"
+TOKEN_VARIABLE = "SKILL_REFERENCES_TOKEN"
 PLACEHOLDER = re.compile(
     r"[{}<>*]|^(?:namespace:skill|plugin:skill|your-plugin:your-skill)$"
 )
@@ -54,6 +60,7 @@ def authored(root: Path) -> Iterator[tuple[Path, str | None]]:
 
 
 def references(line: str, namespaces: set[str]) -> list[str]:
+    line = COMMENT.sub("", line)
     explicit = {match.group(1) for match in BACKTICK.finditer(line)}
     found = set()
     listed = {
@@ -236,6 +243,65 @@ def check(
     return problems
 
 
+def clone(repository: str, destination: Path) -> Path:
+    token = os.environ.get(TOKEN_VARIABLE)
+    credentials = f"x-access-token:{token}@" if token else ""
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--quiet",
+            "--depth",
+            "1",
+            f"https://{credentials}github.com/{repository}.git",
+            str(destination),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return destination
+
+
+def referenced_namespaces(roots: Sequence[Path]) -> set[str]:
+    return {
+        match.group(1)
+        for root in roots
+        for path, _ in authored(root)
+        for match in QUALIFIED.finditer(path.read_text(encoding="utf-8"))
+    }
+
+
+def publishers(marketplace: str, checkout: Path) -> dict[str, str]:
+    owner = marketplace.split("/", 1)[0]
+    plugins = json.loads((checkout / MARKETPLACE_PLUGINS).read_text(encoding="utf-8"))
+    return {
+        plugin["name"]: f"{owner}/{plugin['repository']}"
+        for plugin in plugins["plugins"]
+    }
+
+
+def published_roots(
+    marketplace: str,
+    sources: Sequence[Path],
+    workspace: Path,
+    fetch: Callable[[str, Path], Path] = clone,
+) -> list[Path]:
+    repositories = publishers(
+        marketplace, fetch(marketplace, workspace / "marketplace")
+    )
+    wanted = sorted(
+        {
+            repositories[name]
+            for name in referenced_namespaces(sources)
+            if name in repositories
+        }
+    )
+    return [
+        fetch(repository, workspace / repository.split("/", 1)[1])
+        for repository in wanted
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", action="append", type=Path, required=True)
@@ -253,8 +319,21 @@ def main() -> int:
         help="check active Markdown or route-JSON paths inside scanned repositories",
     )
     parser.add_argument("--config", action="append", type=Path, default=[])
+    parser.add_argument(
+        "--marketplace",
+        help="owner/repository whose plugin list names each plugin's publisher",
+    )
     arguments = parser.parse_args()
     roots = list(dict.fromkeys(root.resolve() for root in arguments.root))
+    with tempfile.TemporaryDirectory(prefix="skill-references-") as workspace:
+        if arguments.marketplace:
+            roots += published_roots(arguments.marketplace, roots, Path(workspace))
+        return report(roots, arguments, parser)
+
+
+def report(
+    roots: list[Path], arguments: argparse.Namespace, parser: argparse.ArgumentParser
+) -> int:
     configs = arguments.config + [
         root / ".agents/plugins/skill-references.json"
         for root in roots

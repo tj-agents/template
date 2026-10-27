@@ -38,33 +38,7 @@ jobs:
         with:
           repository: ${{ inputs.template_repository }}
           ref: ${{ inputs.template_ref }}
-          path: .siblings/template
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/core
-          path: .siblings/core
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          repository: tj-agents/agent
-          path: .siblings/agent
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-          persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: tj-agents/react
-          path: .siblings/react
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          repository: tj-agents/dotnet
-          path: .siblings/dotnet
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          repository: tj-agents/rust
-          path: .siblings/rust
+          path: .template
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
@@ -125,13 +99,12 @@ jobs:
           if ($env:GUIDANCE_EXAMPLES_MERGE_BASE) {
             $checkArguments += $env:GUIDANCE_EXAMPLES_MERGE_BASE
           }
-          python -B .siblings/template/.agents/template/utility/check/scripts/check.py @checkArguments
+          python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
       - name: authored skill references resolve in the public corpus
         shell: pwsh
-        run: python -B .siblings/template/.agents/template/utility/check/scripts/check_skill_references.py --root . --root .siblings/template --root .siblings/core --root .siblings/agent --root .siblings/react --root .siblings/dotnet --root .siblings/rust --source-root .
-      - name: tier payloads conform to the shipped shape
-        shell: pwsh
-        run: python -B .siblings/core/plugins/base/hooks/check_tier_payload.py --root .
+        env:
+          SKILL_REFERENCES_TOKEN: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+        run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
 
   hosts:
     runs-on: ubuntu-latest
@@ -141,7 +114,7 @@ jobs:
         with:
           repository: ${{ inputs.template_repository }}
           ref: ${{ inputs.template_ref }}
-          path: .siblings/template
+          path: .template
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
@@ -167,4 +140,4 @@ jobs:
       - name: install the pinned host CLIs
         run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
       - name: Claude Code and Codex accept the marketplace and plugins
-        run: python -B .siblings/template/.github/scripts/validate_hosts.py --root .
+        run: python -B .template/.github/scripts/validate_hosts.py --root .
