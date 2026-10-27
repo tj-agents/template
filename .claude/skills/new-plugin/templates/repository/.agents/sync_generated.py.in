@@ -602,8 +602,13 @@ def distribution_files(root: Path, name: str) -> list[tuple[Path, tuple[str, ...
     uv = shutil.which("uv")
     if uv is None:
         raise ValueError("uv is required to resolve Python distribution resources")
-    inspect = """import importlib.metadata, json, sys
-distribution = importlib.metadata.distribution(sys.argv[1])
+    inspect = """import importlib.metadata, json, re, sys, sysconfig
+from pathlib import Path
+environment = str(Path(sys.executable).parent.parent)
+library = sysconfig.get_path('purelib',
+    vars={'base': environment, 'platbase': environment})
+distribution = next(item for item in importlib.metadata.distributions(path=[library])
+    if re.sub(r'[-_.]+', '-', item.metadata['Name']).lower() == sys.argv[1])
 wheel = distribution.read_text('WHEEL') or ''
 print(json.dumps({'name': distribution.metadata['Name'],
     'pure': 'Root-Is-Purelib: true' in wheel and 'Tag: py3-none-any' in wheel,
@@ -621,6 +626,7 @@ print(json.dumps({'name': distribution.metadata['Name'],
                 str(root),
                 "python",
                 "-I",
+                "-S",
                 "-B",
                 "-c",
                 inspect,
@@ -673,11 +679,17 @@ print(json.dumps({'name': distribution.metadata['Name'],
             raise ValueError(f"Unsafe Python distribution record: {record!r}")
         if ignored(relative):
             continue
-        if (
-            any(part.endswith(".dist-info") for part in relative.parts)
-            and relative.name not in {"METADATA", "WHEEL"}
-            and "licenses" not in relative.parts
-        ):
+        if any(
+            part.endswith(".dist-info") for part in relative.parts
+        ) and relative.name in {
+            "INSTALLER",
+            "REQUESTED",
+            "RECORD",
+            "RECORD.jws",
+            "RECORD.p7s",
+            "direct_url.json",
+            "uv_cache.json",
+        }:
             continue
         if relative.suffix == ".pth":
             raise ValueError(

@@ -165,6 +165,10 @@ def installed_distribution(
         "fixture_lib/__pycache__/__init__.cpython-312.pyc": "cache",
         "fixture_lib-0.1.0.dist-info/METADATA": "Name: fixture-lib\n",
         "fixture_lib-0.1.0.dist-info/WHEEL": "Root-Is-Purelib: true\n",
+        "fixture_lib-0.1.0.dist-info/entry_points.txt": (
+            "[demo]\nprobe=fixture_lib:VALUE\n"
+        ),
+        "fixture_lib-0.1.0.dist-info/LICENSE": "legacy license\n",
         "fixture_lib-0.1.0.dist-info/RECORD": "receipt",
         "fixture_lib-0.1.0.dist-info/direct_url.json": "local install provenance",
         "fixture_lib-0.1.0.dist-info/licenses/LICENSE": "license\n",
@@ -212,6 +216,8 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
         assert output[prefix + "fixture_lib/data.txt"] == b"data\n"
         assert output[prefix + "fixture_lib-0.1.0.dist-info/licenses/LICENSE"]
         assert output[prefix + "fixture_lib-0.1.0.dist-info/METADATA"]
+        assert output[prefix + "fixture_lib-0.1.0.dist-info/entry_points.txt"]
+        assert output[prefix + "fixture_lib-0.1.0.dist-info/LICENSE"]
     assert not any("direct_url" in path or path.endswith("/RECORD") for path in output)
     assert not any("__pycache__" in path for path in output)
     assert synchronize(demo_root, check=False)[0] == 0
@@ -302,8 +308,10 @@ def test_distribution_collision_does_not_mutate_installed_output(
     assert (demo_root / "plugins/demo/skills/tool/SKILL.md").read_bytes() == original
 
 
+@pytest.mark.parametrize("import_hook", [False, True])
 def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
     tmp_path: Path,
+    import_hook: bool,
 ) -> None:
     producer = tmp_path / "producer"
     make_repository(producer)
@@ -316,7 +324,16 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
         "fixture_lib-0.1.0.dist-info/WHEEL": (
             "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
         ),
+        "fixture_lib-0.1.0.dist-info/entry_points.txt": (
+            "[demo.fixture]\nprobe = fixture_lib:VALUE\n"
+        ),
+        "fixture_lib-0.1.0.dist-info/LICENSE": "fixture license\n",
     }
+    sentinel = tmp_path / "import-hook-executed"
+    if import_hook:
+        files["hook.pth"] = (
+            f"import pathlib; pathlib.Path({str(sentinel)!r}).write_text('executed')\n"
+        )
     files["fixture_lib-0.1.0.dist-info/RECORD"] = "".join(
         f"{name},,\n" for name in (*files, "fixture_lib-0.1.0.dist-info/RECORD")
     )
@@ -337,7 +354,9 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
         producer / ".agents/demo/runtime/entry.py",
         "import sys\nfrom pathlib import Path\n"
         "sys.path.insert(0, str(Path(__file__).resolve().parent))\n"
-        "from fixture_lib import VALUE\nprint(VALUE)\n",
+        "from fixture_lib import VALUE\n"
+        "from importlib.metadata import entry_points\n"
+        "print(VALUE, next(iter(entry_points(group='demo.fixture'))).name)\n",
     )
     write_json(
         producer / ".agents/plugins/payloads.json",
@@ -357,6 +376,12 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
             ],
         },
     )
+    if import_hook:
+        with pytest.raises(ValueError, match=r"cannot require \.pth"):
+            build(producer)
+        assert not sentinel.exists()
+        assert not (producer / "plugins").exists()
+        return
     assert synchronize(producer, check=False)[0] == 0
     installed = tmp_path / "installed"
     shutil.copytree(producer / "plugins/demo", installed)
@@ -368,7 +393,8 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
         text=True,
         check=True,
     )
-    assert result.stdout.strip() == "42"
+    assert result.stdout.strip() == "42 probe"
+    assert (installed / "runtime/fixture_lib-0.1.0.dist-info/LICENSE").is_file()
 
 
 def test_external_selection_dependency_is_preserved_and_shape_checked(
