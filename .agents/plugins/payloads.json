@@ -8,5 +8,22 @@
     "template": [
       "tj-agents/engineering"
     ]
-  }
+  },
+  "resources": [
+    {
+      "plugin": "template",
+      "source": ".agents/hooks/pretooluse/new_skill.py",
+      "destination": "hooks/pretooluse/new_skill.py"
+    },
+    {
+      "plugin": "template",
+      "source": ".claude/hooks/pretooluse",
+      "destination": "hooks/pretooluse/claude"
+    },
+    {
+      "plugin": "template",
+      "source": ".claude/hooks/template.json",
+      "destination": "hooks/claude.json"
+    }
+  ]
 }
