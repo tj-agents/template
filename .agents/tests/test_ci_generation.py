@@ -170,9 +170,12 @@ def test_regeneration_is_main_push_only_and_uses_the_verified_head(ci: str) -> N
 
 
 def test_write_permission_and_staging_are_limited_to_regeneration(ci: str) -> None:
-    verify = job("verify", ci, "regenerate")
+    verify = job("verify", ci, "system-python-resources")
+    system_python = job("system-python-resources", ci, "regenerate")
     regenerate = job("regenerate", ci)
     assert "permissions:" not in verify
+    assert "contents: read" in system_python
+    assert "contents: write" not in system_python
     assert "permissions:\n      contents: write" in regenerate
     staged = re.search(r"git add -- (?P<paths>.+)", regenerate)
     assert staged is not None
