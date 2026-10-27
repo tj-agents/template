@@ -605,7 +605,7 @@ def distribution_files(root: Path, name: str) -> list[tuple[Path, tuple[str, ...
     inspect = """import importlib.metadata, json, re, sys, sysconfig
 from pathlib import Path
 environment = str(Path(sys.executable).parent.parent)
-library = sysconfig.get_path('purelib',
+library = sysconfig.get_path('purelib', scheme='venv',
     vars={'base': environment, 'platbase': environment})
 distribution = next(item for item in importlib.metadata.distributions(path=[library])
     if re.sub(r'[-_.]+', '-', item.metadata['Name']).lower() == sys.argv[1])
