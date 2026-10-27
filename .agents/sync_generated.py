@@ -605,6 +605,7 @@ def validate_resources(
                 ".agents/plugins/payloads.json: each resource declares string "
                 "plugin, source and destination"
             )
+        source_parts = PurePosixPath(source).parts
         owner, directory = resource_source_parts(source)
         if owner is not None and owner not in plugins:
             raise ValueError(
@@ -612,17 +613,26 @@ def validate_resources(
                 "canonical plugin"
             )
         target = safe_package_destination(destination)
-        source_root = PurePosixPath(source).parts[0]
-        if (
-            source_root in HOST_ROOTS
-            and directory == "runtime"
-            and target.parts[-2:] != ("runtime", source_root.removeprefix("."))
-        ):
-            raise ValueError(
-                ".agents/plugins/payloads.json: a host runtime resource must "
-                f"target a matching runtime/{source_root.removeprefix('.')} subtree"
-            )
         source_path = checked_resource_path(root, source)
+        source_root = source_parts[0]
+        if source_root in HOST_ROOTS and directory == "runtime":
+            host_runtime = ("runtime", source_root.removeprefix("."))
+            host_index = next(
+                (
+                    index
+                    for index in range(len(target.parts) - 1)
+                    if target.parts[index : index + 2] == host_runtime
+                ),
+                None,
+            )
+            if host_index is None or (
+                source_path.is_file() and host_index + 2 == len(target.parts)
+            ):
+                raise ValueError(
+                    ".agents/plugins/payloads.json: a host runtime resource must "
+                    "target the matching runtime/"
+                    f"{source_root.removeprefix('.')} subtree"
+                )
         files = resource_files(root, source)
         if owner is not None and directory not in PLUGIN_RESOURCE_DIRS:
             validate_skill_asset_source(root, source, files, plugins[owner])

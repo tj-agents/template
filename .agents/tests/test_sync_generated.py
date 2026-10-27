@@ -1507,6 +1507,38 @@ def test_host_hook_and_runtime_resources_ship_from_their_host_directories(
     assert output["plugins/demo/.agents/demo/runtime/codex/session.py"] == b"codex\n"
 
 
+@pytest.mark.parametrize("host", ("claude", "codex"))
+def test_host_runtime_files_and_directories_ship_to_matching_subtrees(
+    tmp_path: Path, host: str
+) -> None:
+    make_repository(tmp_path)
+    runtime = tmp_path / f".{host}/runtime"
+    write(runtime / "session.py", f"{host} session\n")
+    write(runtime / "nested/worker.py", f"{host} worker\n")
+    path = tmp_path / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": f".{host}/runtime/session.py",
+            "destination": f".agents/demo/runtime/{host}/named.py",
+        },
+        {
+            "plugin": "demo",
+            "source": f".{host}/runtime/nested",
+            "destination": f".agents/demo/runtime/{host}/workers",
+        },
+    ]
+    write_json(path, payloads)
+    output = sync_generated.build(tmp_path)
+    assert output[f"plugins/demo/.agents/demo/runtime/{host}/named.py"] == (
+        f"{host} session\n".encode()
+    )
+    assert output[f"plugins/demo/.agents/demo/runtime/{host}/workers/worker.py"] == (
+        f"{host} worker\n".encode()
+    )
+
+
 @pytest.mark.parametrize(
     ("source", "destination", "message"),
     [
@@ -1524,6 +1556,11 @@ def test_host_hook_and_runtime_resources_ship_from_their_host_directories(
         (
             ".claude/runtime/session.py",
             ".agents/demo/runtime/codex",
+            "host runtime resource must target",
+        ),
+        (
+            ".claude/runtime/session.py",
+            ".agents/demo/runtime/claude",
             "host runtime resource must target",
         ),
         (
