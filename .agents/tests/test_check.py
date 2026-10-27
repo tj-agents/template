@@ -357,7 +357,7 @@ def test_repository_can_declare_rolling_plugin_selection(zig_repo: Path) -> None
     selection = {
         "schema_version": 1,
         "marketplaces": {"tj-agents": {"repository": "tj-agents/marketplace"}},
-        "plugins": ["base@tj-agents", "engineering@tj-agents", "machine@tj-agents"],
+        "plugins": ["base@tj-agents", "engineering@tj-agents", "workflow@tj-agents"],
     }
     (zig_repo / ".agents/plugins.json").write_text(
         json.dumps(selection), encoding="utf-8"

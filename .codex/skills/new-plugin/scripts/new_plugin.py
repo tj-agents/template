@@ -22,6 +22,7 @@ VENDORED = (
     ".agents/sync_generated.py",
     ".agents/sync-generated.ps1",
     ".codex/hooks/snapshot.py",
+    ".codex/hooks/bootstrap.py",
     ".gitattributes",
     ".gitignore",
     "CLAUDE.md",
