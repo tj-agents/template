@@ -1,25 +1,21 @@
-"""Claude PreToolUse: refuse a new SKILL.md until this session loaded template:new-skill (Python 3.9+)."""
-
 from __future__ import annotations
 
 import importlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-shared = importlib.import_module("new_skill")
+shared = importlib.import_module("skill_authoring")
 
 
-def procedure_loaded(transcript: str | None) -> bool:
+def procedure_loaded(transcript: str | None, procedures: set[str]) -> bool:
     if not transcript:
         return False
     requested, succeeded = set(), set()
     try:
-        with open(transcript, encoding="utf-8", errors="replace") as stream:
+        with Path(transcript).open(encoding="utf-8", errors="replace") as stream:
             for line in stream:
-                if shared.PROCEDURE.split(":")[1] not in line:
-                    continue
                 try:
                     record = json.loads(line)
                 except ValueError:
@@ -27,8 +23,11 @@ def procedure_loaded(transcript: str | None) -> bool:
                 for item in (record.get("message") or {}).get("content") or []:
                     if not isinstance(item, dict):
                         continue
-                    if item.get("type") == "tool_use" and item.get("name") == "Skill" \
-                            and (item.get("input") or {}).get("skill") == shared.PROCEDURE:
+                    if (
+                        item.get("type") == "tool_use"
+                        and item.get("name") == "Skill"
+                        and (item.get("input") or {}).get("skill") in procedures
+                    ):
                         requested.add(item.get("id"))
                     elif item.get("type") == "tool_result" and not item.get("is_error"):
                         succeeded.add(item.get("tool_use_id"))
@@ -45,9 +44,14 @@ def main() -> int:
     if not isinstance(data, dict):
         return 0
     path = (data.get("tool_input") or {}).get("file_path")
-    if not shared.creates_skill(path, data.get("cwd")) or procedure_loaded(data.get("transcript_path")):
+    procedures = shared.required_procedures(path, data.get("cwd"))
+    if not procedures or procedure_loaded(data.get("transcript_path"), procedures):
         return 0
-    sys.stderr.write(shared.MESSAGE)
+    names = " or ".join(sorted(procedures))
+    sys.stderr.write(
+        f"SKILL - load {names} and the current host native skill creator before authoring. "
+        "Updates must remove retired names, aliases and active callers. The file was not written.\n"
+    )
     return 2
 
 

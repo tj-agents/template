@@ -6,18 +6,19 @@ It links to Core's generic documentation guidance for authoring decisions.
 
 ## Install
 
-Install `template@tj-agents`.
+Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, published from this repository.
 
 ## Skills
 
-- `template:new-skill` resolves concern ownership and scope before delegating to the current host's native creator.
+- `skill:create` resolves a new skill's concern and scope before native creator delegation.
+- `skill:update` updates existing skills and completes renames without old entries or compatibility aliases.
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
 
 ## Create a skill
 
-Use `template:new-skill` before authoring a new skill in an existing plugin. It applies Template's
+Use `skill:create` for a new skill and `skill:update` when changing an existing skill. It applies Template's
 ownership, naming and applicability constraints, then delegates to the discovered native creator.
 The repository names the main plugin; separately selectable sibling namespaces can share it.
 The selected Template tier supplies session routing and a canonical-skill write gate through Core.

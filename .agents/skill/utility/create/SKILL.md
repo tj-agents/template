@@ -1,6 +1,6 @@
 ---
-name: new-skill
-description: Resolve ownership, naming and applicability before creating, splitting, renaming or consolidating a skill, then delegate authoring to the current host's native skill creator. Use for direct skill-creation requests in any selected repository, including adding a skill to an existing plugin; new repositories use new-plugin.
+name: create
+description: Resolve ownership, naming and applicability before creating a skill, then delegate authoring to the current host's native skill creator. Use for direct skill-creation requests in any selected repository, including adding a skill to an existing plugin; existing skills use skill:update; new repositories use template:new-plugin.
 kind: utility
 domain: template
 profile: core
@@ -50,28 +50,15 @@ actually needed. Do not author generated host copies or transplant host-specific
 
 ## Delegate native authoring
 
-Discover the current host's advertised creator and load it only after resolving the brief above.
-For Codex, use the native `skill-creator` capability from its current skill catalog. For Claude Code,
-discover the installed Anthropic Skill Creator plugin's advertised skill; the official plugin is
-`skill-creator@claude-plugins-official` ([upstream](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator)).
-Resolve its actual invocation from native discovery rather than assuming a slash-command identity.
-
-Pass the resolved identity, source path, concern boundary, selected prerequisites, concrete use case,
-Template metadata/layout requirements and acceptance checks to that creator. Let it choose its authoring
-and evaluation method within those constraints. Do not embed another general-purpose creation workflow,
-copy the creator, or let a native initializer move the canonical source into a user profile.
-
-If the native creator is missing, report the exact host/capability gap and use an authorized supported
-installation path when available. Keep dependent authoring pending until discovery succeeds; continue
-independent work. Do not silently bypass this gate or substitute the other host's metadata.
+Read [native skill authoring](references/native-authoring.md) and use the current host's discovered
+native creator with the resolved brief. Existing skill changes use `skill:update`.
 
 ## Integrate and verify
 
 Add concern/framework evidence routes through the owning tier, or record explicit design-time
 classification when no write evidence applies. Avoid routing every optional skill from a language
-extension. For a rename or consolidation, apply the selected clean-cut policy to known references,
-selections, routes, templates and generated payloads in the same cutover; leave no forwarding alias
-when that policy forbids it.
+extension. Updates, renames and consolidations follow `skill:update`; keep only the current supported
+identity in authored sources, generated discovery and installed selections.
 
 Regenerate with the repository's supported generator, run `template:check`, generated freshness and
 focused corpus-reference/routing checks, and verify fresh Codex and Claude discovery and loading.
