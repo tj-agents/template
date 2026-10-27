@@ -7,6 +7,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 from typing import Any, cast
 
@@ -145,6 +146,229 @@ def synchronize(root: Path, check: bool) -> tuple[int, str]:
 def demo_root(tmp_path: Path) -> Path:
     make_repository(tmp_path)
     return tmp_path
+
+
+@pytest.fixture
+def installed_distribution(
+    demo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, dict[str, Any], list[list[str]]]:
+    write(
+        demo_root / "pyproject.toml",
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+        'dependencies = ["fixture-lib"]\n',
+    )
+    write(demo_root / "uv.lock", "# Resolution is mocked at the uv boundary.\n")
+    site = demo_root / "installed"
+    contents = {
+        "fixture_lib/__init__.py": "VALUE = 42\n",
+        "fixture_lib/data.txt": "data\n",
+        "fixture_lib/__pycache__/__init__.cpython-312.pyc": "cache",
+        "fixture_lib-0.1.0.dist-info/METADATA": "Name: fixture-lib\n",
+        "fixture_lib-0.1.0.dist-info/WHEEL": "Root-Is-Purelib: true\n",
+        "fixture_lib-0.1.0.dist-info/RECORD": "receipt",
+        "fixture_lib-0.1.0.dist-info/direct_url.json": "local install provenance",
+        "fixture_lib-0.1.0.dist-info/licenses/LICENSE": "license\n",
+    }
+    for relative, content in contents.items():
+        write(site / relative, content)
+    metadata: dict[str, Any] = {
+        "name": "fixture-lib",
+        "pure": True,
+        "root": str(site),
+        "files": list(contents),
+    }
+    calls: list[list[str]] = []
+
+    def resolve(command: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, json.dumps(metadata), "")
+
+    monkeypatch.setattr(sync_generated.shutil, "which", lambda _name: "uv")
+    monkeypatch.setattr(sync_generated.subprocess, "run", resolve)
+    return site, metadata, calls
+
+
+def test_distribution_resources_ship_stable_files_and_resolve_once(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+) -> None:
+    site, _metadata, calls = installed_distribution
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {"plugin": "demo", "distribution": "fixture-lib", "destination": target}
+                for target in ("runtime", "skills/tool/scripts")
+            ],
+        },
+    )
+    output = build(demo_root)
+    assert len(calls) == 1
+    assert calls[0][1:4] == ["run", "--locked", "--no-editable"]
+    for target in ("runtime", "skills/tool/scripts"):
+        prefix = f"plugins/demo/{target}/"
+        assert output[prefix + "fixture_lib/__init__.py"] == b"VALUE = 42\n"
+        assert output[prefix + "fixture_lib/data.txt"] == b"data\n"
+        assert output[prefix + "fixture_lib-0.1.0.dist-info/licenses/LICENSE"]
+        assert output[prefix + "fixture_lib-0.1.0.dist-info/METADATA"]
+    assert not any("direct_url" in path or path.endswith("/RECORD") for path in output)
+    assert not any("__pycache__" in path for path in output)
+    assert synchronize(demo_root, check=False)[0] == 0
+    write(site / "fixture_lib/__init__.py", "VALUE = 43\n")
+    assert synchronize(demo_root, check=True)[0] != 0
+
+
+@pytest.mark.parametrize(
+    "record",
+    ["../outside.py", "/outside.py", "C:/outside.py", "a\\b.py", "a//b.py", "a/./b.py"],
+)
+def test_distribution_resources_reject_escaping_records(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+    record: str,
+) -> None:
+    _site, metadata, _calls = installed_distribution
+    metadata["files"] = [record]
+    with pytest.raises(ValueError, match="Unsafe Python distribution record"):
+        sync_generated.distribution_files(demo_root, "fixture-lib")
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"pure": False}, "pure Python wheel"),
+        ({"name": "wrong"}, "identity does not match"),
+        ({"files": ["hook.pth"]}, "cannot require .pth"),
+        ({"files": ["missing.py"]}, "Missing or escaped"),
+        ({"files": ["fixture_lib/__init__.py"] * 2}, "Duplicate Python"),
+    ],
+)
+def test_distribution_resources_reject_unsupported_installs(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+    change: dict[str, Any],
+    message: str,
+) -> None:
+    _site, metadata, _calls = installed_distribution
+    metadata.update(change)
+    with pytest.raises(ValueError, match=message):
+        sync_generated.distribution_files(demo_root, "fixture-lib")
+
+
+def test_distribution_resources_require_declared_locked_runtime_dependency(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+) -> None:
+    with pytest.raises(ValueError, match="not a runtime dependency"):
+        sync_generated.distribution_files(demo_root, "undeclared")
+    (demo_root / "uv.lock").unlink()
+    with pytest.raises(ValueError, match=r"require a regular uv\.lock"):
+        sync_generated.distribution_files(demo_root, "fixture-lib")
+
+
+def test_distribution_resources_reject_links(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+) -> None:
+    site, metadata, _calls = installed_distribution
+    linked = site / "linked"
+    try:
+        linked.symlink_to(site / "fixture_lib", target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation unavailable")
+    metadata["files"] = ["linked/__init__.py"]
+    with pytest.raises(ValueError, match="Linked Python distribution resource"):
+        sync_generated.distribution_files(demo_root, "fixture-lib")
+
+
+def test_distribution_collision_does_not_mutate_installed_output(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+) -> None:
+    assert synchronize(demo_root, check=False)[0] == 0
+    original = (demo_root / "plugins/demo/skills/tool/SKILL.md").read_bytes()
+    resource = {
+        "plugin": "demo",
+        "distribution": "fixture-lib",
+        "destination": "runtime",
+    }
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {"payloads": {"demo": ["demo"]}, "resources": [resource, resource]},
+    )
+    with pytest.raises(ValueError, match="duplicate resource output"):
+        synchronize(demo_root, check=False)
+    assert (demo_root / "plugins/demo/skills/tool/SKILL.md").read_bytes() == original
+
+
+def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
+    tmp_path: Path,
+) -> None:
+    producer = tmp_path / "producer"
+    make_repository(producer)
+    wheel = producer / "fixture_lib-0.1.0-py3-none-any.whl"
+    files = {
+        "fixture_lib/__init__.py": "VALUE = 42\n",
+        "fixture_lib-0.1.0.dist-info/METADATA": (
+            "Metadata-Version: 2.1\nName: fixture-lib\nVersion: 0.1.0\n"
+        ),
+        "fixture_lib-0.1.0.dist-info/WHEEL": (
+            "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+        ),
+    }
+    files["fixture_lib-0.1.0.dist-info/RECORD"] = "".join(
+        f"{name},,\n" for name in (*files, "fixture_lib-0.1.0.dist-info/RECORD")
+    )
+    with zipfile.ZipFile(wheel, "w") as archive:
+        for name, content in files.items():
+            archive.writestr(name, content)
+    write(
+        producer / "pyproject.toml",
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+        'requires-python = ">=3.12"\ndependencies = ["fixture-lib"]\n'
+        "[tool.uv]\npackage = false\n[tool.uv.sources]\n"
+        'fixture-lib = {path = "fixture_lib-0.1.0-py3-none-any.whl"}\n',
+    )
+    uv = shutil.which("uv")
+    assert uv is not None
+    subprocess.run([uv, "lock", "--offline", "--project", str(producer)], check=True)
+    write(
+        producer / ".agents/demo/runtime/entry.py",
+        "import sys\nfrom pathlib import Path\n"
+        "sys.path.insert(0, str(Path(__file__).resolve().parent))\n"
+        "from fixture_lib import VALUE\nprint(VALUE)\n",
+    )
+    write_json(
+        producer / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "distribution": "fixture-lib",
+                    "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "source": ".agents/demo/runtime",
+                    "destination": "runtime",
+                },
+            ],
+        },
+    )
+    assert synchronize(producer, check=False)[0] == 0
+    installed = tmp_path / "installed"
+    shutil.copytree(producer / "plugins/demo", installed)
+    shutil.rmtree(producer)
+    result = subprocess.run(
+        [sys.executable, "-I", "-B", str(installed / "runtime/entry.py")],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == "42"
 
 
 def test_external_selection_dependency_is_preserved_and_shape_checked(
