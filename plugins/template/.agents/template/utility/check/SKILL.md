@@ -90,7 +90,9 @@ its old name until its `removeAfter` date. Apply the consuming project's explici
   are permitted only when mapped. A resource may instead declare `distribution` with a Python distribution
   name from the project's runtime dependencies and committed `uv.lock`. Generation collects a locked,
   non-editable pure Python wheel through uv, rejecting import hooks, links and escaping records. Declare
-  each required distribution; adapters import from their shipped package root. See the repository README
+  each required distribution; adapters import from their shipped package root. Resources under
+  `skills/<skill>/` also map beside repository-local host scripts and separate installed Codex entries.
+  Authored source uses the project's declared uv environment. See the repository README
   for the resource format. Its optional
   `host_adapters` entries append a host-specific extension body from the exact
   `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` path to that host's generated discovery
