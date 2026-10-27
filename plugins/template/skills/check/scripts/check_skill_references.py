@@ -169,12 +169,12 @@ def extra_references(
         if not path.exists():
             problems.append(f"{path}:1: reference path does not exist")
             continue
-        if path.is_file() and path.suffix.lower() not in {".md", ".json"}:
-            problems.append(f"{path}:1: expected Markdown or route JSON")
+        if path.is_file() and path.suffix.lower() != ".md":
+            problems.append(f"{path}:1: expected Markdown")
             continue
         files = sorted(path.rglob("*")) if path.is_dir() else [path]
         for file in files:
-            if not file.is_file() or file.suffix.lower() not in {".md", ".json"}:
+            if not file.is_file() or file.suffix.lower() != ".md":
                 continue
             resolved = file.resolve()
             if not any(resolved.is_relative_to(root) for root in roots):
@@ -187,28 +187,10 @@ def extra_references(
             seen.add(resolved)
             try:
                 body = file.read_text(encoding="utf-8")
-                if file.suffix.lower() == ".md":
-                    for number, line in enumerate(body.splitlines(), 1):
-                        for reference in references(line, namespaces):
-                            yield file, number, reference
-                    continue
-                table = json.loads(body)
-                if not isinstance(table, dict):
-                    raise ValueError("expected a route table object")
-                if "routes" not in table and {"repos", "profiles"} <= table.keys():
-                    continue
-                if not isinstance(table.get("routes"), list):
-                    raise ValueError("expected a routes array")
-                for index, row in enumerate(table["routes"]):
-                    if (
-                        not isinstance(row, dict)
-                        or not isinstance(row.get("skills"), list)
-                        or any(not isinstance(name, str) for name in row["skills"])
-                    ):
-                        raise ValueError(f"route {index} needs a skills array of names")
-                    for reference in row["skills"]:
-                        yield file, 1, reference
-            except (OSError, ValueError) as error:
+                for number, line in enumerate(body.splitlines(), 1):
+                    for reference in references(line, namespaces):
+                        yield file, number, reference
+            except OSError as error:
                 problems.append(f"{file}:1: {error}")
 
 
@@ -316,7 +298,7 @@ def main() -> int:
         action="append",
         type=Path,
         default=[],
-        help="check active Markdown or route-JSON paths inside scanned repositories",
+        help="check active Markdown paths inside scanned repositories",
     )
     parser.add_argument("--config", action="append", type=Path, default=[])
     parser.add_argument(
