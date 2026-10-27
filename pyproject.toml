@@ -16,6 +16,7 @@ package = false
 
 [tool.ruff]
 include = [".agents/**/*.py", ".github/**/*.py"]
+extend-exclude = [".template", ".core", ".agent", ".react", ".dotnet", ".rust"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "PIE", "RET", "RUF"]
