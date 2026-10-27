@@ -83,6 +83,10 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "ref: ${{ inputs.template_ref }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
+    for consumer in (verify, hosts):
+        assert consumer.index("astral-sh/setup-uv@") < consumer.index(
+            "- name: regenerate generated files from authored sources"
+        )
 
 
 def test_verify_checks_changed_authored_guidance_against_the_event_base(
