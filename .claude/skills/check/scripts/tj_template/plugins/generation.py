@@ -2,7 +2,6 @@
 """Generate a plugin repository's host discovery entries, marketplaces and
 installable payloads."""
 
-import argparse
 import ast
 import hashlib
 import json
@@ -602,7 +601,7 @@ def distribution_files(root: Path, name: str) -> list[tuple[Path, tuple[str, ...
     uv = shutil.which("uv")
     if uv is None:
         raise ValueError("uv is required to resolve Python distribution resources")
-    inspect = """import importlib.metadata, json, re, sys, sysconfig
+    inspect = """import importlib.metadata, json, os, re, sys, sysconfig
 from pathlib import Path
 environment = str(Path(sys.executable).parent.parent)
 library = sysconfig.get_path('purelib', scheme='venv',
@@ -610,9 +609,20 @@ library = sysconfig.get_path('purelib', scheme='venv',
 distribution = next(item for item in importlib.metadata.distributions(path=[library])
     if re.sub(r'[-_.]+', '-', item.metadata['Name']).lower() == sys.argv[1])
 wheel = distribution.read_text('WHEEL') or ''
+scripts = sysconfig.get_path('scripts', scheme='venv',
+    vars={'base': environment, 'platbase': environment})
+launchers = []
+for entry in distribution.entry_points:
+    if entry.group not in {'console_scripts', 'gui_scripts'}:
+        continue
+    if re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*', entry.name) is None:
+        raise ValueError('Unsafe installed entry point name')
+    name = entry.name + ('.exe' if sys.platform == 'win32' else '')
+    launchers.append(Path(os.path.relpath(Path(scripts) / name, library)).as_posix())
 print(json.dumps({'name': distribution.metadata['Name'],
     'pure': 'Root-Is-Purelib: true' in wheel and 'Tag: py3-none-any' in wheel,
     'root': str(distribution.locate_file('')),
+    'launchers': launchers,
     'files': [str(path) for path in distribution.files or []]}))
 """
     try:
@@ -667,6 +677,10 @@ print(json.dumps({'name': distribution.metadata['Name'],
     for record in records:
         if not isinstance(record, str):
             raise ValueError(f"Invalid Python distribution record for {name!r}")
+        # uv writes platform launchers outside site-packages. Rebuild them from
+        # entry_points metadata when installing; never ship the builder's executable.
+        if record in metadata.get("launchers", []):
+            continue
         relative = PurePosixPath(record)
         if (
             relative.is_absolute()
@@ -1674,21 +1688,3 @@ def synchronize(root: Path, check: bool) -> int:
         path.write_bytes(data)
     print(f"generated {len(expected)} files")
     return 0
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--root", type=Path, default=Path(__file__).resolve().parents[1]
-    )
-    parser.add_argument("--check", action="store_true")
-    args = parser.parse_args()
-    try:
-        return synchronize(args.root.resolve(), args.check)
-    except ValueError as error:
-        print(f"error: {error}")
-        return 2
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

@@ -1,0 +1,16 @@
+[project]
+name = "tj-template"
+version = "0.1.0"
+description = "Template-owned plugin generation for tj-agents repositories."
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+tj-template = "tj_template._cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }, { file = "src/**/py.typed" }]

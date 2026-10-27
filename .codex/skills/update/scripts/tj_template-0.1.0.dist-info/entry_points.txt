@@ -1,0 +1,3 @@
+[console_scripts]
+tj-template = tj_template._cli:main
+

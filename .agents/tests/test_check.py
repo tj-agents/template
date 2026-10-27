@@ -66,6 +66,8 @@ def repository_factory(tmp_path: Path) -> Callable[[str, str], Path]:
     def create(kind: str, name: str) -> Path:
         result = run(
             str(NEW_PLUGIN),
+            "--template-ref",
+            "a" * 40,
             "--repository",
             f"owner/{name}",
             "--type",
@@ -114,7 +116,7 @@ def edit(root: Path, relative: str, old: str, new: str) -> None:
 
 
 def regenerate(root: Path) -> None:
-    result = run(str(root / ".agents/sync_generated.py"), "--root", str(root))
+    result = run("-m", "tj_template", "generate", "--root", str(root))
     assert result.returncode == 0, result.stdout
 
 
@@ -673,7 +675,14 @@ def test_update_restores_vendored_files_and_removes_legacy_versions(
         manifest_path.write_text(
             json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
         )
-    dry = run(str(UPDATE), "--root", str(zig_repo), "--dry-run")
+    dry = run(
+        str(UPDATE),
+        "--root",
+        str(zig_repo),
+        "--template-ref",
+        "a" * 40,
+        "--dry-run",
+    )
     assert "would update .gitignore" in dry.stdout
     assert "would update .agents/plugins/template.json" in dry.stdout
     for host in ("claude", "codex"):
@@ -682,23 +691,62 @@ def test_update_restores_vendored_files_and_removes_legacy_versions(
     assert "template" in json.loads(path.read_text(encoding="utf-8"))
     for manifest_path in manifest_paths:
         assert "version" in json.loads(manifest_path.read_text(encoding="utf-8"))
-    result = run(str(UPDATE), "--root", str(zig_repo))
+    result = run(
+        str(UPDATE),
+        "--root",
+        str(zig_repo),
+        "--template-ref",
+        "a" * 40,
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "updated .agents/plugins/template.json" in result.stdout
     assert check.check(zig_repo) == []
     assert "template" not in json.loads(path.read_text(encoding="utf-8"))
     for manifest_path in manifest_paths:
         assert "version" not in json.loads(manifest_path.read_text(encoding="utf-8"))
-    rerun = run(str(UPDATE), "--root", str(zig_repo))
+    rerun = run(
+        str(UPDATE),
+        "--root",
+        str(zig_repo),
+        "--template-ref",
+        "a" * 40,
+    )
     assert rerun.returncode == 0, rerun.stdout + rerun.stderr
     assert "already current" in rerun.stdout
 
 
 def test_update_rejects_missing_template_pin(zig_repo: Path) -> None:
     (zig_repo / ".agents/plugins/template.json").unlink()
-    result = run(str(UPDATE), "--root", str(zig_repo))
+    result = run(
+        str(UPDATE),
+        "--root",
+        str(zig_repo),
+        "--template-ref",
+        "a" * 40,
+    )
     assert result.returncode == 2
     assert "template.json: missing" in result.stderr
+
+
+def test_update_removes_copied_generators_without_executing_them(
+    zig_repo: Path,
+) -> None:
+    obsolete = [
+        zig_repo / ".agents" / name
+        for name in ("sync_generated.py", "sync-generated.ps1")
+    ]
+    for path in obsolete:
+        path.write_text(
+            "raise RuntimeError('obsolete generator executed')\n", encoding="utf-8"
+        )
+    arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", "a" * 40)
+    preview = run(*arguments, "--dry-run")
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert all(path.is_file() for path in obsolete)
+    result = run(*arguments)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert all(not path.exists() for path in obsolete)
+    assert check.check(zig_repo) == []
 
 
 def test_a_new_tool_repository_conforms(helix_repo: Path) -> None:

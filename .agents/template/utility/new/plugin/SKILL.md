@@ -58,4 +58,4 @@ selections. CI workflow imports alone do not install Template.
 ## Validation
 
 The script fails if the new repository does not generate cleanly. Before the first push,
-`pwsh .agents/sync-generated.ps1 -Check` and `check` pass in it; CI then runs both from Template's main branch.
+`uv run --locked tj-template check` and `check` pass in it; CI then runs both from Template's main branch.
