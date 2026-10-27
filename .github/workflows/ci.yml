@@ -15,6 +15,18 @@ jobs:
     secrets:
       read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
 
+  system-python-resources:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: resolve distribution resources with Ubuntu's system Python
+        run: >-
+          uv run --no-project --python /usr/bin/python3 --with pytest
+          pytest .agents/tests/test_sync_generated.py -k real_locked -q
+
   regenerate:
     if: github.event_name == 'push'
     needs: verify
