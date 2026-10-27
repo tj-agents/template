@@ -16,17 +16,14 @@ validate_hosts: Any = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(validate_hosts)
 
 
-def test_public_inventory_does_not_require_caller_owned_stack_repositories() -> None:
+def test_plugin_ci_checks_out_no_consumer_repositories() -> None:
     workflow = (ROOT / ".github/workflows/plugin-ci.yml").read_text(encoding="utf-8")
-    repositories = [
+    repositories = {
         line.strip().removeprefix("repository: ")
         for line in workflow.splitlines()
         if line.strip().startswith("repository:")
-    ]
-    public_stacks = {
-        name for name in repositories if name.endswith(("/react", "/dotnet"))
     }
-    assert public_stacks == {"tj-agents/react", "tj-agents/dotnet"}
+    assert repositories == {"${{ inputs.template_repository }}"}
 
 
 def test_only_the_omitted_version_warning_is_tolerated() -> None:
