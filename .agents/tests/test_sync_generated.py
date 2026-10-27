@@ -1796,7 +1796,9 @@ def test_codex_hook_snapshot_is_reused_without_rehashing(
     assert len(hashed) == 2
 
     shutil.rmtree(package)
-    assert loader.Snapshot.for_package(package, expected, snapshots).resolve() == created
+    assert (
+        loader.Snapshot.for_package(package, expected, snapshots).resolve() == created
+    )
     assert len(hashed) == 2
 
 
@@ -1852,7 +1854,9 @@ def test_codex_hook_snapshot_creation_prunes_only_stale_siblings(
 
     os.utime(current / loader.MARKER, (stale, stale))
     late = sibling("e" * 64, stale)
-    assert loader.Snapshot.for_package(package, expected, snapshots).resolve() == current
+    assert (
+        loader.Snapshot.for_package(package, expected, snapshots).resolve() == current
+    )
     assert late.is_dir()
     assert loader.time.time() - (current / loader.MARKER).stat().st_mtime < 60
 
