@@ -1484,6 +1484,23 @@ def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> N
     assert json.loads(output["plugins/demo/hooks/claude.json"]) == claude_hooks
 
 
+def test_host_runtime_ships_from_its_host_directory(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    write(tmp_path / ".codex/runtime/client.py", "VALUE = 1\n")
+    path = tmp_path / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["resources"] = [
+        {
+            "plugin": "demo",
+            "source": ".codex/runtime",
+            "destination": ".agents/demo/runtime/codex",
+        }
+    ]
+    write_json(path, payloads)
+    output = sync_generated.build(tmp_path)
+    assert output["plugins/demo/.agents/demo/runtime/codex/client.py"] == b"VALUE = 1\n"
+
+
 def test_host_resources_outside_hooks_are_rejected(tmp_path: Path) -> None:
     make_repository(tmp_path)
     write(tmp_path / ".claude/settings.json", "{}\n")
