@@ -349,6 +349,7 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
     )
     uv = shutil.which("uv")
     assert uv is not None
+    write(producer / ".python-version", sys.executable + "\n")
     subprocess.run([uv, "lock", "--offline", "--project", str(producer)], check=True)
     write(
         producer / ".agents/demo/runtime/entry.py",
