@@ -83,6 +83,10 @@ Installation receipts and caches are omitted; package code, data, licenses and s
 Host adapters establish their shipped package root, then use normal public imports. Neither generation nor
 runtime locates a sibling source checkout.
 
+Resources mapped beneath `skills/<skill>/` also ship beside that skill's repository-local Claude and
+Codex scripts, and beside a separate installed Codex entry when declared. This keeps all generated
+entry points able to import the same bundled library. Authored source runs in the project's uv environment.
+
 ```json
 {"plugin": "demo", "distribution": "owner-library", "destination": ".agents/demo/runtime"}
 ```
