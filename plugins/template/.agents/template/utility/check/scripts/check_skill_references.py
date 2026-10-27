@@ -25,7 +25,7 @@ NAMED_LIST = re.compile(
     re.IGNORECASE,
 )
 COMMENT = re.compile(r"<!--.*?-->")
-MARKETPLACE_PLUGINS = "catalog.json"
+MARKETPLACE_PLUGINS = "plugins.json"
 TOKEN_VARIABLE = "SKILL_REFERENCES_TOKEN"
 PLACEHOLDER = re.compile(
     r"[{}<>*]|^(?:namespace:skill|plugin:skill|your-plugin:your-skill)$"
