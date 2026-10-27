@@ -689,6 +689,8 @@ print(json.dumps({'name': distribution.metadata['Name'],
             "RECORD.p7s",
             "direct_url.json",
             "uv_cache.json",
+            "WHEEL",
+            "uv_build.json",
         }:
             continue
         if relative.suffix == ".pth":
