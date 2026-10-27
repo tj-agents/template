@@ -79,7 +79,10 @@ A Python library resource replaces `source` with its distribution name. The dist
 dependency in `pyproject.toml`, resolved by committed `uv.lock`. Generation uses `uv run --locked --no-editable`
 to collect its installed pure Python wheel; it never imports the library. Declare every distribution needed
 at runtime. Native extensions, `.pth` import hooks and records outside the installed package root are rejected.
-Installation receipts and caches are omitted; package code, data, licenses and stable wheel metadata ship.
+Installation receipts and caches are omitted; package code, data, licenses and runtime distribution metadata ship.
+Build records (`WHEEL` and `uv_build.json`) are also omitted: their tool-version information must not make
+the generated runtime depend on the builder installed on a particular machine. Wheel purity is checked
+before selecting the runtime files. Runtime distribution metadata and entry points remain available.
 Host adapters establish their shipped package root, then use normal public imports. Neither generation nor
 runtime locates a sibling source checkout.
 

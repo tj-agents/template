@@ -165,6 +165,7 @@ def installed_distribution(
         "fixture_lib/__pycache__/__init__.cpython-312.pyc": "cache",
         "fixture_lib-0.1.0.dist-info/METADATA": "Name: fixture-lib\n",
         "fixture_lib-0.1.0.dist-info/WHEEL": "Root-Is-Purelib: true\n",
+        "fixture_lib-0.1.0.dist-info/uv_build.json": "{}\n",
         "fixture_lib-0.1.0.dist-info/entry_points.txt": (
             "[demo]\nprobe=fixture_lib:VALUE\n"
         ),
@@ -225,6 +226,12 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
             output[f".{host}/skills/tool/scripts/fixture_lib/__init__.py"]
             == b"VALUE = 42\n"
         )
+    write(
+        site / "fixture_lib-0.1.0.dist-info/WHEEL",
+        "Root-Is-Purelib: true\nGenerator: another build tool version\n",
+    )
+    write(site / "fixture_lib-0.1.0.dist-info/uv_build.json", '{"builder": "other"}\n')
+    assert build(demo_root) == output
     assert synchronize(demo_root, check=False)[0] == 0
     write(site / "fixture_lib/__init__.py", "VALUE = 43\n")
     assert synchronize(demo_root, check=True)[0] != 0
