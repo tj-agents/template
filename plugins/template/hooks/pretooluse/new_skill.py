@@ -7,9 +7,10 @@ from pathlib import Path
 SKILL_FILE = "SKILL.md"
 PROCEDURE = "template:new-skill"
 MESSAGE = (
-    "TEMPLATE - creating a new skill requires the template:new-skill procedure first: it resolves ownership, "
-    "naming and whether an existing skill should be extended instead. Load template:new-skill, follow it, then "
-    "retry. Edits to existing skills are not affected. The file was NOT written.\n"
+    "TEMPLATE - creating a new skill requires the template:new-skill procedure "
+    "first: it resolves ownership, naming and whether an existing skill should be "
+    "extended instead. Load template:new-skill, follow it, then retry. Edits to "
+    "existing skills are not affected. The file was NOT written.\n"
 )
 
 
