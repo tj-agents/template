@@ -220,6 +220,11 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
         assert output[prefix + "fixture_lib-0.1.0.dist-info/LICENSE"]
     assert not any("direct_url" in path or path.endswith("/RECORD") for path in output)
     assert not any("__pycache__" in path for path in output)
+    for host in ("claude", "codex"):
+        assert (
+            output[f".{host}/skills/tool/scripts/fixture_lib/__init__.py"]
+            == b"VALUE = 42\n"
+        )
     assert synchronize(demo_root, check=False)[0] == 0
     write(site / "fixture_lib/__init__.py", "VALUE = 43\n")
     assert synchronize(demo_root, check=True)[0] != 0
@@ -238,6 +243,38 @@ def test_distribution_resources_reject_escaping_records(
     metadata["files"] = [record]
     with pytest.raises(ValueError, match="Unsafe Python distribution record"):
         sync_generated.distribution_files(demo_root, "fixture-lib")
+
+
+def test_distribution_resources_reach_separate_installed_codex_entry(
+    demo_root: Path,
+    installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
+) -> None:
+    extension = ".agents/plugins/adapters/codex/demo/tool.md"
+    write(demo_root / extension, "Use the native Codex tool.\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "host_adapters": [
+                {"skill": "demo:tool", "host": "codex", "source": extension},
+            ],
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "distribution": "fixture-lib",
+                    "destination": "skills/tool/scripts",
+                },
+            ],
+        },
+    )
+
+    output = build(demo_root)
+
+    for directory in ("skills", "codex-skills"):
+        assert (
+            output[f"plugins/demo/{directory}/tool/scripts/fixture_lib/__init__.py"]
+            == b"VALUE = 42\n"
+        )
 
 
 @pytest.mark.parametrize(
@@ -359,6 +396,10 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
         "from importlib.metadata import entry_points\n"
         "print(VALUE, next(iter(entry_points(group='demo.fixture'))).name)\n",
     )
+    write(
+        producer / ".agents/demo/utility/tool/scripts/run.py",
+        "from fixture_lib import VALUE\nprint(VALUE)\n",
+    )
     write_json(
         producer / ".agents/plugins/payloads.json",
         {
@@ -368,6 +409,11 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
                     "plugin": "demo",
                     "distribution": "fixture-lib",
                     "destination": "runtime",
+                },
+                {
+                    "plugin": "demo",
+                    "distribution": "fixture-lib",
+                    "destination": "skills/tool/scripts",
                 },
                 {
                     "plugin": "demo",
@@ -386,6 +432,8 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
     assert synchronize(producer, check=False)[0] == 0
     installed = tmp_path / "installed"
     shutil.copytree(producer / "plugins/demo", installed)
+    for host in ("claude", "codex"):
+        shutil.copytree(producer / f".{host}/skills", installed / f".{host}/skills")
     shutil.rmtree(producer)
     result = subprocess.run(
         [sys.executable, "-I", "-B", str(installed / "runtime/entry.py")],
@@ -396,6 +444,20 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
     )
     assert result.stdout.strip() == "42 probe"
     assert (installed / "runtime/fixture_lib-0.1.0.dist-info/LICENSE").is_file()
+    for host in ("claude", "codex"):
+        local = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                str(installed / f".{host}/skills/tool/scripts/run.py"),
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        assert local.stdout.strip() == "42"
 
 
 def test_external_selection_dependency_is_preserved_and_shape_checked(
