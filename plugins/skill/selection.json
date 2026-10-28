@@ -1,0 +1,47 @@
+{
+  "plugin": "skill",
+  "dependencies": [
+    "tj-agents/engineering"
+  ],
+  "profiles": {
+    "core": [
+      "create",
+      "update"
+    ]
+  },
+  "compatibilitySkillAliases": {},
+  "skills": [
+    {
+      "name": "create",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "skill authoring in selected repositories"
+      ],
+      "requires": [
+        "native skill creator",
+        "python",
+        "pwsh"
+      ],
+      "provenance": [
+        "house"
+      ]
+    },
+    {
+      "name": "update",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "existing skill authoring in selected repositories"
+      ],
+      "requires": [
+        "native skill creator",
+        "python",
+        "pwsh"
+      ],
+      "provenance": [
+        "house"
+      ]
+    }
+  ]
+}
