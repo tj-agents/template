@@ -4,7 +4,6 @@
   "source_roots": [
     ".agents/template/utility/check",
     ".agents/template/utility/new/plugin",
-    ".agents/template/utility/new/skill",
     ".agents/template/utility/update"
   ],
   "requires": {
@@ -17,15 +16,8 @@
     "plugins": [
       "tj-agents/template",
       "tj-agents/base",
-      "tj-agents/engineering"
-    ],
-    "hooks": [
-      {
-        "path": "hooks/pretooluse/claude/new_skill.py",
-        "hosts": [
-          "claude"
-        ]
-      }
+      "tj-agents/engineering",
+      "tj-agents/skill"
     ],
     "permissions": {
       "claude_allow": [
