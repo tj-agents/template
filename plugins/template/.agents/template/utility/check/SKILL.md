@@ -67,6 +67,30 @@ folder, only a folder with its own `SKILL.md` is a member, and anything else shi
 In projects without a selected policy that forbids compatibility aliases, renaming a published skill keeps
 its old name until its `removeAfter` date. Apply the consuming project's explicit policy and published commitments.
 
+## Executable skill assets
+
+Keep a skill's executable implementation in separate source files under its `scripts/` directory.
+Shared implementation belongs in the existing owning runtime; host-specific code follows that host's
+runtime layout. `SKILL.md` and host adapters give instructions, reference the shipped files and show
+concise invocations. Do not make the agent reconstruct executable logic from Markdown code blocks,
+heredocs or inline interpreter strings on each run.
+
+Use deterministic scripts for work determined by fixed inputs. Give their inputs and outputs explicit
+types, include the files in the project's selected type-checking or compiler checks, and test meaningful
+behavior. Moving code into a file alone does not provide type safety. Use native host tools where they
+already supply the required behavior; this placement rule does not justify reimplementing them.
+
+```text
+Implementation: .agents/template/utility/check/scripts/check.py
+Skill invocation: python -B "<skill-directory>/scripts/check.py" --root .
+Validation: the project's type checker and focused tests check that source file.
+```
+
+Short invocation, configuration and teaching examples may remain inline. They demonstrate the skill's
+behavior; they are not a second implementation for the agent to copy and execute. The concrete-example
+requirement below still applies. This is an authoring and review requirement; the layout checker does
+not infer whether an arbitrary code block is implementation or an example.
+
 ## What it enforces
 
 - The vendored files equal the current Template source, with `ci.yml` rendered for the repository's owner.
