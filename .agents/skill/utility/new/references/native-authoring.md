@@ -7,7 +7,7 @@ discover the installed Anthropic Skill Creator plugin's advertised skill; the of
 Resolve its actual invocation from native discovery rather than assuming a slash-command identity.
 
 Pass the resolved identity, source path, concern boundary, selected prerequisites, concrete use case,
-Template metadata/layout requirements and acceptance checks to that creator. Let it choose its authoring
+selected project metadata/layout requirements and acceptance checks to that creator. Let it choose its authoring
 and evaluation method within those constraints. Do not embed another general-purpose creation workflow,
 copy the creator, or let a native initializer move the canonical source into a user profile.
 

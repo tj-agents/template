@@ -34,9 +34,7 @@
         "skill authoring in selected repositories"
       ],
       "requires": [
-        "native skill creator",
-        "python",
-        "pwsh"
+        "native skill creator"
       ],
       "provenance": [
         "house"
@@ -50,9 +48,7 @@
         "existing skill authoring in selected repositories"
       ],
       "requires": [
-        "native skill creator",
-        "python",
-        "pwsh"
+        "native skill creator"
       ],
       "provenance": [
         "house"
