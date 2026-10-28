@@ -1980,3 +1980,19 @@ def test_codex_hook_bootstrap_compiles_only_simple_statements(tmp_path: Path) ->
 def test_template_generated_outputs_are_current() -> None:
     with contextlib.redirect_stdout(io.StringIO()):
         assert sync_generated.synchronize(ROOT, check=True) == 0
+
+
+def test_skill_authoring_publishes_only_current_operation_names() -> None:
+    output = sync_generated.build(ROOT)
+    entries = {
+        path
+        for path in output
+        if path.startswith("plugins/skill/skills/") and path.endswith("/SKILL.md")
+    }
+    assert entries == {
+        "plugins/skill/skills/create/SKILL.md",
+        "plugins/skill/skills/update/SKILL.md",
+    }
+    assert not any("/new-skill/" in path for path in output)
+    template = json.loads(output["plugins/template/selection.json"])
+    assert "skill" in template["dependencies"]
