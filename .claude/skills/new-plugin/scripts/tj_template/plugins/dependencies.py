@@ -9,6 +9,7 @@ REPOSITORY = "https://github.com/tj-agents/template"
 SUBDIRECTORY = "packages/tj-template"
 COMMIT = re.compile(r"[0-9a-f]{40}")
 TOOL_PROJECT = Path("tools/plugin-generation")
+REQUIREMENT = re.compile(r"tj[-_.]+template(?=$|[\s<>=!~;@\[])", re.I)
 
 
 def resolve_revision(reference: str | None) -> str:
@@ -95,10 +96,15 @@ def configure(root: Path, name: str, revision: str, dry_run: bool) -> bool:
             except (OSError, subprocess.CalledProcessError) as error:
                 raise ValueError("Cannot repair the generator lockfile") from error
             return True
+    files = project_files(name, revision) if not path.is_file() else {}
+    for relative in files:
+        destination = root / relative
+        if destination.is_symlink() or destination.is_junction():
+            raise ValueError(f"Cannot create linked generator project file: {relative}")
     if dry_run:
         return True
     if not path.is_file():
-        for relative, text in project_files(name, revision).items():
+        for relative, text in files.items():
             destination = root / relative
             if not destination.exists():
                 destination.parent.mkdir(parents=True, exist_ok=True)
@@ -128,8 +134,9 @@ def project_directory(root: Path) -> Path:
     return root if (root / "pyproject.toml").is_file() else root / TOOL_PROJECT
 
 
-def generate(root: Path) -> int:
+def run(root: Path, *, check: bool) -> int:
     """Execute exactly the generator locked by the consumer's project."""
+    group = generator_group(root, required=True)
     try:
         return subprocess.run(
             [
@@ -137,10 +144,15 @@ def generate(root: Path) -> int:
                 "run",
                 "--locked",
                 "--no-editable",
+                "--no-default-groups",
+                *(["--group", group] if group is not None else []),
                 "--project",
                 str(project_directory(root)),
-                "tj-template",
-                "generate",
+                "python",
+                "-I",
+                "-m",
+                "tj_template",
+                "check" if check else "generate",
                 "--root",
                 str(root),
             ],
@@ -148,3 +160,25 @@ def generate(root: Path) -> int:
         ).returncode
     except OSError as error:
         raise ValueError("Cannot run the locked Template generator") from error
+
+
+def generator_group(root: Path, *, required: bool = False) -> str | None:
+    """Select the declared group; a new consumer will be configured in dev."""
+    path = project_directory(root) / "pyproject.toml"
+    config = tomllib.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+    def contains(requirements: list[object]) -> bool:
+        return any(
+            isinstance(item, str) and REQUIREMENT.match(item.strip())
+            for item in requirements
+        )
+
+    if contains(config.get("project", {}).get("dependencies", [])):
+        return None
+    groups = config.get("dependency-groups", {})
+    for group in sorted(groups, key=lambda name: name != "dev"):
+        if contains(groups[group]):
+            return str(group)
+    if required:
+        raise ValueError("The project must declare its Template generator dependency")
+    return "dev"

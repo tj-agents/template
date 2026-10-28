@@ -204,6 +204,7 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
     output = build(demo_root)
     assert len(calls) == 1
     assert calls[0][1:4] == ["run", "--locked", "--no-editable"]
+    assert "--no-default-groups" in calls[0]
     for target in ("runtime", "skills/tool/scripts"):
         prefix = f"plugins/demo/{target}/"
         assert output[prefix + "fixture_lib/__init__.py"] == b"VALUE = 42\n"
@@ -242,7 +243,9 @@ def test_distribution_resources_reject_escaping_records(
     _site, metadata, _calls = installed_distribution
     metadata["files"] = [record]
     with pytest.raises(ValueError, match="Unsafe Python distribution record"):
-        generation.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(
+            demo_root, "fixture-lib", demo_root / ".inspection-env"
+        )
 
 
 def test_distribution_resources_reach_separate_installed_codex_entry(
@@ -296,7 +299,9 @@ def test_distribution_resources_reject_unsupported_installs(
     _site, metadata, _calls = installed_distribution
     metadata.update(change)
     with pytest.raises(ValueError, match=message):
-        generation.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(
+            demo_root, "fixture-lib", demo_root / ".inspection-env"
+        )
 
 
 def test_distribution_resources_require_declared_locked_runtime_dependency(
@@ -304,10 +309,14 @@ def test_distribution_resources_require_declared_locked_runtime_dependency(
     installed_distribution: tuple[Path, dict[str, Any], list[list[str]]],
 ) -> None:
     with pytest.raises(ValueError, match="not a runtime dependency"):
-        generation.distribution_files(demo_root, "undeclared")
+        generation.distribution_files(
+            demo_root, "undeclared", demo_root / ".inspection-env"
+        )
     (demo_root / "uv.lock").unlink()
     with pytest.raises(ValueError, match=r"require a regular uv\.lock"):
-        generation.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(
+            demo_root, "fixture-lib", demo_root / ".inspection-env"
+        )
 
 
 def test_distribution_resources_reject_links(
@@ -322,7 +331,9 @@ def test_distribution_resources_reject_links(
         pytest.skip("symlink creation unavailable")
     metadata["files"] = ["linked/__init__.py"]
     with pytest.raises(ValueError, match="Linked Python distribution resource"):
-        generation.distribution_files(demo_root, "fixture-lib")
+        generation.distribution_files(
+            demo_root, "fixture-lib", demo_root / ".inspection-env"
+        )
 
 
 def test_distribution_collision_does_not_mutate_installed_output(
@@ -423,6 +434,8 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
             ],
         },
     )
+    caller_environment = producer / ".venv/keep.txt"
+    write(caller_environment, "caller environment must remain untouched\n")
     if import_hook:
         with pytest.raises(ValueError, match=r"cannot require \.pth"):
             build(producer)
@@ -430,6 +443,10 @@ def test_real_locked_wheel_runs_after_producer_and_environment_are_removed(
         assert not (producer / "plugins").exists()
         return
     assert synchronize(producer, check=False)[0] == 0
+    assert (
+        caller_environment.read_text(encoding="utf-8")
+        == "caller environment must remain untouched\n"
+    )
     installed = tmp_path / "installed"
     shutil.copytree(producer / "plugins/demo", installed)
     for host in ("claude", "codex"):
@@ -1693,6 +1710,7 @@ def test_each_copied_package_runs_from_its_adapter_resources(
         env=environment,
     )
     assert check.returncode == 0, check.stdout + check.stderr
+    (example / "selected-generator.txt").unlink()
     gitignore = example / ".gitignore"
     gitignore.write_text(
         gitignore.read_text(encoding="utf-8") + "local/\n", encoding="utf-8"

@@ -17,6 +17,11 @@ vendored content; Template changes do not require version bumps or tags.
 `uv run --locked --no-editable tj-template generate` after authored changes; `uv run --locked --no-editable tj-template check` and the `python:build`
 gate must pass before delivery.
 
+`plugins/*` is distribution output: keep it out of source PRs. CI regenerates before verification and
+publishes those bundles on main. In a fresh source or review checkout, generate before running tests
+that exercise bundled skills or compare generated files. The committed native adapters remain part of
+the source candidate.
+
 <!-- BEGIN personal:current-solution sha256:2e091b5f18f67fb2302024e817c71d4a0f5234c1ca63ca1c9af5c4eef3b6a128 -->
 # Personal projects
 

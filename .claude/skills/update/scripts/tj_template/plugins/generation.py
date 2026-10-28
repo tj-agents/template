@@ -5,11 +5,13 @@ installable payloads."""
 import ast
 import hashlib
 import json
+import os
 import posixpath
 import re
 import shutil
 import stat
 import subprocess
+import tempfile
 import tomllib
 from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
@@ -577,7 +579,9 @@ def validate_skill_asset_source(
         )
 
 
-def distribution_files(root: Path, name: str) -> list[tuple[Path, tuple[str, ...]]]:
+def distribution_files(
+    root: Path, name: str, environment: Path
+) -> list[tuple[Path, tuple[str, ...]]]:
     """Read a locked, non-editable pure-Python dependency without importing it."""
     if not NAME.fullmatch(name):
         raise ValueError(f"Invalid Python distribution resource: {name!r}")
@@ -632,6 +636,7 @@ print(json.dumps({'name': distribution.metadata['Name'],
                 "run",
                 "--locked",
                 "--no-editable",
+                "--no-default-groups",
                 "--project",
                 str(root),
                 "python",
@@ -643,6 +648,7 @@ print(json.dumps({'name': distribution.metadata['Name'],
                 name,
             ],
             cwd=root,
+            env=os.environ | {"UV_PROJECT_ENVIRONMENT": str(environment)},
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -737,6 +743,7 @@ def validate_resources(
     payloads: JSONObject,
     publications: dict[str, str],
     plugins: Plugins,
+    environment: Path,
 ) -> dict[str, list[tuple[Path, str]]]:
     resources = payloads.get("resources", [])
     if not isinstance(resources, list):
@@ -775,7 +782,7 @@ def validate_resources(
                     "A Python distribution resource requires a distribution name"
                 )
             if name not in distributions:
-                distributions[name] = distribution_files(root, name)
+                distributions[name] = distribution_files(root, name, environment / name)
             selected = distributions[name]
         else:
             source = resource["source"]
@@ -1409,12 +1416,19 @@ def bind_codex_hook_snapshots(
 
 
 def build(root: Path) -> dict[str, bytes]:
+    # Wheel inspection must not synchronize the environment running this command.
+    # Keep its files alive until every resource has been copied into the output.
+    with tempfile.TemporaryDirectory(prefix="tj-template-distributions-") as directory:
+        return _build(root, Path(directory))
+
+
+def _build(root: Path, environment: Path) -> dict[str, bytes]:
     config = load_config(root)
     namespace, repository = config["namespace"], config["repository"]
     payloads = load(root / ".agents/plugins/payloads.json")
     plugins = discover(root, namespace, mapped_resource_directories(payloads))
     publications = validate_payloads(payloads, plugins)
-    resources = validate_resources(root, payloads, publications, plugins)
+    resources = validate_resources(root, payloads, publications, plugins, environment)
     host_adapters = validate_host_adapters(root, payloads, plugins)
     validate_tiers(root, plugins, repository)
     manifests, templates = load_manifests(root, publications, repository)

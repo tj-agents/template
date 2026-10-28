@@ -31,16 +31,14 @@ def assert_generation_precedes(job_body: str, following: str) -> None:
     assert job_body.index(generate) < job_body.index(current)
     assert job_body.index(current) < job_body.index(following)
     assert "if: inputs.generate_before_verify" in generate
-    assert (
-        "uv run --locked --no-editable --project .template "
-        "tj-template generate --root .\n"
-        "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in generate
-    )
+    assert ".template/.github/scripts/run_generation.py --root .\n" in generate
     assert "if:" not in current
-    assert (
-        "uv run --locked --no-editable --project .template tj-template check --root .\n"
-        "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in current
-    )
+    assert ".template/.github/scripts/run_generation.py --root . --check\n" in current
+    for command in (generate, current):
+        assert (
+            "uv run --locked --no-editable --project .template python -I -B" in command
+        )
+        assert "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in command
 
 
 @pytest.fixture

@@ -5,15 +5,15 @@ import re
 import subprocess
 from pathlib import Path
 
-from tj_template.plugins.dependencies import project_directory
+from tj_template.plugins.dependencies import generator_group, project_directory
 from tj_template.plugins.generation import is_link_or_junction
 
 RETIRED_SCRIPTS = (".agents/sync_generated.py", ".agents/sync-generated.ps1")
 REFERENCE = re.compile(r"\.agents[/\\]+sync(?:_generated\.py|-generated\.ps1)", re.I)
 COMMAND = re.compile(
-    r"(?:pwsh(?:\s+-NoProfile)?\s+)?(?:\./)?\.agents[/\\]+sync-generated\.ps1"
-    r"(?P<check>\s+-Check)?",
-    re.I,
+    r"\bpwsh(?:[ \t]+-NoProfile)?[ \t]+(?:\./)?\.agents[/\\]+sync-generated\.ps1"
+    r"(?P<check>[ \t]+-Check)?(?=[ \t]*(?:$|[`'\";]|&&|\|\||#))",
+    re.I | re.M,
 )
 TEXT_SUFFIXES = {".md", ".py", ".ps1", ".json", ".toml", ".yml", ".yaml", ".rules"}
 IGNORED = {
@@ -59,7 +59,10 @@ def authored_paths(root: Path) -> list[Path]:
 def caller_changes(root: Path) -> dict[Path, str]:
     """Plan known Markdown rewrites and refuse unhandled callers before deletion."""
     project = project_directory(root)
-    prefix = "uv run --locked"
+    prefix = "uv run --locked --no-default-groups"
+    group = generator_group(root)
+    if group is not None:
+        prefix += " --group " + group
     if project != root:
         prefix += " --project " + project.relative_to(root).as_posix()
     prefix += " tj-template"
