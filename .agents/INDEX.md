@@ -4,7 +4,8 @@ Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's n
 
 ## skill
 
-- `create` — utility — core — `.agents/skill/utility/create/SKILL.md`
+- `check` — utility — core — `.agents/skill/utility/check/SKILL.md`
+- `new` — utility — core — `.agents/skill/utility/new/SKILL.md`
 - `update` — utility — core — `.agents/skill/utility/update/SKILL.md`
 
 ## template

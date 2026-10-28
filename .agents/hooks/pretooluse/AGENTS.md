@@ -17,5 +17,5 @@ Host-neutral logic lives here and is imported by each host's implementation unde
 
 ```text
 skill_authoring.py                           shared: does this write create a new SKILL.md?
-.claude/hooks/pretooluse/skill_authoring.py  Claude: block it until skill:create or skill:update is loaded
+.claude/hooks/pretooluse/skill_authoring.py  Claude: block it until skill:new or skill:update is loaded
 ```

@@ -1,11 +1,11 @@
 ---
 name: update
-description: Update, rename, split or consolidate an existing skill through the current host's native skill creator, migrating its callers and removing superseded identities. Use when changing an existing skill or correcting its guidance; new skills use skill:create.
+description: Update, rename, split or consolidate an existing skill through the current host's native skill creator, migrating its callers and removing superseded identities. Use when changing an existing skill or correcting its guidance; new skills use skill:new.
 kind: utility
 domain: template
 profile: core
 applicability: existing skill authoring in selected repositories
-requires: native skill creator, python, pwsh
+requires: native skill creator
 provenance: house
 ---
 
@@ -25,10 +25,13 @@ Verify: fresh Claude/Codex discovery exposes only workflow:continue; the retired
 
 Resolve the existing canonical definition, both host entries, its source repository and current callers.
 Load `engineering:skill-authoring` for concern, naming and sizing rules. Read
-[native skill authoring](../create/references/native-authoring.md) and delegate this update to the
+[native skill authoring](../new/references/native-authoring.md) and delegate this update to the
 current host's discovered native skill creator with the requested change, existing files, scope and
 acceptance checks. Do this for edits as well as renames; do not substitute hand-written authoring steps
 for the host's native creator. Do not initialize an existing skill again.
+
+Load `skill:check`, include its content and executable asset requirements in the brief, and apply
+its checks to the completed update.
 
 A rename or consolidation removes the former public capability in the same cutover. Delete old skill
 entries, aliases, forwarding paths and competing discovery names. Keeping an old name as a differently
@@ -43,7 +46,8 @@ registration; retain one writer and preserve its pending evidence.
 Search the maintained corpus, generated discovery and known installed bindings for every retired qualified
 identity, bare name and path. An active match keeps the update incomplete. Historical plans, commits and
 review evidence may retain their original names; they are evidence, not current entry points. Record the
-search scope and concrete result, then regenerate, run Template checks and the affected behavior tests.
+search scope and concrete result, then apply `skill:check` and the affected behavior tests. Template-layout
+repositories also regenerate and run their Template checks; native-only skills retain native validation.
 Verify fresh loading on both supported hosts and Windows/Linux behavior when executable resources changed.
 Report any unverified installed entry point with its resolver and observable resume condition; source-only
 checks do not establish a completed migration.
