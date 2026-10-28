@@ -17,9 +17,7 @@ class SkillAuthoringHookTests(unittest.TestCase):
         self.transcript = self.root / "session.jsonl"
         self.transcript.write_text("", encoding="utf-8")
 
-    def load_procedure(
-        self, error: bool = False, procedure: str = "skill:create"
-    ) -> None:
+    def load_procedure(self, error: bool = False, procedure: str = "skill:new") -> None:
         records = [
             {
                 "type": "assistant",
@@ -75,15 +73,19 @@ class SkillAuthoringHookTests(unittest.TestCase):
         target = self.root / ".agents" / "demo" / "utility" / "fresh" / "SKILL.md"
         refused = self.write(target)
         self.assertEqual(2, refused.returncode)
-        self.assertIn("skill:create", refused.stderr)
+        self.assertIn("skill:new", refused.stderr)
         self.load_procedure(error=True)
         self.assertEqual(2, self.write(target).returncode)
         self.load_procedure()
         self.assertEqual(0, self.write(target).returncode)
 
     def test_retired_creation_name_does_not_admit_a_write(self) -> None:
-        self.load_procedure(procedure="template:new-skill")
-        self.assertEqual(2, self.write(self.root / "fresh" / "SKILL.md").returncode)
+        for procedure in ("template:new-skill", "skill:create"):
+            with self.subTest(procedure=procedure):
+                self.load_procedure(procedure=procedure)
+                self.assertEqual(
+                    2, self.write(self.root / "fresh" / "SKILL.md").returncode
+                )
 
     def test_existing_skill_requires_update_for_write_and_edit(self) -> None:
         existing = self.root / "existing" / "SKILL.md"

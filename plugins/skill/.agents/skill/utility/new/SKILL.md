@@ -1,18 +1,18 @@
 ---
-name: create
-description: Resolve ownership, naming and applicability before creating a skill, then delegate authoring to the current host's native skill creator. Use for direct skill-creation requests in any selected repository, including adding a skill to an existing plugin; existing skills use skill:update; new repositories use template:new-plugin.
+name: new
+description: Resolve ownership, naming and applicability before creating a skill, then delegate authoring to the current host's native skill creator. Use for direct skill-creation requests in any selected repository, including adding a skill to an existing plugin; existing skills use skill:update; new plugin repositories use template:new-plugin.
 kind: utility
 domain: template
 profile: core
 applicability: skill authoring in selected repositories
-requires: native skill creator, python, pwsh
+requires: native skill creator
 provenance: house
 ---
 
 # Create a skill
 
-Apply this constraint before native authoring. Template owns the shared contract and projections;
-the native creator owns the authoring method. Keep the existing goal and authorization.
+Apply this constraint before native authoring. `skill:check` owns the skill contract, Template owns
+projections, and the native creator owns the authoring method. Keep the existing goal and authorization.
 
 ```text
 Naming example: React namespace, validation concern; Zod is explicitly selected.
@@ -42,9 +42,12 @@ Keep library policy and choices with one owner, such as `react:libraries`; detai
 concern skill. State selected prerequisites and scope so optional choices stay optional. A convention
 still follows its owner's learning/decision procedure; a creation request does not adopt invented rules.
 
-Choose the current kind and metadata from `template:check` and its canonical standard. Current scaffolds
-use convention, policy, knowledge and utility; do not copy legacy contract metadata into a new skill.
-Author once under `.agents/<plugin>/<kind>/<name>/SKILL.md`, with family folders where appropriate.
+Load `skill:check` and pass its content and executable asset requirements to the native creator.
+Use the repository's selected skill format and source layout. In Template-layout repositories, choose
+the current kind and metadata from `template:check` and its canonical standard. Those scaffolds use
+convention, policy, knowledge and utility; author once under `.agents/<plugin>/<kind>/<name>/SKILL.md`,
+with family folders where appropriate. Other layouts use the current host's native format and the
+resolved source path. Do not impose Template metadata or tooling on a native-only skill.
 Specify the published identity, discovery description, prerequisites, behavioral example and assets
 actually needed. Do not author generated host copies or transplant host-specific UI metadata.
 
@@ -60,9 +63,10 @@ classification when no write evidence applies. Avoid routing every optional skil
 extension. Updates, renames and consolidations follow `skill:update`; keep only the current supported
 identity in authored sources, generated discovery and installed selections.
 
-Regenerate with the repository's supported generator, run `template:check`, generated freshness and
-focused corpus-reference/routing checks, and verify fresh Codex and Claude discovery and loading.
-Exercise a direct creation request: this Template gate must load before native creator delegation.
+Apply `skill:check` and the repository's existing validation. Template-layout repositories also run
+their generator, `template:check`, generated freshness and corpus-reference/routing checks.
+Verify fresh supported host discovery and loading.
+Exercise a direct creation request: `skill:new` must load before native creator delegation.
 Separate source checks from installed runtime acceptance and record any unresolved host gate.
 
 Namespace suitability is a reviewed authoring decision. Keep deterministic layout/metadata validation
