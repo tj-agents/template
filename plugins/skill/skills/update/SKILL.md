@@ -5,7 +5,7 @@ kind: utility
 domain: template
 profile: core
 applicability: existing skill authoring in selected repositories
-requires: native skill creator, python, pwsh
+requires: native skill creator
 provenance: house
 ---
 

@@ -5,7 +5,7 @@ kind: utility
 domain: template
 profile: core
 applicability: existing skill authoring in selected repositories
-requires: native skill creator, python, pwsh
+requires: native skill creator
 provenance: house
 ---
 
@@ -46,7 +46,8 @@ registration; retain one writer and preserve its pending evidence.
 Search the maintained corpus, generated discovery and known installed bindings for every retired qualified
 identity, bare name and path. An active match keeps the update incomplete. Historical plans, commits and
 review evidence may retain their original names; they are evidence, not current entry points. Record the
-search scope and concrete result, then regenerate, run Template checks and the affected behavior tests.
+search scope and concrete result, then apply `skill:check` and the affected behavior tests. Template-layout
+repositories also regenerate and run their Template checks; native-only skills retain native validation.
 Verify fresh loading on both supported hosts and Windows/Linux behavior when executable resources changed.
 Report any unverified installed entry point with its resolver and observable resume condition; source-only
 checks do not establish a completed migration.
