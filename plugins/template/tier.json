@@ -5,6 +5,5 @@
   "applies": "always",
   "owner_repository": [
     "tj-agents/template"
-  ],
-  "session_context": "For requests to create, split, rename or consolidate a skill, load template:new-skill before the native skill creator; Template resolves ownership and scope first."
+  ]
 }

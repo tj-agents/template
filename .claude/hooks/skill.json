@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ],
+            "if": "Write(**/SKILL.md)"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ],
+            "if": "Edit(**/SKILL.md)"
+          }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ],
+            "if": "MultiEdit(**/SKILL.md)"
+          }
+        ]
+      }
+    ]
+  }
+}

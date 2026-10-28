@@ -5,6 +5,18 @@
   },
   "plugins": [
     {
+      "name": "skill",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skill"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "template",
       "source": {
         "source": "local",
