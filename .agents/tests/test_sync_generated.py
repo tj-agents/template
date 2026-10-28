@@ -1986,7 +1986,8 @@ def test_skill_authoring_publishes_only_current_operation_names() -> None:
         if path.startswith("plugins/skill/skills/") and path.endswith("/SKILL.md")
     }
     assert entries == {
-        "plugins/skill/skills/create/SKILL.md",
+        "plugins/skill/skills/check/SKILL.md",
+        "plugins/skill/skills/new/SKILL.md",
         "plugins/skill/skills/update/SKILL.md",
     }
     assert not any("/new-skill/" in path for path in output)
