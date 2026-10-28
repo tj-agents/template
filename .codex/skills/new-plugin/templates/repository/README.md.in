@@ -11,8 +11,8 @@ Published as `{{namespace}}@{{marketplace}}` from the shared `{{marketplace}}` m
 ## Authoring and verification
 
 ```powershell
-pwsh .agents/sync-generated.ps1
-pwsh .agents/sync-generated.ps1 -Check
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template generate
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check
 ```
 
-The layout, the vendored generator and CI come from [Template](https://github.com/{{owner}}/template).
+The layout, the installed generator and CI come from [Template](https://github.com/{{owner}}/template).

@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Protocol
 
 import pytest
 
@@ -15,8 +16,6 @@ CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
 EXAMPLES_CHECK = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
-    ".agents/sync_generated.py",
-    ".agents/sync-generated.ps1",
     ".gitattributes",
     ".gitignore",
     "CLAUDE.md",
@@ -37,9 +36,12 @@ STACK_SKILLS = {
 }
 
 
-def run(*arguments: str) -> subprocess.CompletedProcess[str]:
+def run(
+    *arguments: str, environment: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-B", *arguments],
+        env=environment,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -47,23 +49,38 @@ def run(*arguments: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def create(
-    destination: Path, name: str, kind: str, *extra: str
-) -> subprocess.CompletedProcess[str]:
-    return run(
-        str(SCRIPT),
-        "--repository",
-        f"owner/{name}",
-        "--type",
-        kind,
-        "--description",
-        f"The {name} plugin.",
-        "--destination",
-        str(destination),
-        "--author",
-        "Ada Lovelace",
-        *extra,
-    )
+class CreatePlugin(Protocol):
+    def __call__(
+        self, destination: Path, name: str, kind: str, *extra: str
+    ) -> subprocess.CompletedProcess[str]: ...
+
+
+@pytest.fixture
+def create(template_source: tuple[str, dict[str, str]]) -> CreatePlugin:
+    revision, environment = template_source
+
+    def invoke(
+        destination: Path, name: str, kind: str, *extra: str
+    ) -> subprocess.CompletedProcess[str]:
+        return run(
+            str(SCRIPT),
+            "--template-ref",
+            revision,
+            "--repository",
+            f"owner/{name}",
+            "--type",
+            kind,
+            "--description",
+            f"The {name} plugin.",
+            "--destination",
+            str(destination),
+            "--author",
+            "Ada Lovelace",
+            *extra,
+            environment=environment,
+        )
+
+    return invoke
 
 
 def skills(destination: Path, name: str) -> dict[str, set[str]]:
@@ -136,14 +153,15 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
         ), adapter
         assert adapter.is_file()
     result = run(
-        str(repository / ".agents/sync_generated.py"),
+        "-m",
+        "tj_template",
+        "check",
         "--root",
         str(repository),
-        "--check",
     )
     assert result.returncode == 0, result.stdout + result.stderr
     for path in repository.rglob("*"):
-        if path.is_file():
+        if path.is_file() and ".venv" not in path.relative_to(repository).parts:
             assert PLACEHOLDER.findall(path.read_text(encoding="utf-8")) == [], path
     if CORE_PAYLOAD_CHECK.is_file():
         result = run(str(CORE_PAYLOAD_CHECK), "--root", str(repository))
@@ -152,6 +170,7 @@ def assert_repository_is_current(destination: Path, name: str) -> None:
 
 def test_stack_repository_has_the_standard_skills_and_a_detected_tier(
     tmp_path: Path,
+    create: CreatePlugin,
 ) -> None:
     result = create(
         tmp_path,
@@ -177,7 +196,9 @@ def test_stack_repository_has_the_standard_skills_and_a_detected_tier(
     assert_repository_is_current(tmp_path, "zig")
 
 
-def test_tool_repository_has_only_the_knowledge_tier(tmp_path: Path) -> None:
+def test_tool_repository_has_only_the_knowledge_tier(
+    tmp_path: Path, create: CreatePlugin
+) -> None:
     assert create(tmp_path, "helix", "tool").returncode == 0
     assert skills(tmp_path, "helix") == {
         "knowledge": {"knowledge", "direction"},
@@ -190,7 +211,9 @@ def test_tool_repository_has_only_the_knowledge_tier(tmp_path: Path) -> None:
     assert_repository_is_current(tmp_path, "helix")
 
 
-def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
+def test_utility_repository_has_only_its_utility(
+    tmp_path: Path, create: CreatePlugin
+) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     assert skills(tmp_path, "tools") == {"utility": {"sweep"}}
     assert_repository_is_current(tmp_path, "tools")
@@ -198,6 +221,7 @@ def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
 
 def test_generated_starter_requires_a_concrete_example(
     tmp_path: Path,
+    create: CreatePlugin,
 ) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
@@ -217,6 +241,7 @@ def test_generated_starter_requires_a_concrete_example(
 
 def test_initial_plugin_passes_the_zero_base_check_after_real_examples_are_added(
     tmp_path: Path,
+    create: CreatePlugin,
 ) -> None:
     assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
@@ -282,7 +307,9 @@ output: [\"artifacts/old.bin\"]
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> None:
+def test_profile_has_a_policy_and_current_core_dependency(
+    tmp_path: Path, create: CreatePlugin
+) -> None:
     result = create(tmp_path, "personal", "profile", "--skill", "current")
     assert result.returncode == 0, result.stdout + result.stderr
     assert skills(tmp_path, "personal") == {"policy": {"current"}}
@@ -303,7 +330,7 @@ def test_profile_has_a_policy_and_current_core_dependency(tmp_path: Path) -> Non
     ],
 )
 def test_profile_requires_a_policy_name_and_rejects_detection(
-    tmp_path: Path, flags: list[str], message: str
+    tmp_path: Path, flags: list[str], message: str, create: CreatePlugin
 ) -> None:
     result = create(tmp_path, "personal", "profile", *flags)
     assert result.returncode == 2
@@ -311,7 +338,9 @@ def test_profile_requires_a_policy_name_and_rejects_detection(
     assert not (tmp_path / "personal").exists()
 
 
-def test_vendored_files_match_template_and_ci_follows_main(tmp_path: Path) -> None:
+def test_vendored_files_match_template_and_ci_follows_main(
+    tmp_path: Path, create: CreatePlugin
+) -> None:
     assert create(tmp_path, "helix", "tool").returncode == 0
     repository = tmp_path / "helix"
     for relative in VENDORED:
@@ -336,6 +365,7 @@ def test_vendored_files_match_template_and_ci_follows_main(tmp_path: Path) -> No
 
 def test_refuses_an_existing_repository_and_a_stack_without_markers(
     tmp_path: Path,
+    create: CreatePlugin,
 ) -> None:
     (tmp_path / "zig").mkdir()
     assert (
@@ -350,7 +380,7 @@ def test_refuses_an_existing_repository_and_a_stack_without_markers(
 
 @pytest.mark.parametrize("flags", [[], ["--dry-run"]])
 def test_reserved_core_dependency_namespace_fails_before_writing(
-    tmp_path: Path, flags: list[str]
+    tmp_path: Path, flags: list[str], create: CreatePlugin
 ) -> None:
     result = create(tmp_path, "base", "utility", "--skill", "sweep", *flags)
     assert result.returncode == 2
@@ -359,7 +389,7 @@ def test_reserved_core_dependency_namespace_fails_before_writing(
     assert list(tmp_path.iterdir()) == []
 
 
-def test_dry_run_writes_nothing(tmp_path: Path) -> None:
+def test_dry_run_writes_nothing(tmp_path: Path, create: CreatePlugin) -> None:
     result = create(tmp_path, "helix", "tool", "--dry-run")
     assert result.returncode == 0
     assert "helix/.agents/helix/policy/learning/SKILL.md" in result.stdout.replace(

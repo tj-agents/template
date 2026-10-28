@@ -7,11 +7,12 @@ Also removes legacy version metadata.
 import argparse
 import importlib.util
 import json
-import subprocess
 import sys
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any
+
+from tj_template.plugins import dependencies, generation, migration
 
 sys.dont_write_bytecode = True
 
@@ -31,7 +32,7 @@ def load_new_plugin() -> Any:
     return module
 
 
-def update(root: Path, dry_run: bool) -> list[str]:
+def update(root: Path, dry_run: bool, revision: str) -> list[str]:
     new_plugin = load_new_plugin()
     config_path = root / ".agents/plugins/template.json"
     if not config_path.is_file():
@@ -47,6 +48,23 @@ def update(root: Path, dry_run: bool) -> list[str]:
         root / ".agents/template/utility/new/plugin/templates/repository"
     ).is_dir()
     changed: list[str] = []
+    if generation.is_link_or_junction(root / ".agents"):
+        raise ValueError("The .agents directory must not be a link or junction")
+    callers = migration.caller_changes(root)
+    if dependencies.configure(
+        root, config["repository"].split("/")[1], revision, dry_run
+    ):
+        changed.append("pyproject.toml and uv.lock")
+    for path, content in callers.items():
+        changed.append(path.relative_to(root).as_posix())
+        if not dry_run:
+            path.write_text(content, encoding="utf-8", newline="\n")
+    for relative in migration.RETIRED_SCRIPTS:
+        path = root / relative
+        if path.exists():
+            changed.append(relative)
+            if not dry_run:
+                path.unlink()
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
         if relative == ".github/workflows/ci.yml" and owns_templates:
             continue
@@ -90,10 +108,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--template-ref",
+        help="Immutable Template package commit; defaults to current main.",
+    )
     arguments = parser.parse_args()
     root = arguments.root.resolve()
     try:
-        changed = update(root, arguments.dry_run)
+        revision = dependencies.resolve_revision(arguments.template_ref)
+        changed = update(root, arguments.dry_run, revision)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
@@ -102,16 +125,7 @@ def main() -> int:
     if arguments.dry_run or not changed:
         print("already current" if not changed else "dry run: nothing written")
         return 0
-    return subprocess.run(
-        [
-            sys.executable,
-            "-B",
-            str(root / ".agents/sync_generated.py"),
-            "--root",
-            str(root),
-        ],
-        check=False,
-    ).returncode
+    return dependencies.run(root, check=False)
 
 
 if __name__ == "__main__":

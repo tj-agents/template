@@ -25,7 +25,7 @@ jobs:
       - name: resolve distribution resources with Ubuntu's system Python
         run: >-
           uv run --no-project --python /usr/bin/python3 --with pytest
-          pytest .agents/tests/test_sync_generated.py -k real_locked -q
+          --with ./packages/tj-template pytest .agents/tests/test_generation.py -k real_locked -q
 
   regenerate:
     if: github.event_name == 'push'
@@ -43,12 +43,17 @@ jobs:
           ref: ${{ github.sha }}
           ssh-key: ${{ secrets.REGENERATE_DEPLOY_KEY }}
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v10.3.0
+
       - name: regenerate committed packages from authored sources
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1
+          uv run --locked --no-editable tj-template generate
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: verify the regenerated tree
@@ -56,7 +61,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1 -Check
+          uv run --locked --no-editable tj-template check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: commit and push the regeneration

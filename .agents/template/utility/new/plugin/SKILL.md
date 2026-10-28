@@ -46,7 +46,7 @@ starter until that example exists. Conventions grow through the new repository's
 
 ## Publish it
 
-1. `uv lock`, `git init -b main`, commit, then `gh repo create <owner>/<name> --public --source . --push`; plugin
+1. Commit the generated `tools/plugin-generation/uv.lock`, `git init -b main`, commit, then `gh repo create <owner>/<name> --public --source . --push`; plugin
    repositories are public so the shared marketplace can install them and CI runs.
 2. Only while a repository plugin CI reads is private: `gh secret set TJ_AGENTS_READ_TOKEN --repo <owner>/<name>`.
 3. Add the plugin to the shared marketplace's `plugins.json` and regenerate it.
@@ -57,5 +57,7 @@ selections. CI workflow imports alone do not install Template.
 
 ## Validation
 
-The script fails if the new repository does not generate cleanly. Before the first push,
-`pwsh .agents/sync-generated.ps1 -Check` and `check` pass in it; CI then runs both from Template's main branch.
+The script locks and runs the selected repository package; it fails if dependency setup or generation fails.
+The tool project lives in `tools/plugin-generation`; creating a plugin does not create a Python project
+for unrelated repository source. Before the first push,
+`uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check` and `check` pass in it; CI then runs both from Template's main branch.

@@ -4,8 +4,9 @@ Template creates plugin repositories and owns the parts they share: the layout, 
 It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/template/utility/<name>/`.
 
 The files a plugin repository vendors have one source, under `.agents/template/utility/new/plugin/templates/repository/`.
-Template's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and
-`CLAUDE.md` must stay byte-identical to those templates; the tests enforce it. Change the template first.
+Template's own `.gitattributes`, `.gitignore` and `CLAUDE.md` stay byte-identical to those templates.
+The generator is authored once in `packages/tj-template/src/tj_template/plugins/generation.py`; consumers
+install the distribution. Never vendor its implementation or add an old command alias.
 `template:check` and `template:update` read those templates and `template:check`'s `standard.json`, the one statement of what each
 repository type requires.
 
@@ -13,8 +14,13 @@ Template plugin CI runs from the main branch. Plugin repositories follow main an
 vendored content; Template changes do not require version bumps or tags.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
-`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and the `python:build`
+`uv run --locked --no-editable tj-template generate` after authored changes; `uv run --locked --no-editable tj-template check` and the `python:build`
 gate must pass before delivery.
+
+`plugins/*` is distribution output: keep it out of source PRs. CI regenerates before verification and
+publishes those bundles on main. In a fresh source or review checkout, generate before running tests
+that exercise bundled skills or compare generated files. The committed native adapters remain part of
+the source candidate.
 
 <!-- BEGIN personal:current-solution sha256:2e091b5f18f67fb2302024e817c71d4a0f5234c1ca63ca1c9af5c4eef3b6a128 -->
 # Personal projects

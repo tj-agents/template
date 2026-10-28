@@ -10,17 +10,16 @@ from datetime import date
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from tj_template.plugins import dependencies
+
 SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
 TEMPLATES = SKILL_DIRECTORY / "templates"
-GENERATOR_TEMPLATE = TEMPLATES / "repository/.agents/sync_generated.py.in"
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^([A-Za-z0-9_.-]+)/([a-z][a-z0-9-]*)$")
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 MARKETPLACE = "tj-agents"
 MARKETPLACE_REPOSITORY = "tj-agents/marketplace"
 VENDORED = (
-    ".agents/sync_generated.py",
-    ".agents/sync-generated.ps1",
     ".codex/hooks/snapshot.py",
     ".codex/hooks/bootstrap.py",
     ".gitattributes",
@@ -167,6 +166,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
     ]
     values = {
         "namespace": namespace,
+        "template_ref": arguments.template_ref,
         "owner": owner,
         "repository": arguments.repository,
         "Stack": arguments.stack,
@@ -200,7 +200,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
     }
     if arguments.type in ("utility", "profile"):
         values["skill"] = arguments.skill
-    files: dict[str, str] = {}
+    files = dependencies.project_files(namespace, arguments.template_ref)
     sources: list[tuple[Path, PurePosixPath]] = []
     for source in sorted((TEMPLATES / "repository").rglob("*.in")):
         sources.append(
@@ -318,6 +318,10 @@ def main() -> int:
     parser.add_argument("--keywords", help="comma-separated; defaults to the name")
     parser.add_argument("--category", default="Productivity")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--template-ref",
+        help="Immutable Template package commit; defaults to current main.",
+    )
     arguments = parser.parse_args()
     arguments.author = arguments.author or git_user_name()
     arguments.learner = arguments.learner or (
@@ -327,6 +331,7 @@ def main() -> int:
         arguments.stack = arguments.repository.split("/", 1)[1].capitalize()
     try:
         target = validate(arguments)
+        arguments.template_ref = dependencies.resolve_revision(arguments.template_ref)
         files = plan(arguments)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
@@ -339,22 +344,14 @@ def main() -> int:
         path = target / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8", newline="\n")
-    generated = subprocess.run(
-        [
-            sys.executable,
-            "-B",
-            str(target / ".agents/sync_generated.py"),
-            "--root",
-            str(target),
-        ],
-        check=False,
-    )
-    if generated.returncode != 0:
-        print(
-            f"error: the new repository at {target} did not generate cleanly",
-            file=sys.stderr,
-        )
-        return generated.returncode
+    try:
+        dependencies.configure(target, target.name, arguments.template_ref, False)
+        generated = dependencies.run(target, check=False)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    if generated != 0:
+        return generated
     print(f"created {target}")
     return 0
 

@@ -13,7 +13,7 @@ Install `template@tj-agents`.
 - `template:new-skill` resolves concern ownership and scope before delegating to the current host's native creator.
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
-- `template:update` refreshes a plugin repository's vendored files from Template's main branch.
+- `template:update` updates a plugin repository's installed generator and vendored root files from Template's main branch.
 
 ## Create a skill
 
@@ -45,6 +45,17 @@ installs the marketplace with the real Claude Code and Codex CLIs. It reads Temp
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
 
+## Generator package
+
+`packages/tj-template` is the typed, installable `tj-template` distribution. Its public API is
+`tj_template.plugins.generation`. `tj-template generate` builds bundles and host discovery;
+`tj-template check` checks their freshness without writing. `template:check` additionally checks
+repository conformance. The workspace installs the package; consumers pin its Git commit and
+`packages/tj-template` subdirectory in their uv project and commit the lockfile.
+A repository without a Python development project keeps this tool environment in
+`tools/plugin-generation`. New scaffolds create and lock that environment before running the selected
+package; unrelated repository source does not become a Python project.
+
 ## Authoring and verification
 
 Every added or updated skill must show its actual behaviour in a meaningful fenced code, command, configuration, or
@@ -52,8 +63,8 @@ input/output example. `template:check` validates that contract for local edits a
 not require a retrofit of unchanged skills.
 
 ```powershell
-pwsh .agents/sync-generated.ps1
-pwsh .agents/sync-generated.ps1 -Check
+uv run --locked --no-editable tj-template generate
+uv run --locked --no-editable tj-template check
 uv sync --locked
 uv run ruff format --check
 uv run ruff check
@@ -79,7 +90,9 @@ A Python library resource replaces `source` with its distribution name. The dist
 dependency in `pyproject.toml`, resolved by committed `uv.lock`. Generation uses `uv run --locked --no-editable`
 to collect its installed pure Python wheel; it never imports the library. Declare every distribution needed
 at runtime. Native extensions, `.pth` import hooks and records outside the installed package root are rejected.
+Collection uses temporary environments and leaves the calling environment unchanged.
 Installation receipts and caches are omitted; package code, data, licenses and runtime distribution metadata ship.
+Installer-generated console launchers are omitted; their entry-point metadata remains available.
 Build records (`WHEEL` and `uv_build.json`) are also omitted: their tool-version information must not make
 the generated runtime depend on the builder installed on a particular machine. Wheel purity is checked
 before selecting the runtime files. Runtime distribution metadata and entry points remain available.
