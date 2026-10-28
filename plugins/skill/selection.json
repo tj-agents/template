@@ -5,23 +5,36 @@
   ],
   "profiles": {
     "core": [
-      "create",
+      "check",
+      "new",
       "update"
     ]
   },
   "compatibilitySkillAliases": {},
   "skills": [
     {
-      "name": "create",
+      "name": "check",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "skill authoring and review"
+      ],
+      "requires": [
+        "selected project validation tools"
+      ],
+      "provenance": [
+        "house"
+      ]
+    },
+    {
+      "name": "new",
       "kind": "utility",
       "profile": "core",
       "applicability": [
         "skill authoring in selected repositories"
       ],
       "requires": [
-        "native skill creator",
-        "python",
-        "pwsh"
+        "native skill creator"
       ],
       "provenance": [
         "house"
@@ -35,9 +48,7 @@
         "existing skill authoring in selected repositories"
       ],
       "requires": [
-        "native skill creator",
-        "python",
-        "pwsh"
+        "native skill creator"
       ],
       "provenance": [
         "house"

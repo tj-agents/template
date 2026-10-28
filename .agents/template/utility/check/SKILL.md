@@ -67,6 +67,11 @@ folder, only a folder with its own `SKILL.md` is a member, and anything else shi
 In projects without a selected policy that forbids compatibility aliases, renaming a published skill keeps
 its old name until its `removeAfter` date. Apply the consuming project's explicit policy and published commitments.
 
+## Skill content
+
+Use `skill:check` to assess skill content and executable assets. This repository checker validates the
+structural subset listed below; authoring and review apply the remaining skill requirements.
+
 ## What it enforces
 
 - The vendored files equal the current Template source, with `ci.yml` rendered for the repository's owner.

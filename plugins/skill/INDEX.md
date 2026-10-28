@@ -1,4 +1,5 @@
 # skill package capabilities
 
-- `create` — utility — core
+- `check` — utility — core
+- `new` — utility — core
 - `update` — utility — core
