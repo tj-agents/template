@@ -60,6 +60,7 @@ Pass the resolved identity, source path, concern boundary, selected prerequisite
 Template metadata/layout requirements and acceptance checks to that creator. Let it choose its authoring
 and evaluation method within those constraints. Do not embed another general-purpose creation workflow,
 copy the creator, or let a native initializer move the canonical source into a user profile.
+Include the [executable asset requirements](../../check/SKILL.md#executable-skill-assets) in that brief.
 
 If the native creator is missing, report the exact host/capability gap and use an authorized supported
 installation path when available. Keep dependent authoring pending until discovery succeeds; continue
