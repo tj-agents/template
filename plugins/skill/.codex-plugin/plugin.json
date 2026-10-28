@@ -1,0 +1,23 @@
+{
+  "name": "skill",
+  "description": "Create and update skills through the native host creator with complete current-name migrations.",
+  "author": {
+    "name": "Tommy Seery"
+  },
+  "repository": "https://github.com/tj-agents/template",
+  "skills": "./skills/",
+  "keywords": [
+    "skills",
+    "authoring",
+    "native-creator"
+  ],
+  "interface": {
+    "displayName": "Skill",
+    "shortDescription": "Create and update skills without stale names.",
+    "longDescription": "Create and update skills through the native host creator with complete current-name migrations.",
+    "developerName": "Tommy Seery",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Update an existing skill and remove its superseded names."
+  }
+}

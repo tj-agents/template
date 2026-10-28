@@ -6,6 +6,17 @@
   },
   "plugins": [
     {
+      "name": "skill",
+      "source": "./plugins/skill",
+      "description": "Create and update skills through the native host creator with complete current-name migrations.",
+      "category": "Productivity",
+      "keywords": [
+        "skills",
+        "authoring",
+        "native-creator"
+      ]
+    },
+    {
       "name": "template",
       "source": "./plugins/template",
       "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",

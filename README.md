@@ -1,26 +1,27 @@
 # Template
 
-Template owns the plugin and skill contract: required content, metadata, layout,
-scaffolding, generated host projections, and validation across plugin repositories.
-It links to Core's generic documentation guidance for authoring decisions.
+Template owns plugin repository layout, scaffolding, generated host projections and structural validation.
+Its sibling Skill plugin owns skill authoring and the shared content and executable asset contract.
 
 ## Install
 
-Install `template@tj-agents`.
+Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, published from this repository.
 
 ## Skills
 
-- `template:new-skill` resolves concern ownership and scope before delegating to the current host's native creator.
+- `skill:new` resolves a new skill's concern and scope before native creator delegation.
+- `skill:check` owns skill content checks and the requirement for separate typed executable source files.
+- `skill:update` updates existing skills and completes renames without old entries or compatibility aliases.
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
 
 ## Create a skill
 
-Use `template:new-skill` before authoring a new skill in an existing plugin. It applies Template's
-ownership, naming and applicability constraints, then delegates to the discovered native creator.
+Use `skill:new` for a new skill and `skill:update` when changing an existing skill. Both apply `skill:check`
+and the selected ownership, naming and applicability constraints before delegating to the discovered native creator.
 The repository names the main plugin; separately selectable sibling namespaces can share it.
-The selected Template tier supplies session routing and a canonical-skill write gate through Core.
+The selected Skill tier supplies session routing and a canonical-skill write gate through Core.
 Native creator availability and fresh host loading are verified separately from source selection.
 
 ## Repository types

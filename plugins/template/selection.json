@@ -1,13 +1,13 @@
 {
   "plugin": "template",
   "dependencies": [
-    "tj-agents/engineering"
+    "tj-agents/engineering",
+    "skill"
   ],
   "profiles": {
     "core": [
       "check",
       "new-plugin",
-      "new-skill",
       "update"
     ]
   },
@@ -35,22 +35,6 @@
         "new plugin repositories"
       ],
       "requires": [
-        "python",
-        "pwsh"
-      ],
-      "provenance": [
-        "house"
-      ]
-    },
-    {
-      "name": "new-skill",
-      "kind": "utility",
-      "profile": "core",
-      "applicability": [
-        "skill authoring in selected repositories"
-      ],
-      "requires": [
-        "native skill creator",
         "python",
         "pwsh"
       ],

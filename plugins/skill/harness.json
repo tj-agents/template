@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "plugin": "tj-agents/skill",
+  "source_roots": [
+    ".agents/skill"
+  ],
+  "requires": {
+    "marketplaces": [
+      {
+        "id": "tj-agents",
+        "repository": "tj-agents/marketplace"
+      }
+    ],
+    "plugins": [
+      "tj-agents/skill",
+      "tj-agents/base",
+      "tj-agents/engineering"
+    ],
+    "hooks": [
+      {
+        "path": "hooks/pretooluse/claude/skill_authoring.py",
+        "hosts": [
+          "claude"
+        ]
+      }
+    ]
+  }
+}

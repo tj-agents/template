@@ -16,6 +16,6 @@ Host-neutral logic lives here and is imported by each host's implementation unde
 `.codex/hooks/pretooluse/`. Never put one host's payload or transcript format in this folder.
 
 ```text
-new_skill.py                           shared: does this write create a new SKILL.md?
-.claude/hooks/pretooluse/new_skill.py  Claude: block it until template:new-skill is loaded
+skill_authoring.py                           shared: does this write create a new SKILL.md?
+.claude/hooks/pretooluse/skill_authoring.py  Claude: block it until skill:new or skill:update is loaded
 ```
