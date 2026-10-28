@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -9,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from tj_template.plugins import migration
+from tj_template.plugins import dependencies, migration
 
 ROOT = Path(__file__).resolve().parents[2]
 NEW_PLUGIN = ROOT / ".agents/template/utility/new/plugin/scripts/new_plugin.py"
@@ -66,12 +68,16 @@ EXTRA_ARGUMENTS = {
 
 
 @pytest.fixture
-def repository_factory(tmp_path: Path) -> Callable[[str, str], Path]:
+def repository_factory(
+    tmp_path: Path, template_source: tuple[str, dict[str, str]]
+) -> Callable[[str, str], Path]:
+    revision, environment = template_source
+
     def create(kind: str, name: str) -> Path:
         result = run(
             str(NEW_PLUGIN),
             "--template-ref",
-            "a" * 40,
+            revision,
             "--repository",
             f"owner/{name}",
             "--type",
@@ -83,9 +89,26 @@ def repository_factory(tmp_path: Path) -> Callable[[str, str], Path]:
             "--author",
             "Ada Lovelace",
             *EXTRA_ARGUMENTS[kind],
+            environment=environment,
         )
         assert result.returncode == 0, result.stderr
         repository = tmp_path / name
+        tooling = repository / "tools/plugin-generation"
+        for file in ("pyproject.toml", ".python-version", "uv.lock"):
+            (tooling / file).replace(repository / file)
+        marker = repository / "selected-generator.txt"
+        marker.unlink()
+        for document in [
+            repository / "README.md",
+            repository / "AGENTS.md",
+            *(repository / ".agents").rglob("SKILL.md"),
+        ]:
+            document.write_text(
+                document.read_text(encoding="utf-8").replace(
+                    " --project tools/plugin-generation", ""
+                ),
+                encoding="utf-8",
+            )
         complete_skill_examples(repository)
         return repository
 
@@ -134,7 +157,7 @@ def commit_initial_repository(root: Path) -> None:
         ("init", "-q", "-b", "main"),
         ("config", "user.name", "Template test"),
         ("config", "user.email", "template@example.invalid"),
-        ("add", "-f", "."),
+        ("add", "."),
         ("commit", "-q", "-m", "initial"),
     ):
         result = subprocess.run(
@@ -737,36 +760,45 @@ def test_update_rejects_missing_template_pin(zig_repo: Path) -> None:
     assert "template.json: missing" in result.stderr
 
 
-def test_update_removes_copied_generators_without_executing_them(
-    zig_repo: Path,
-    template_source: tuple[str, dict[str, str]],
-) -> None:
-    revision, environment = template_source
+def legacy_generation_fixture(root: Path) -> tuple[list[Path], list[Path]]:
     obsolete = [
-        zig_repo / ".agents" / name
-        for name in ("sync_generated.py", "sync-generated.ps1")
+        root / ".agents" / name for name in ("sync_generated.py", "sync-generated.ps1")
     ]
     for path in obsolete:
         path.write_text(
             "raise RuntimeError('obsolete generator executed')\n", encoding="utf-8"
         )
     callers = [
-        zig_repo / "README.md",
-        zig_repo / "AGENTS.md",
-        zig_repo / ".agents/zig/policy/learning/SKILL.md",
+        root / "README.md",
+        root / "AGENTS.md",
+        root / ".agents/zig/policy/learning/SKILL.md",
     ]
     for path in callers:
         body = path.read_text(encoding="utf-8")
-        path.write_text(
-            body.replace(
-                "uv run --locked tj-template generate",
-                "pwsh .agents/sync-generated.ps1",
-            ).replace(
-                "uv run --locked tj-template check",
-                "pwsh .agents/sync-generated.ps1 -Check",
-            ),
-            encoding="utf-8",
-        )
+        for operation in ("generate", "check"):
+            body = re.sub(
+                r"uv run[^`\n]* tj-template " + operation,
+                "pwsh .agents/sync-generated.ps1"
+                + (" -Check" if operation == "check" else ""),
+                body,
+            )
+        path.write_text(body, encoding="utf-8")
+    return obsolete, callers
+
+
+def test_update_removes_copied_generators_without_executing_them(
+    zig_repo: Path,
+    template_source: tuple[str, dict[str, str]],
+) -> None:
+    revision, environment = template_source
+    obsolete, callers = legacy_generation_fixture(zig_repo)
+    project = zig_repo / "pyproject.toml"
+    project.write_text(
+        project.read_text(encoding="utf-8").replace(
+            "[tool.uv]\n", "[tool.uv]\ndefault-groups = []\n"
+        ),
+        encoding="utf-8",
+    )
     arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", revision)
     preview = run(*arguments, "--dry-run", environment=environment)
     assert preview.returncode == 0, preview.stdout + preview.stderr
@@ -791,6 +823,7 @@ def test_update_repairs_missing_and_stale_generator_locks(
     body = project.read_text(encoding="utf-8").replace("a" * 40, revision)
     project.write_text(body, encoding="utf-8")
     lock = zig_repo / "uv.lock"
+    lock.unlink()
     assert not lock.exists()
     arguments = (str(UPDATE), "--root", str(zig_repo), "--template-ref", revision)
     first = run(*arguments, environment=environment)
@@ -809,20 +842,28 @@ def test_update_repairs_missing_and_stale_generator_locks(
     assert lock.read_bytes() != locked
 
 
+@pytest.mark.parametrize(
+    ("relative", "body"),
+    [
+        ("scripts/custom.py", 'run(["python", ".agents/sync_generated.py"])\n'),
+        ("CUSTOM.md", "pwsh -NoProfile -File .agents/sync-generated.ps1 -Check\n"),
+    ],
+)
 def test_update_preserves_scripts_when_a_caller_needs_manual_migration(
     zig_repo: Path,
+    relative: str,
+    body: str,
 ) -> None:
     obsolete = zig_repo / ".agents/sync_generated.py"
     obsolete.write_text("raise RuntimeError('obsolete')\n", encoding="utf-8")
-    caller = zig_repo / "scripts/custom.py"
-    caller.parent.mkdir()
-    caller.write_text(
-        'run(["python", ".agents/sync_generated.py"])\n', encoding="utf-8"
-    )
+    caller = zig_repo / relative
+    caller.parent.mkdir(exist_ok=True)
+    caller.write_text(body, encoding="utf-8")
     result = run(str(UPDATE), "--root", str(zig_repo), "--template-ref", "a" * 40)
     assert result.returncode == 2
-    assert "scripts/custom.py" in result.stderr
+    assert relative in result.stderr
     assert obsolete.is_file()
+    assert caller.read_text(encoding="utf-8") == body
 
 
 def test_generation_caller_rejects_a_linked_parent(
@@ -848,6 +889,81 @@ def test_generation_caller_rejects_a_linked_parent(
     with pytest.raises(ValueError, match="linked generation caller"):
         migration.caller_changes(root)
     assert target.read_text(encoding="utf-8") == "pwsh .agents/sync-generated.ps1\n"
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_tool_project_rejects_a_linked_version_file(
+    tmp_path: Path, dry_run: bool
+) -> None:
+    root = tmp_path / "repository"
+    project = root / "tools/plugin-generation"
+    project.mkdir(parents=True)
+    outside = tmp_path / "outside-version"
+    version = project / ".python-version"
+    try:
+        if sys.platform == "win32":
+            import _winapi
+
+            outside.mkdir()
+            _winapi.CreateJunction(str(outside), str(version))
+        else:
+            version.symlink_to(outside)
+    except OSError as error:
+        pytest.skip(f"cannot create a link here: {error}")
+    with pytest.raises(ValueError, match="linked generator project file"):
+        dependencies.configure(root, "demo", "a" * 40, dry_run)
+    assert not (project / "pyproject.toml").exists()
+    assert not (project / "uv.lock").exists()
+    assert not outside.exists() or list(outside.iterdir()) == []
+
+
+def test_update_uses_a_tool_project_without_adding_root_python_metadata(
+    zig_repo: Path, template_source: tuple[str, dict[str, str]]
+) -> None:
+    revision, environment = template_source
+    obsolete, _callers = legacy_generation_fixture(zig_repo)
+    (zig_repo / "pyproject.toml").unlink()
+    (zig_repo / ".python-version").unlink()
+    result = run(
+        str(UPDATE),
+        "--root",
+        str(zig_repo),
+        "--template-ref",
+        revision,
+        environment=environment,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert all(not path.exists() for path in obsolete)
+    assert not (zig_repo / "pyproject.toml").exists()
+    assert (zig_repo / "tools/plugin-generation/uv.lock").is_file()
+    assert (zig_repo / "selected-generator.txt").read_text(
+        encoding="utf-8"
+    ) == "selected Git source"
+    checked = run(
+        str(ROOT / ".github/scripts/run_generation.py"),
+        "--root",
+        str(zig_repo),
+        "--check",
+        environment=environment,
+    )
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+
+    command = next(
+        line
+        for line in (zig_repo / "README.md").read_text(encoding="utf-8").splitlines()
+        if line.startswith("uv run") and line.endswith("tj-template check")
+    )
+    assert "--project tools/plugin-generation" in command
+    documented = subprocess.run(
+        shlex.split(command),
+        cwd=zig_repo,
+        env=environment,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert documented.returncode == 0, documented.stdout + documented.stderr
 
 
 def test_a_new_tool_repository_conforms(helix_repo: Path) -> None:

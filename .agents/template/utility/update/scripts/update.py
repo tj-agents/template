@@ -125,7 +125,7 @@ def main() -> int:
     if arguments.dry_run or not changed:
         print("already current" if not changed else "dry run: nothing written")
         return 0
-    return dependencies.generate(root)
+    return dependencies.run(root, check=False)
 
 
 if __name__ == "__main__":

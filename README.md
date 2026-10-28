@@ -53,7 +53,8 @@ access, only while one of them is private.
 repository conformance. The workspace installs the package; consumers pin its Git commit and
 `packages/tj-template` subdirectory in their uv project and commit the lockfile.
 A repository without a Python development project keeps this tool environment in
-`tools/plugin-generation`, without adopting Python tooling for unrelated source code.
+`tools/plugin-generation`. New scaffolds create and lock that environment before running the selected
+package; unrelated repository source does not become a Python project.
 
 ## Authoring and verification
 
@@ -89,6 +90,7 @@ A Python library resource replaces `source` with its distribution name. The dist
 dependency in `pyproject.toml`, resolved by committed `uv.lock`. Generation uses `uv run --locked --no-editable`
 to collect its installed pure Python wheel; it never imports the library. Declare every distribution needed
 at runtime. Native extensions, `.pth` import hooks and records outside the installed package root are rejected.
+Collection uses temporary environments and leaves the calling environment unchanged.
 Installation receipts and caches are omitted; package code, data, licenses and runtime distribution metadata ship.
 Installer-generated console launchers are omitted; their entry-point metadata remains available.
 Build records (`WHEEL` and `uv_build.json`) are also omitted: their tool-version information must not make

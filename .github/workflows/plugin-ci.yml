@@ -66,14 +66,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          uv run --locked --no-editable --project .template tj-template generate --root .
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          uv run --locked --no-editable --project .template tj-template check --root .
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root . --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: repository tests
         shell: pwsh
@@ -126,14 +126,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          uv run --locked --no-editable --project .template tj-template generate --root .
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          uv run --locked --no-editable --project .template tj-template check --root .
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root . --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-node@v4
         with:

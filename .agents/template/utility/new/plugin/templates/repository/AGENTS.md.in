@@ -15,12 +15,12 @@ extensions live only at the exact `.agents/plugins/adapters/<host>/<plugin>/<ski
 `skills/` and gets `codex-skills/`, selected by its generated Codex manifest.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
-`uv run --locked tj-template generate` after authored changes and require `uv run --locked tj-template check`
+`uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template generate` after authored changes and require `uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check`
 before delivery.
 
 ```powershell
-uv run --locked tj-template generate
-uv run --locked tj-template check
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template generate
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check
 ```
 
 For skill creation, splitting, renaming or consolidation, load `template:new-skill` before the native creator.

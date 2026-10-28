@@ -10,7 +10,7 @@ from datetime import date
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from tj_template.plugins import dependencies, generation
+from tj_template.plugins import dependencies
 
 SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
 TEMPLATES = SKILL_DIRECTORY / "templates"
@@ -200,7 +200,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
     }
     if arguments.type in ("utility", "profile"):
         values["skill"] = arguments.skill
-    files: dict[str, str] = {}
+    files = dependencies.project_files(namespace, arguments.template_ref)
     sources: list[tuple[Path, PurePosixPath]] = []
     for source in sorted((TEMPLATES / "repository").rglob("*.in")):
         sources.append(
@@ -220,7 +220,6 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
                     ),
                 )
             )
-    files[".python-version"] = "3.12\n"
     deferred = []
     for source, relative in sources:
         if relative.name == "README.md.in":
@@ -346,7 +345,8 @@ def main() -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8", newline="\n")
     try:
-        generated = generation.synchronize(target, check=False)
+        dependencies.configure(target, target.name, arguments.template_ref, False)
+        generated = dependencies.run(target, check=False)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
