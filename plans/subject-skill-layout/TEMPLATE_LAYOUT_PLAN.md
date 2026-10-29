@@ -88,14 +88,14 @@ resolve findings, then prepare dependent consumer candidates before producer lan
       "behavior": "discovers stable public skills from the new subject layout",
       "source": ".agents/template/skills/new/plugin/templates/repository/.agents/sync_generated.py.in",
       "mapping": "canonical source to .claude/skills and plugins/template/skills",
-      "verification": {"level": "local", "result": "passed", "evidence": "python -B .github/scripts/validate_hosts.py --root .; installed Claude native strict validation on Windows; Linux CI pending"}
+      "verification": {"level": "installed", "result": "passed", "evidence": "python -B .github/scripts/validate_hosts.py --root .; installed Claude native strict validation on Windows; Linux CI pending"}
     },
     {
       "host": "codex",
       "behavior": "discovers stable public skills with supported native metadata",
       "source": ".agents/template/skills/new/plugin/templates/repository/.agents/sync_generated.py.in",
       "mapping": "canonical source to .codex/skills and the declared Codex package skill root",
-      "verification": {"level": "local", "result": "passed", "evidence": "native quick_validate.py plus validate_hosts.py isolated marketplace add, package add and enabled listing on Windows; Linux CI pending"}
+      "verification": {"level": "installed", "result": "passed", "evidence": "native quick_validate.py plus validate_hosts.py isolated marketplace add, package add and enabled listing on Windows; Linux CI pending"}
     }
   ]
 }
