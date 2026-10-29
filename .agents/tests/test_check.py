@@ -718,7 +718,7 @@ def test_learning_keeps_its_calibrate_section(helix_repo: Path) -> None:
 def test_utility_can_explicitly_gate_on_stack_present(tools_repo: Path) -> None:
     path = tools_repo / ".agents/tiers/tools.json"
     tier = json.loads(path.read_text())
-    tier.update(schema_version=3, applies="stack-present", detect={"fact": "employer"})
+    tier.update(applies="stack-present", detect={"fact": "employer"})
     path.write_text(json.dumps(tier), encoding="utf-8")
     assert check.check(tools_repo) == []
 
@@ -795,7 +795,7 @@ def test_profile_rejects_knowledge_kind(personal_repo: Path) -> None:
 def test_profile_is_always_applicable_once_selected(personal_repo: Path) -> None:
     path = personal_repo / ".agents/tiers/personal.json"
     tier = json.loads(path.read_text())
-    tier.update(applies="stack-present", detect={"files": ["personal.json"]})
+    tier.update(applies="stack-present", detect={"file": "personal.json"})
     path.write_text(json.dumps(tier), encoding="utf-8")
     assert_problem(personal_repo, "a profile repository applies always")
 

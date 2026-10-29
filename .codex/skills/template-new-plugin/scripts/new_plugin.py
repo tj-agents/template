@@ -121,19 +121,17 @@ def destination_path(relative: PurePosixPath, values: dict[str, str]) -> str:
 
 def tier(arguments: argparse.Namespace, namespace: str) -> dict[str, Any]:
     declaration: dict[str, Any] = {
-        "schema_version": 1,
         "tier": namespace,
         "stack": arguments.stack,
         "applies": "stack-present" if arguments.type == "stack" else "always",
-        "owner_repository": [arguments.repository],
     }
     if arguments.type == "stack":
-        detect: dict[str, Any] = {}
-        if arguments.detect_file:
-            detect["files"] = arguments.detect_file
-        if arguments.detect_glob:
-            detect["globs"] = arguments.detect_glob
-        declaration["detect"] = detect
+        predicates = [
+            *({"file": name} for name in arguments.detect_file),
+            *({"glob": pattern} for pattern in arguments.detect_glob),
+            {"remote": "^" + re.escape(arguments.repository.lower()) + "$"},
+        ]
+        declaration["detect"] = {"any": predicates}
     return declaration
 
 

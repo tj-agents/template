@@ -62,7 +62,7 @@ uv run mypy
 uv run pytest
 ```
 
-Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's v3
+Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's
 predicates. Core validates their detailed shape. New repositories include a self/dependency harness manifest under
 `.agents/plugins/manifests/harness/`; the generator ships any declared manifest as `plugins/<plugin>/harness.json`.
 Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
