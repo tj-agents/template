@@ -93,6 +93,11 @@ def references(line: str, namespaces: set[str]) -> list[str]:
             "utility",
             "policy",
             "convention",
+            "standard",
+            "operation",
+            "workflow",
+            "learning",
+            "reference",
         } and re.search(r"\b(?:a|an)\s+$", line[: match.start()], re.IGNORECASE):
             continue
         found.add(name)
