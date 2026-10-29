@@ -1,15 +1,16 @@
 # {{namespace}}
 
-This repository uses the plugin layout `template:check` documents and enforces
-(https://github.com/{{owner}}/template). Authored skills live once under `.agents/<plugin>/<kind>/<name>/SKILL.md`,
-with each skill's scripts and templates beside it; related skills share a family folder, family first
-(`state/client/` publishes `state-client`). `.agents/sync_generated.py`, `.agents/sync-generated.ps1`,
+This repository uses the plugin layout owned by `template:structure` and enforced by `template:check`
+(https://github.com/{{owner}}/template). Authored skills live once under `.agents/<plugin>/skills/<subject>/SKILL.md`,
+with kind in metadata and each skill's scripts and assets beside it. Use a family folder for a cohesive subject
+(`state/client/` publishes `state-client`); shared words alone do not require grouping. `.agents/sync_generated.py`, `.agents/sync-generated.ps1`,
 `.gitattributes`, `.gitignore`, `CLAUDE.md` and `.github/workflows/ci.yml` are vendored from Template's main branch.
 Change them in Template, then run `template:update` to refresh the exact vendored content.
 
 `payloads.json` can ship declared package resources from `.agents/hooks`, any declared canonical plugin's
-`.agents/<plugin>/runtime` and `resources` folders, or its discovered skill assets (never `SKILL.md`). Map each
-file or directory explicitly; non-skill runtime/resources folders are otherwise invalid. Host-specific discovery
+`.agents/<plugin>/references`, `learning` and `assets` folders, or its discovered skill assets (never `SKILL.md`). Map each
+file or directory explicitly. Importable implementation follows the selected language's package layout; Python
+uses `python:structure` and `python:modules`. Host-specific discovery
 extensions live only at the exact `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source declared in
 `host_adapters`; keep shared instruction in the canonical `SKILL.md`. An extended package keeps its Claude skills in
 `skills/` and gets `codex-skills/`, selected by its generated Codex manifest.
@@ -28,7 +29,7 @@ Both apply `skill:check`, use the current host native skill creator and remove r
 The project selects Template in `.agents/plugins.json`; after Git initialization, use Agent's
 `agent:plugins` to generate both hosts and complete native admission and installation.
 
-Follow `engineering:docs` when adding or changing a skill or standard. Keep a convention's required `Owns …`
+Follow `engineering:docs` when adding or changing a skill or standard. Keep a standard's required `Owns …`
 opening, then use a concrete fenced example before additional explanatory prose to settle ambiguous terminology. A
 starter's explicit unfinished placeholder is not an example, so replace it with real behaviour before committing
 because the guidance-example check rejects it.

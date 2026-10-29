@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -11,8 +12,8 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-NEW_PLUGIN = ROOT / ".agents/template/utility/new/plugin/scripts/new_plugin.py"
-UPDATE = ROOT / ".agents/template/utility/update/scripts/update.py"
+NEW_PLUGIN = ROOT / ".agents/template/skills/new/plugin/scripts/new_plugin.py"
+UPDATE = ROOT / ".agents/template/skills/update/scripts/update.py"
 
 
 def load(name: str, path: Path) -> Any:
@@ -24,11 +25,10 @@ def load(name: str, path: Path) -> Any:
     return module
 
 
-check = load("template_check", ROOT / ".agents/template/utility/check/scripts/check.py")
-CHECK = ROOT / ".agents/template/utility/check/scripts/check.py"
+check = load("template_check", ROOT / ".agents/template/skills/check/scripts/check.py")
+CHECK = ROOT / ".agents/template/skills/check/scripts/check.py"
 EXAMPLE_PROBLEM = (
-    ".agents/tools/utility/sweep/SKILL.md: add a concrete "
-    "non-placeholder fenced example"
+    ".agents/tools/skills/sweep/SKILL.md: add a concrete non-placeholder fenced example"
 )
 
 
@@ -56,7 +56,7 @@ def complete_skill_examples(root: Path) -> None:
 EXTRA_ARGUMENTS = {
     "stack": ["--detect-file", "build.zig"],
     "tool": [],
-    "utility": ["--skill", "sweep"],
+    "plugin": ["--skill", "sweep", "--skill-kind", "operation"],
     "profile": ["--skill", "current"],
 }
 
@@ -98,7 +98,7 @@ def helix_repo(repository_factory: Callable[[str, str], Path]) -> Path:
 
 @pytest.fixture
 def tools_repo(repository_factory: Callable[[str, str], Path]) -> Path:
-    return repository_factory("utility", "tools")
+    return repository_factory("plugin", "tools")
 
 
 @pytest.fixture
@@ -162,7 +162,7 @@ def test_normal_check_rejects_a_changed_skill_without_a_real_example(
     tools_repo: Path,
 ) -> None:
     commit_initial_repository(tools_repo)
-    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         skill.read_text(encoding="utf-8").replace(
             "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
@@ -177,7 +177,7 @@ def test_normal_check_rejects_a_changed_skill_without_a_real_example(
 
 def test_normal_check_rejects_a_placeholder_example(tools_repo: Path) -> None:
     commit_initial_repository(tools_repo)
-    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         skill.read_text(encoding="utf-8").replace(
             "Input: fixture\nOutput: verified", "TODO", 1
@@ -202,7 +202,7 @@ def test_explicit_range_reads_committed_skill_after_working_file_deletion(
         encoding="utf-8",
         check=True,
     ).stdout.strip()
-    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         skill.read_text(encoding="utf-8").replace(
             "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
@@ -234,7 +234,7 @@ def test_explicit_range_reads_committed_skill_after_working_file_deletion(
 def test_merge_base_range_ignores_target_only_skill_example_change(
     tools_repo: Path,
 ) -> None:
-    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         skill.read_text(encoding="utf-8").replace(
             "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
@@ -326,7 +326,7 @@ def test_merge_base_range_ignores_target_only_skill_example_change(
 def test_normal_check_does_not_retrofit_an_unchanged_legacy_skill(
     tools_repo: Path,
 ) -> None:
-    skill = tools_repo / ".agents/tools/utility/sweep/SKILL.md"
+    skill = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         skill.read_text(encoding="utf-8").replace(
             "```text\nInput: fixture\nOutput: verified\n```\n", "", 1
@@ -384,20 +384,20 @@ def test_generated_freshness_is_not_required(zig_repo: Path) -> None:
     assert check.check(zig_repo) == []
 
 
-def test_check_accepts_an_explicitly_mapped_plugin_runtime(zig_repo: Path) -> None:
-    runtime = zig_repo / ".agents/zig/runtime/runner.py"
+def test_check_accepts_explicitly_mapped_plugin_assets(zig_repo: Path) -> None:
+    runtime = zig_repo / ".agents/zig/assets/runner.py"
     runtime.parent.mkdir()
     runtime.write_text("print('run')\n", encoding="utf-8")
     payloads = json.loads(
         (zig_repo / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
     )
-    payloads["resources"] = [
+    payloads.setdefault("resources", []).append(
         {
             "plugin": "zig",
-            "source": ".agents/zig/runtime",
-            "destination": "runtime",
+            "source": ".agents/zig/assets",
+            "destination": "assets",
         }
-    ]
+    )
     (zig_repo / ".agents/plugins/payloads.json").write_text(
         json.dumps(payloads, indent=2) + "\n", encoding="utf-8"
     )
@@ -451,9 +451,10 @@ def test_generator_validation_reports_invalid_payload_manifest_tier_and_referenc
     payloads = zig_repo / ".agents/plugins/payloads.json"
     manifest = zig_repo / ".agents/plugins/manifests/codex/zig.json"
     tier = zig_repo / ".agents/tiers/zig.json"
-    payloads.write_text('{"payloads": {}}\n', encoding="utf-8")
+    document = json.loads(payloads.read_text(encoding="utf-8"))
+    payloads.write_text(json.dumps({**document, "payloads": {}}), encoding="utf-8")
     assert_problem(zig_repo, "payloads must be a nonempty object")
-    payloads.write_text('{"payloads": {"zig": ["zig"]}}\n', encoding="utf-8")
+    payloads.write_text(json.dumps(document), encoding="utf-8")
     manifest_body = manifest.read_text(encoding="utf-8")
     manifest.write_text("not JSON\n", encoding="utf-8")
     assert_problem(zig_repo, "invalid JSON")
@@ -462,7 +463,7 @@ def test_generator_validation_reports_invalid_payload_manifest_tier_and_referenc
     tier.write_text("not JSON\n", encoding="utf-8")
     assert_problem(zig_repo, "invalid JSON")
     tier.write_text(tier_body, encoding="utf-8")
-    style = zig_repo / ".agents/zig/convention/style/SKILL.md"
+    style = zig_repo / ".agents/zig/skills/style/SKILL.md"
     style.write_text(
         style.read_text(encoding="utf-8")
         + "\nRun `<skill-directory>/scripts/missing.py`.\n",
@@ -492,7 +493,7 @@ def test_continuation_runtime_is_allowed(zig_repo: Path) -> None:
     path.parent.mkdir()
     path.write_text("{}\n", encoding="utf-8")
     result = run(
-        str(ROOT / ".agents/template/utility/check/scripts/check.py"),
+        str(ROOT / ".agents/template/skills/check/scripts/check.py"),
         "--root",
         str(zig_repo),
     )
@@ -527,20 +528,20 @@ def test_portable_repository_plugin_configuration_is_allowed(zig_repo: Path) -> 
 
 def test_missing_required_skill(zig_repo: Path) -> None:
     for path in sorted(
-        (zig_repo / ".agents/zig/convention/errors").rglob("*"), reverse=True
+        (zig_repo / ".agents/zig/skills/errors").rglob("*"), reverse=True
     ):
         path.unlink() if path.is_file() else path.rmdir()
-    (zig_repo / ".agents/zig/convention/errors").rmdir()
-    edit(zig_repo, ".agents/zig/policy/learning/SKILL.md", "`zig:errors`, ", "")
+    (zig_repo / ".agents/zig/skills/errors").rmdir()
+    edit(zig_repo, ".agents/zig/skills/learning/SKILL.md", "`zig:errors`, ", "")
     assert_problem(
-        zig_repo, "errors: a stack repository needs this convention skill in plugin zig"
+        zig_repo, "errors: a stack repository needs this standard skill in plugin zig"
     )
 
 
 def test_missing_required_section(zig_repo: Path) -> None:
     edit(
         zig_repo,
-        ".agents/zig/convention/structure/SKILL.md",
+        ".agents/zig/skills/structure/SKILL.md",
         "## File structure",
         "## Layout",
     )
@@ -550,45 +551,29 @@ def test_missing_required_section(zig_repo: Path) -> None:
 def test_wrong_standard_profile(zig_repo: Path) -> None:
     edit(
         zig_repo,
-        ".agents/zig/convention/style/SKILL.md",
+        ".agents/zig/skills/style/SKILL.md",
         "profile: core",
         "profile: contract",
     )
-    assert_problem(zig_repo, "style is kind convention, profile core")
+    assert_problem(zig_repo, "style is kind standard, profile core")
 
 
-def test_convention_without_owns_line(zig_repo: Path) -> None:
+def test_standard_without_owns_line(zig_repo: Path) -> None:
     edit(
         zig_repo,
-        ".agents/zig/convention/build/SKILL.md",
+        ".agents/zig/skills/build/SKILL.md",
         "Owns the toolchain pin",
         "Covers the toolchain pin",
     )
     assert_problem(zig_repo, "opens with an `Owns")
 
 
-def test_legacy_kinds_still_satisfy_the_standard(zig_repo: Path) -> None:
-    convention = zig_repo / ".agents/zig/convention/style"
-    legacy = zig_repo / ".agents/zig/contract/style"
-    legacy.parent.mkdir(parents=True)
-    convention.rename(legacy)
+@pytest.mark.parametrize("kind", ["convention", "contract", "utility", "knowledge"])
+def test_retired_kinds_are_rejected(zig_repo: Path, kind: str) -> None:
     edit(
-        zig_repo,
-        ".agents/zig/contract/style/SKILL.md",
-        "kind: convention",
-        "kind: contract",
+        zig_repo, ".agents/zig/skills/style/SKILL.md", "kind: standard", f"kind: {kind}"
     )
-    policy = zig_repo / ".agents/zig/policy/learning"
-    legacy_learning = zig_repo / ".agents/zig/knowledge/learning"
-    legacy_learning.parent.mkdir(parents=True, exist_ok=True)
-    policy.rename(legacy_learning)
-    edit(
-        zig_repo,
-        ".agents/zig/knowledge/learning/SKILL.md",
-        "kind: policy",
-        "kind: knowledge",
-    )
-    assert check.check(zig_repo) == []
+    assert_problem(zig_repo, "kind")
 
 
 def test_drifted_vendored_file(zig_repo: Path) -> None:
@@ -631,9 +616,7 @@ def test_ci_layout_still_compares_the_ci_caller(zig_repo: Path) -> None:
         "template_ref: main",
         "template_ref: v0.9.0",
     )
-    result = run(
-        str(nested / "utility/check/scripts/check.py"), "--root", str(zig_repo)
-    )
+    result = run(str(nested / "skills/check/scripts/check.py"), "--root", str(zig_repo))
     assert result.returncode == 1
     assert ".github/workflows/ci.yml: differs from current Template" in result.stderr
 
@@ -708,14 +691,14 @@ def test_a_new_tool_repository_conforms(helix_repo: Path) -> None:
 def test_learning_keeps_its_calibrate_section(helix_repo: Path) -> None:
     edit(
         helix_repo,
-        ".agents/helix/policy/learning/SKILL.md",
-        "## Calibrate to `helix:knowledge`",
+        ".agents/helix/skills/learning/SKILL.md",
+        "## Calibrate to the learner record",
         "## Calibrate",
     )
-    assert_problem(helix_repo, "missing section ## Calibrate to `helix:knowledge`")
+    assert_problem(helix_repo, "missing section ## Calibrate to the learner record")
 
 
-def test_utility_can_explicitly_gate_on_stack_present(tools_repo: Path) -> None:
+def test_plugin_can_explicitly_gate_on_stack_present(tools_repo: Path) -> None:
     path = tools_repo / ".agents/tiers/tools.json"
     tier = json.loads(path.read_text())
     tier.update(schema_version=3, applies="stack-present", detect={"fact": "employer"})
@@ -723,32 +706,37 @@ def test_utility_can_explicitly_gate_on_stack_present(tools_repo: Path) -> None:
     assert check.check(tools_repo) == []
 
 
-def test_utility_rejects_unsupported_applies(tools_repo: Path) -> None:
+def test_plugin_rejects_unsupported_applies(tools_repo: Path) -> None:
     path = tools_repo / ".agents/tiers/tools.json"
     tier = json.loads(path.read_text())
     tier["applies"] = "sometimes"
     path.write_text(json.dumps(tier), encoding="utf-8")
-    assert_problem(tools_repo, "a utility repository applies")
+    assert_problem(tools_repo, "a plugin repository applies")
 
 
-def test_a_new_utility_repository_conforms(tools_repo: Path) -> None:
+def test_a_new_plugin_repository_conforms(tools_repo: Path) -> None:
     assert check.check(tools_repo) == []
 
 
-def test_only_utility_skills(tools_repo: Path) -> None:
-    skill = tools_repo / ".agents/tools/knowledge/notes/SKILL.md"
-    skill.parent.mkdir(parents=True)
-    text = (tools_repo / ".agents/tools/utility/sweep/SKILL.md").read_text(
-        encoding="utf-8"
-    )
+@pytest.mark.parametrize(
+    "kind", ["policy", "standard", "workflow", "learning", "reference"]
+)
+def test_plugin_repository_accepts_mixed_skill_kinds(
+    tools_repo: Path, kind: str
+) -> None:
+    source = tools_repo / ".agents/tools/skills/sweep/SKILL.md"
+    skill = source.parent.parent / "notes/SKILL.md"
+    skill.parent.mkdir()
+    text = source.read_text(encoding="utf-8")
+    text = re.sub(r"(?m)^(# [^\n]+\n)", r"\1\nOwns the notes.\n", text, count=1)
     skill.write_text(
         text.replace("name: sweep", "name: notes").replace(
-            "kind: utility", "kind: knowledge"
+            "kind: operation", f"kind: {kind}"
         ),
         encoding="utf-8",
     )
     regenerate(tools_repo)
-    assert_problem(tools_repo, "a utility repository has only utility skills")
+    assert check.check(tools_repo) == []
 
 
 def test_a_new_profile_conforms(personal_repo: Path) -> None:
@@ -756,16 +744,11 @@ def test_a_new_profile_conforms(personal_repo: Path) -> None:
 
 
 def test_profile_needs_a_policy_in_its_main_plugin(personal_repo: Path) -> None:
-    policy = personal_repo / ".agents/personal/policy/current"
-    utility = personal_repo / ".agents/personal/utility/current"
-    utility.parent.mkdir()
-    policy.rename(utility)
-    policy.parent.rmdir()
     edit(
         personal_repo,
-        ".agents/personal/utility/current/SKILL.md",
+        ".agents/personal/skills/current/SKILL.md",
         "kind: policy",
-        "kind: utility",
+        "kind: operation",
     )
     regenerate(personal_repo)
     assert_problem(
@@ -773,23 +756,29 @@ def test_profile_needs_a_policy_in_its_main_plugin(personal_repo: Path) -> None:
     )
 
 
-def test_profile_rejects_knowledge_kind(personal_repo: Path) -> None:
-    policy = personal_repo / ".agents/personal/policy/current"
-    knowledge = personal_repo / ".agents/personal/knowledge/current"
-    knowledge.parent.mkdir()
-    policy.rename(knowledge)
-    policy.parent.rmdir()
-    edit(
-        personal_repo,
-        ".agents/personal/knowledge/current/SKILL.md",
-        "kind: policy",
-        "kind: knowledge",
+@pytest.mark.parametrize(
+    "kind", ["standard", "operation", "workflow", "learning", "reference"]
+)
+def test_profile_accepts_other_kinds_alongside_its_policy(
+    personal_repo: Path, kind: str
+) -> None:
+    source = personal_repo / ".agents/personal/skills/current/SKILL.md"
+    skill = source.parent.parent / "notes/SKILL.md"
+    skill.parent.mkdir()
+    text = re.sub(
+        r"(?m)^(# [^\n]+\n)",
+        r"\1\nOwns the notes.\n",
+        source.read_text(encoding="utf-8"),
+        count=1,
+    )
+    skill.write_text(
+        text.replace("name: current", "name: notes").replace(
+            "kind: policy", f"kind: {kind}"
+        ),
+        encoding="utf-8",
     )
     regenerate(personal_repo)
-    assert_problem(
-        personal_repo,
-        "a profile repository has only policy, convention, workflow, utility skills",
-    )
+    assert check.check(personal_repo) == []
 
 
 def test_profile_is_always_applicable_once_selected(personal_repo: Path) -> None:
@@ -886,12 +875,12 @@ def test_profile_dependency_projection_is_checked(personal_repo: Path) -> None:
 
 def test_a_conforming_scaffold_in_one_plugin_is_enough(zig_repo: Path) -> None:
     extra = zig_repo / ".agents/extra"
-    scaffold = (zig_repo / ".agents/zig/utility/scaffold/SKILL.md").read_text(
+    scaffold = (zig_repo / ".agents/zig/skills/scaffold/SKILL.md").read_text(
         encoding="utf-8"
     )
-    (extra / "utility/scaffold").mkdir(parents=True)
+    (extra / "skills/scaffold").mkdir(parents=True)
     broken = scaffold.replace("## Build and adapt\n", "")
-    (extra / "utility/scaffold/SKILL.md").write_text(broken, encoding="utf-8")
+    (extra / "skills/scaffold/SKILL.md").write_text(broken, encoding="utf-8")
     tier = json.loads((zig_repo / ".agents/tiers/zig.json").read_text())
     (zig_repo / ".agents/tiers/extra.json").write_text(
         json.dumps({**tier, "tier": "extra"}), encoding="utf-8"
@@ -903,19 +892,19 @@ def test_a_conforming_scaffold_in_one_plugin_is_enough(zig_repo: Path) -> None:
         (zig_repo / f".agents/plugins/manifests/{host}/extra.json").write_text(
             json.dumps({**source, "name": "extra"}), encoding="utf-8"
         )
-    payloads = {"payloads": {"zig": ["zig"], "extra": ["extra"]}}
-    (zig_repo / ".agents/plugins/payloads.json").write_text(
-        json.dumps(payloads), encoding="utf-8"
-    )
+    path = zig_repo / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads["payloads"]["extra"] = ["extra"]
+    path.write_text(json.dumps(payloads), encoding="utf-8")
     regenerate(zig_repo)
     assert check.check(zig_repo) == []
 
 
-def add_contract(root: Path, folder: str, name: str) -> None:
-    skill = root / ".agents/zig/contract" / folder / "SKILL.md"
+def add_standard(root: Path, folder: str, name: str) -> None:
+    skill = root / ".agents/zig/skills" / folder / "SKILL.md"
     skill.parent.mkdir(parents=True, exist_ok=True)
     skill.write_text(
-        f"---\nname: {name}\ndescription: The {name} contract.\nkind: contract\n"
+        f"---\nname: {name}\ndescription: The {name} standard.\nkind: standard\n"
         f"domain: zig\nprofile: core\n"
         f"applicability: zig projects\nrequires: zig\nprovenance: house\n---\n\n"
         f"# {name}\n\nOwns {name}.\n\n```text\nInput: fixture\nOutput: verified\n```\n",
@@ -925,35 +914,31 @@ def add_contract(root: Path, folder: str, name: str) -> None:
 
 
 def test_a_family_folder_conforms(zig_repo: Path) -> None:
-    add_contract(zig_repo, "state", "state")
-    add_contract(zig_repo, "state/client", "state-client")
-    add_contract(zig_repo, "state/server", "state-server")
+    add_standard(zig_repo, "state", "state")
+    add_standard(zig_repo, "state/client", "state-client")
+    add_standard(zig_repo, "state/server", "state-server")
     assert check.check(zig_repo) == []
 
 
-def test_flat_names_sharing_a_word_belong_in_a_family(zig_repo: Path) -> None:
-    add_contract(zig_repo, "client-state", "client-state")
-    add_contract(zig_repo, "server-state", "server-state")
-    assert_problem(
-        zig_repo,
-        "client-state, server-state share `state`; fold them into the family "
-        "folder state/<member>/",
-    )
+def test_flat_names_may_share_a_word(zig_repo: Path) -> None:
+    add_standard(zig_repo, "client-state", "client-state")
+    add_standard(zig_repo, "server-state", "server-state")
+    assert check.check(zig_repo) == []
 
 
-def test_a_flat_name_sharing_a_family_word(zig_repo: Path) -> None:
-    add_contract(zig_repo, "state/client", "state-client")
-    add_contract(zig_repo, "server-state", "server-state")
-    assert_problem(zig_repo, "server-state share `state`")
+def test_flat_names_may_share_a_family_word(zig_repo: Path) -> None:
+    add_standard(zig_repo, "state/client", "state-client")
+    add_standard(zig_repo, "server-state", "server-state")
+    assert check.check(zig_repo) == []
 
 
 def test_a_member_repeating_its_family(zig_repo: Path) -> None:
-    add_contract(zig_repo, "state/client-state", "state-client-state")
+    add_standard(zig_repo, "state/client-state", "state-client-state")
     assert_problem(zig_repo, "client-state repeats its family state")
 
 
 def test_a_name_repeating_its_namespace(zig_repo: Path) -> None:
-    add_contract(zig_repo, "zig-rules", "zig-rules")
+    add_standard(zig_repo, "zig-rules", "zig-rules")
     assert_problem(zig_repo, "a skill name does not repeat its namespace zig")
 
 
@@ -965,7 +950,7 @@ def test_malformed_payloads_is_reported(zig_repo: Path) -> None:
 
 
 def test_a_compatibility_alias_keeps_its_old_name(zig_repo: Path) -> None:
-    add_contract(zig_repo, "zig-style", "zig-style")
+    add_standard(zig_repo, "zig-style", "zig-style")
     path = zig_repo / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text())
     payloads["compatibilitySkillAliases"] = {
@@ -982,5 +967,51 @@ def test_template_conforms_to_itself() -> None:
 def test_template_conforms_when_checked_from_a_nested_copy(tmp_path: Path) -> None:
     nested = tmp_path / ".agents/template"
     shutil.copytree(ROOT / ".agents/template", nested)
-    result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(ROOT))
+    result = run(str(nested / "skills/check/scripts/check.py"), "--root", str(ROOT))
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("repository_type", ["stack", "tool"])
+def test_learning_record_is_required(
+    repository_factory: Callable[[str, str], Path], repository_type: str
+) -> None:
+    root = repository_factory(repository_type, "learn")
+    record = root / ".agents/learn/learning/knowledge.md"
+    assert record.is_file()
+    record.unlink()
+    assert_problem(root, "learning/knowledge.md")
+
+
+@pytest.mark.parametrize("heading", ["## ✅ Fluent", "## 🟡 Met, shaky", "## Log"])
+def test_learning_record_requires_learner_data_sections(
+    helix_repo: Path, heading: str
+) -> None:
+    edit(helix_repo, ".agents/helix/learning/knowledge.md", heading, "## Removed")
+    assert_problem(helix_repo, f"missing section {heading}")
+
+
+@pytest.mark.parametrize("retired_state", ["type", "layout"])
+def test_update_rejects_retired_structure_before_revendoring(
+    tools_repo: Path, retired_state: str
+) -> None:
+    generator = tools_repo / ".agents/sync_generated.py"
+    generator.write_bytes(generator.read_bytes() + b"\n")
+    original = generator.read_bytes()
+    if retired_state == "type":
+        path = tools_repo / ".agents/plugins/template.json"
+        config = json.loads(path.read_text(encoding="utf-8"))
+        config["type"] = "utility"
+        path.write_text(json.dumps(config), encoding="utf-8")
+    else:
+        (tools_repo / ".agents/tools/skills").rename(
+            tools_repo / ".agents/tools/operation"
+        )
+    result = run(str(UPDATE), "--root", str(tools_repo))
+    assert result.returncode == 2
+    diagnostic = (
+        "select a current repository type before update"
+        if retired_state == "type"
+        else "only skills/ and declared references/, learning/ or assets/"
+    )
+    assert diagnostic in result.stderr
+    assert generator.read_bytes() == original

@@ -172,7 +172,7 @@ def check_skill_examples(
 
 
 def owns_templates(root: Path) -> bool:
-    return (root / ".agents/template/utility/new/plugin/templates/repository").is_dir()
+    return (root / ".agents/template/skills/new/plugin/templates/repository").is_dir()
 
 
 def check_vendored(root: Path, repository: str) -> list[str]:
@@ -251,11 +251,7 @@ def skill_problems(
     skill: SkillRecord, name: str, rule: JSONObject, namespace: str
 ) -> list[str]:
     problems = []
-    allowed_kinds = {rule["kind"], *rule.get("legacy_kinds", [])}
-    if (
-        skill["kind"] not in allowed_kinds
-        or skill["metadata"]["profile"] != rule["profile"]
-    ):
+    if skill["kind"] != rule["kind"] or skill["metadata"]["profile"] != rule["profile"]:
         problems.append(
             f"{skill['directory']}: {name} is kind {rule['kind']}, "
             f"profile {rule['profile']}"
@@ -298,6 +294,19 @@ def check_standard(
                     f".agents/tiers/{namespace}.json: a {kind} repository "
                     f"applies {standard['applies']}"
                 )
+    for relative, rule in standard.get("data", {}).items():
+        path = root / ".agents" / namespace / relative
+        if not path.is_file():
+            problems.append(
+                f"{path.relative_to(root).as_posix()}: required learner data"
+            )
+            continue
+        present = headings(text(path))
+        for heading in rule["sections"]:
+            if heading not in present:
+                problems.append(
+                    f"{path.relative_to(root).as_posix()}: missing section {heading}"
+                )
     for required_kind in standard.get("required_kinds", []):
         if not any(
             skill["kind"] == required_kind for skill in plugins[namespace].values()
@@ -321,17 +330,11 @@ def check_standard(
             problems += [problem for skill_found in found for problem in skill_found]
     for skills in plugins.values():
         for skill in skills.values():
-            if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:
-                allowed = ", ".join(standard["only_kinds"])
+            if skill["kind"] == "standard" and not opening(skill["body"]).startswith(
+                STANDARD["standard_opening"]
+            ):
                 problems.append(
-                    f"{skill['directory']}: a {kind} repository has only "
-                    f"{allowed} skills"
-                )
-            if skill["kind"] in ("contract", "convention") and not opening(
-                skill["body"]
-            ).startswith(STANDARD["convention_opening"]):
-                problems.append(
-                    f"{skill['directory']}/SKILL.md: a contract opens with "
+                    f"{skill['directory']}/SKILL.md: a standard opens with "
                     "an `Owns â€¦` line after its title"
                 )
     return problems
@@ -341,8 +344,6 @@ def check_names(plugins: Plugins, aliases: dict[str, JSONObject]) -> list[str]:
     problems = []
     for plugin, skills in plugins.items():
         exempt = set(aliases.get(plugin, {}))
-        flat: dict[tuple[str, str], set[str]] = {}
-        families: set[tuple[str, str]] = set()
         for skill in skills.values():
             if skill["name"] in exempt:
                 continue
@@ -362,19 +363,6 @@ def check_names(plugins: Plugins, aliases: dict[str, JSONObject]) -> list[str]:
                         problems.append(
                             f"{skill['directory']}: {part} repeats its family {family}"
                         )
-            if len(parts) > 1:
-                families.add((skill["kind"], parts[0]))
-            elif "-" in parts[0]:
-                words = parts[0].split("-")
-                for word in {words[0], words[-1]}:
-                    flat.setdefault((skill["kind"], word), set()).add(parts[0])
-        for (kind, word), names in sorted(flat.items()):
-            if len(names) > 1 or (kind, word) in families:
-                sharing = ", ".join(sorted(names))
-                problems.append(
-                    f".agents/{plugin}/{kind}: {sharing} share `{word}`; fold "
-                    f"them into the family folder {word}/<member>/"
-                )
     return problems
 
 

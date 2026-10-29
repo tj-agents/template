@@ -14,7 +14,7 @@
   "skills": [
     {
       "name": "check",
-      "kind": "utility",
+      "kind": "operation",
       "profile": "core",
       "applicability": [
         "skill authoring and review"
@@ -28,7 +28,7 @@
     },
     {
       "name": "new",
-      "kind": "utility",
+      "kind": "workflow",
       "profile": "core",
       "applicability": [
         "skill authoring in selected repositories"
@@ -42,7 +42,7 @@
     },
     {
       "name": "update",
-      "kind": "utility",
+      "kind": "workflow",
       "profile": "core",
       "applicability": [
         "existing skill authoring in selected repositories"

@@ -99,14 +99,13 @@ def test_verify_checks_changed_authored_guidance_against_the_event_base(
     assert "$mergeBase = '--merge-base'" in comparison
     assert "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" in comparison
     conformance = step(verify, "the repository conforms to the current Template source")
-    assert ".template/.agents/template/utility/check/scripts/check.py" in conformance
+    assert ".template/.agents/template/skills/check/scripts/check.py" in conformance
     assert "'--base', $env:GUIDANCE_EXAMPLES_BASE" in conformance
     assert "'--head', $env:GUIDANCE_EXAMPLES_HEAD" in conformance
     assert "$env:GUIDANCE_EXAMPLES_MERGE_BASE" in conformance
     assert "changed authored guidance has concrete examples" not in verify
     assert (
-        ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
-        not in verify
+        ".core/.agents/engineering/skills/docs/scripts/check_examples.py" not in verify
     )
 
 
@@ -120,7 +119,7 @@ def test_conformance_step_passes_only_present_native_arguments(
     )
     body = conformance.split("        run: |\n", 1)[1]
     command = "\n".join(line.removeprefix("          ") for line in body.splitlines())
-    checker = tmp_path / ".template/.agents/template/utility/check/scripts/check.py"
+    checker = tmp_path / ".template/.agents/template/skills/check/scripts/check.py"
     checker.parent.mkdir(parents=True)
     checker.write_text(
         "import argparse, json\n"

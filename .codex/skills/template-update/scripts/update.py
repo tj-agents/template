@@ -43,8 +43,24 @@ def update(root: Path, dry_run: bool) -> list[str]:
         raise ValueError(
             f"{config_path}: repository must be owner/name with a lowercase name"
         )
+    if config.get("type") not in new_plugin.SKILL_SETS:
+        raise ValueError(
+            f"{config_path}: select a current repository type before update"
+        )
+    generator_loader = SourceFileLoader(
+        "template_update_generator", str(new_plugin.GENERATOR_TEMPLATE)
+    )
+    generator_spec = importlib.util.spec_from_loader(
+        "template_update_generator", generator_loader
+    )
+    assert generator_spec is not None
+    generator = importlib.util.module_from_spec(generator_spec)
+    generator_loader.exec_module(generator)
+    payloads = generator.load(root / ".agents/plugins/payloads.json")
+    namespace = config["repository"].split("/", 1)[1]
+    generator.discover(root, namespace, generator.mapped_resource_directories(payloads))
     owns_templates = (
-        root / ".agents/template/utility/new/plugin/templates/repository"
+        root / ".agents/template/skills/new/plugin/templates/repository"
     ).is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():

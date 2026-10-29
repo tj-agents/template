@@ -1,0 +1,31 @@
+---
+name: scaffold
+description: Create a new {{Stack}} project in the File structure `{{namespace}}:structure` records. Use when starting a {{Stack}} project; it creates nothing until that File structure is agreed.
+kind: operation
+domain: {{namespace}}
+profile: scaffold
+applicability: new {{Stack}} projects
+requires: {{namespace}}
+provenance: house
+---
+
+# {{Stack}} project scaffold
+
+Creates a project in the File structure `{{namespace}}:structure` records. Its scripts and templates sit beside
+this file.
+
+## Create a project
+
+_Unfinished starter._ Once `{{namespace}}:structure` has an agreed File structure, replace this with the scaffold's
+real behaviour and a concrete fenced command, configuration, or input/output example before committing. The
+guidance-example check rejects this placeholder.
+
+## Build and adapt
+
+_Unfinished starter._ Describe the actual adaptation and include a concrete fenced code, command, configuration,
+or input/output example before committing. The guidance-example check rejects this placeholder.
+
+## Validation and publication
+
+_Unfinished starter._ Describe the real validation and publication behaviour with a concrete fenced command,
+configuration, or input/output example before committing. The guidance-example check rejects this placeholder.

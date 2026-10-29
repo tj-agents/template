@@ -1,5 +1,6 @@
 # template package capabilities
 
-- `check` — utility — core
-- `new-plugin` — utility — core
-- `update` — utility — core
+- `check` — operation — core
+- `new-plugin` — operation — core
+- `update` — operation — core
+- `structure` — standard — core

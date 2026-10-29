@@ -1,5 +1,5 @@
 # skill package capabilities
 
-- `check` — utility — core
-- `new` — utility — core
-- `update` — utility — core
+- `check` — operation — core
+- `new` — workflow — core
+- `update` — workflow — core

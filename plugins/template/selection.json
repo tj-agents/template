@@ -8,6 +8,7 @@
     "core": [
       "check",
       "new-plugin",
+      "structure",
       "update"
     ]
   },
@@ -15,7 +16,7 @@
   "skills": [
     {
       "name": "check",
-      "kind": "utility",
+      "kind": "operation",
       "profile": "core",
       "applicability": [
         "plugin repositories"
@@ -29,7 +30,7 @@
     },
     {
       "name": "new-plugin",
-      "kind": "utility",
+      "kind": "operation",
       "profile": "core",
       "applicability": [
         "new plugin repositories"
@@ -43,8 +44,22 @@
       ]
     },
     {
+      "name": "structure",
+      "kind": "standard",
+      "profile": "core",
+      "applicability": [
+        "plugin repositories"
+      ],
+      "requires": [
+        "selected language standards"
+      ],
+      "provenance": [
+        "house"
+      ]
+    },
+    {
       "name": "update",
-      "kind": "utility",
+      "kind": "operation",
       "profile": "core",
       "applicability": [
         "plugin repositories"
