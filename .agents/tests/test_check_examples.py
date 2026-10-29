@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CHECKER = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
+CHECKER = ROOT / ".agents/template/skills/check/scripts/check_examples.py"
 
 
 class ExampleCheckerTests(unittest.TestCase):
@@ -54,7 +54,7 @@ class ExampleCheckerTests(unittest.TestCase):
         return "---\nname: example\n---\n" + body
 
     def test_added_modified_and_renamed_guidance_requires_real_examples(self) -> None:
-        relative = ".agents/example/convention/example/SKILL.md"
+        relative = ".agents/example/skills/example/SKILL.md"
         self.write(
             relative,
             self.skill("# Rule\n\n```text\nInput: source\nOutput: result\n```\n"),
@@ -70,14 +70,14 @@ class ExampleCheckerTests(unittest.TestCase):
         self.assertIn(relative, failed.stderr)
         second = self.git("rev-parse", "HEAD").stdout.strip()
 
-        renamed = ".agents/example/convention/renamed/SKILL.md"
+        renamed = ".agents/example/skills/renamed/SKILL.md"
         (self.root / renamed).parent.mkdir(parents=True, exist_ok=True)
         self.git("mv", relative, renamed)
         self.commit()
         self.assertEqual(1, self.check("--base", second).returncode)
 
     def test_deleted_and_unchanged_guidance_do_not_require_retrofit(self) -> None:
-        relative = ".agents/example/convention/old/SKILL.md"
+        relative = ".agents/example/skills/old/SKILL.md"
         self.write(relative, self.skill("# Old\n"))
         self.commit()
         unchanged = self.git("rev-parse", "HEAD").stdout.strip()
@@ -115,14 +115,14 @@ class ExampleCheckerTests(unittest.TestCase):
         }
         for name, body in cases.items():
             with self.subTest(name=name):
-                relative = f".agents/example/convention/{name}/SKILL.md"
+                relative = f".agents/example/skills/{name}/SKILL.md"
                 self.write(relative, body)
                 self.assertEqual(1, self.check("--path", relative).returncode)
 
     def test_nonempty_backtick_and_tilde_fences_are_examples(self) -> None:
         for name, fence in (("ticks", "```"), ("tildes", "~~~~")):
             with self.subTest(name=name):
-                relative = f".agents/example/convention/{name}/SKILL.md"
+                relative = f".agents/example/skills/{name}/SKILL.md"
                 self.write(
                     relative,
                     self.skill(
@@ -133,7 +133,7 @@ class ExampleCheckerTests(unittest.TestCase):
                 self.assertEqual(0, self.check("--path", relative).returncode)
 
     def test_fence_nested_under_a_numbered_list_is_an_example(self) -> None:
-        relative = ".agents/example/convention/list/SKILL.md"
+        relative = ".agents/example/skills/list/SKILL.md"
         self.write(
             relative,
             self.skill(
@@ -190,12 +190,12 @@ class ExampleCheckerTests(unittest.TestCase):
         }
         for name, content in examples.items():
             with self.subTest(name=name):
-                relative = f".agents/example/convention/{name}/SKILL.md"
+                relative = f".agents/example/skills/{name}/SKILL.md"
                 self.write(relative, self.skill(f"# Rule\n\n```text\n{content}\n```\n"))
                 self.assertEqual(0, self.check("--path", relative).returncode)
 
     def test_template_namespace_and_real_json_configuration_are_examples(self) -> None:
-        relative = ".agents/template/utility/check/SKILL.md"
+        relative = ".agents/template/skills/check/SKILL.md"
         self.write(
             relative, self.skill('# Check\n\n```json\n{"host": "localhost"}\n```\n')
         )
@@ -203,25 +203,25 @@ class ExampleCheckerTests(unittest.TestCase):
 
     def test_nested_assets_are_excluded_but_fixtures_namespace_is_checked(self) -> None:
         self.write(
-            ".agents/example/convention/real/templates/SKILL.md",
+            ".agents/example/skills/real/templates/SKILL.md",
             self.skill("# Generated\n"),
         )
         self.write(
-            ".agents/example/convention/real/resources/SKILL.md",
+            ".agents/example/skills/real/resources/SKILL.md",
             self.skill("# Resource\n"),
         )
         self.write(
-            ".agents/example/convention/real/fixtures/SKILL.md",
+            ".agents/example/skills/real/fixtures/SKILL.md",
             self.skill("# Fixture\n"),
         )
         self.write(
-            ".agents/fixtures/convention/check/SKILL.md",
+            ".agents/fixtures/skills/check/SKILL.md",
             self.skill("# Plugin namespace\n"),
         )
         self.commit()
         failed = self.check("--base", self.base)
         self.assertEqual(1, failed.returncode)
-        self.assertIn(".agents/fixtures/convention/check/SKILL.md", failed.stderr)
+        self.assertIn(".agents/fixtures/skills/check/SKILL.md", failed.stderr)
 
     def test_changed_root_code_conventions_requires_an_example(self) -> None:
         self.write("CODE_CONVENTIONS.md", "# Code conventions\n\nUse clear names.\n")
@@ -274,7 +274,7 @@ class ExampleCheckerTests(unittest.TestCase):
         self.assertIn("RULES.md", failed.stderr)
 
     def test_example_fenced_inside_html_comment_does_not_count(self) -> None:
-        relative = ".agents/example/convention/commented/SKILL.md"
+        relative = ".agents/example/skills/commented/SKILL.md"
         self.write(
             relative, self.skill("# Rule\n\n<!--\n```text\nInput: hidden\n```\n-->\n")
         )

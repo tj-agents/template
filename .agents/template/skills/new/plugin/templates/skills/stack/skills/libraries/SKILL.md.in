@@ -1,0 +1,20 @@
+---
+name: libraries
+description: {{learner}}'s agreed {{Stack}} dependency policy — when to take a dependency and which are chosen. Read before writing or reviewing {{Stack}} that touches it; nothing applies until it is recorded here.
+kind: standard
+domain: {{namespace}}
+profile: core
+applicability: {{Stack}} projects
+requires: {{namespace}}
+provenance: house
+---
+
+# {{Stack}} libraries
+
+Owns when to take a dependency and which ones are chosen.
+
+## Agreed
+
+_Unfinished starter._ Propose a rule through `{{namespace}}:learning`'s standard procedure, then replace this
+with the agreed rule and a concrete fenced code, command, configuration, or input/output example before
+committing. The guidance-example check rejects this placeholder.

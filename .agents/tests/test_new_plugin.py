@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / ".agents/template/utility/new/plugin"
+SKILL = ROOT / ".agents/template/skills/new/plugin"
 SCRIPT = SKILL / "scripts/new_plugin.py"
 TEMPLATES = SKILL / "templates/repository"
 CORE_PAYLOAD_CHECK = ROOT / ".core/plugins/base/hooks/check_tier_payload.py"
-EXAMPLES_CHECK = ROOT / ".agents/template/utility/check/scripts/check_examples.py"
+EXAMPLES_CHECK = ROOT / ".agents/template/skills/check/scripts/check_examples.py"
 PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
 VENDORED = (
     ".agents/sync_generated.py",
@@ -22,9 +22,9 @@ VENDORED = (
     "CLAUDE.md",
 )
 STACK_SKILLS = {
-    "knowledge": {"knowledge", "direction"},
-    "policy": {"learning"},
-    "convention": {
+    "reference": {"direction"},
+    "learning": {"learning"},
+    "standard": {
         "style",
         "structure",
         "domain-design",
@@ -33,7 +33,7 @@ STACK_SKILLS = {
         "build",
         "libraries",
     },
-    "utility": {"scaffold"},
+    "operation": {"scaffold"},
 }
 
 
@@ -62,14 +62,30 @@ def create(
         str(destination),
         "--author",
         "Ada Lovelace",
+        *(
+            ["--skill-kind", "operation"]
+            if kind == "plugin" and "--skill-kind" not in extra
+            else []
+        ),
         *extra,
     )
 
 
 def skills(destination: Path, name: str) -> dict[str, set[str]]:
     found: dict[str, set[str]] = {}
-    for path in (destination / name / ".agents" / name).glob("*/*/SKILL.md"):
-        found.setdefault(path.parent.parent.name, set()).add(path.parent.name)
+    for path in (destination / name / ".agents" / name / "skills").rglob("SKILL.md"):
+        content = path.read_text(encoding="utf-8")
+        kind = next(
+            line.removeprefix("kind: ")
+            for line in content.splitlines()
+            if line.startswith("kind: ")
+        )
+        skill_name = next(
+            line.removeprefix("name: ")
+            for line in content.splitlines()
+            if line.startswith("name: ")
+        )
+        found.setdefault(kind, set()).add(skill_name)
     return found
 
 
@@ -169,7 +185,7 @@ def test_stack_repository_has_the_standard_skills_and_a_detected_tier(
     tier = (tmp_path / "zig/.agents/tiers/zig.json").read_text(encoding="utf-8")
     assert '"applies": "stack-present"' in tier
     assert "build.zig" in tier
-    structure = (tmp_path / "zig/.agents/zig/convention/structure/SKILL.md").read_text(
+    structure = (tmp_path / "zig/.agents/zig/skills/structure/SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "## File structure" in structure
@@ -177,11 +193,11 @@ def test_stack_repository_has_the_standard_skills_and_a_detected_tier(
     assert_repository_is_current(tmp_path, "zig")
 
 
-def test_tool_repository_has_only_the_knowledge_tier(tmp_path: Path) -> None:
+def test_tool_repository_has_learning_and_direction(tmp_path: Path) -> None:
     assert create(tmp_path, "helix", "tool").returncode == 0
     assert skills(tmp_path, "helix") == {
-        "knowledge": {"knowledge", "direction"},
-        "policy": {"learning"},
+        "reference": {"direction"},
+        "learning": {"learning"},
     }
     assert (
         '"applies": "always"'
@@ -190,18 +206,18 @@ def test_tool_repository_has_only_the_knowledge_tier(tmp_path: Path) -> None:
     assert_repository_is_current(tmp_path, "helix")
 
 
-def test_utility_repository_has_only_its_utility(tmp_path: Path) -> None:
-    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
-    assert skills(tmp_path, "tools") == {"utility": {"sweep"}}
+def test_plugin_repository_starts_with_an_operation(tmp_path: Path) -> None:
+    assert create(tmp_path, "tools", "plugin", "--skill", "sweep").returncode == 0
+    assert skills(tmp_path, "tools") == {"operation": {"sweep"}}
     assert_repository_is_current(tmp_path, "tools")
 
 
 def test_generated_starter_requires_a_concrete_example(
     tmp_path: Path,
 ) -> None:
-    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    assert create(tmp_path, "tools", "plugin", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
-    relative = ".agents/tools/utility/sweep/SKILL.md"
+    relative = ".agents/tools/skills/sweep/SKILL.md"
 
     result = run(
         str(EXAMPLES_CHECK),
@@ -218,14 +234,14 @@ def test_generated_starter_requires_a_concrete_example(
 def test_initial_plugin_passes_the_zero_base_check_after_real_examples_are_added(
     tmp_path: Path,
 ) -> None:
-    assert create(tmp_path, "tools", "utility", "--skill", "sweep").returncode == 0
+    assert create(tmp_path, "tools", "plugin", "--skill", "sweep").returncode == 0
     repository = tmp_path / "tools"
-    skill = repository / ".agents/tools/utility/sweep/SKILL.md"
+    skill = repository / ".agents/tools/skills/sweep/SKILL.md"
     skill.write_text(
         """---
 name: sweep
 description: Lists stale build outputs before removing them.
-kind: utility
+kind: operation
 domain: tools
 profile: core
 applicability: build cleanup
@@ -352,7 +368,7 @@ def test_refuses_an_existing_repository_and_a_stack_without_markers(
 def test_reserved_core_dependency_namespace_fails_before_writing(
     tmp_path: Path, flags: list[str]
 ) -> None:
-    result = create(tmp_path, "base", "utility", "--skill", "sweep", *flags)
+    result = create(tmp_path, "base", "plugin", "--skill", "sweep", *flags)
     assert result.returncode == 2
     assert "namespace base is reserved" in result.stderr
     assert "tj-agents/base" in result.stderr
@@ -362,7 +378,7 @@ def test_reserved_core_dependency_namespace_fails_before_writing(
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     result = create(tmp_path, "helix", "tool", "--dry-run")
     assert result.returncode == 0
-    assert "helix/.agents/helix/policy/learning/SKILL.md" in result.stdout.replace(
+    assert "helix/.agents/helix/skills/learning/SKILL.md" in result.stdout.replace(
         "\\", "/"
     )
     assert not (tmp_path / "helix").exists()
@@ -373,3 +389,87 @@ def test_template_copies_equal_their_sources() -> None:
         assert (TEMPLATES / f"{relative}.in").read_bytes() == (
             ROOT / relative
         ).read_bytes(), relative
+
+
+@pytest.mark.parametrize("repository_type", ["stack", "tool"])
+def test_learning_state_is_plain_data_without_a_public_skill(
+    tmp_path: Path, repository_type: str
+) -> None:
+    flags = ["--detect-file", "build.zig"] if repository_type == "stack" else []
+    result = create(tmp_path, "learn", repository_type, *flags)
+    assert result.returncode == 0, result.stdout + result.stderr
+    root = tmp_path / "learn"
+    record = root / ".agents/learn/learning/knowledge.md"
+    content = record.read_text(encoding="utf-8")
+    assert not content.startswith("---")
+    for heading in ("## ✅ Fluent", "## 🟡 Met, shaky", "## Log"):
+        assert heading in content
+    assert not (root / ".agents/learn/skills/knowledge").exists()
+    assert not (root / "plugins/learn/skills/knowledge").exists()
+    learning = (root / ".agents/learn/skills/learning/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "kind: learning" in learning
+    assert "learn:knowledge" not in learning
+
+
+def test_retired_utility_repository_type_is_rejected(tmp_path: Path) -> None:
+    result = create(tmp_path, "tools", "utility", "--skill", "sweep")
+    assert result.returncode == 2
+    assert not (tmp_path / "tools").exists()
+
+
+def test_plugin_scaffold_requires_an_explicit_skill_kind(tmp_path: Path) -> None:
+    result = run(
+        str(SCRIPT),
+        "--repository",
+        "owner/tools",
+        "--type",
+        "plugin",
+        "--description",
+        "Build tools.",
+        "--destination",
+        str(tmp_path),
+        "--author",
+        "Ada Lovelace",
+        "--skill",
+        "sweep",
+    )
+    assert result.returncode == 2
+    assert "--skill-kind" in result.stderr
+    assert not (tmp_path / "tools").exists()
+
+
+@pytest.mark.parametrize("repository_type", ["stack", "tool", "profile"])
+def test_other_repository_types_reject_a_skill_kind_override(
+    tmp_path: Path, repository_type: str
+) -> None:
+    flags = {
+        "stack": ["--detect-file", "build.zig"],
+        "tool": [],
+        "profile": ["--skill", "current"],
+    }
+    result = create(
+        tmp_path,
+        "tools",
+        repository_type,
+        *flags[repository_type],
+        "--skill-kind",
+        "operation",
+    )
+    assert result.returncode == 2
+    assert "--skill-kind" in result.stderr
+    assert not (tmp_path / "tools").exists()
+
+
+@pytest.mark.parametrize(
+    "kind", ["policy", "standard", "operation", "workflow", "learning", "reference"]
+)
+def test_plugin_scaffold_uses_the_selected_skill_kind(
+    tmp_path: Path, kind: str
+) -> None:
+    result = create(
+        tmp_path, "tools", "plugin", "--skill", "sweep", "--skill-kind", kind
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert skills(tmp_path, "tools") == {kind: {"sweep"}}
