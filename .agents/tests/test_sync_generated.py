@@ -230,6 +230,64 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
     assert synchronize(demo_root, check=True)[0] != 0
 
 
+def test_distribution_resources_rebuild_changed_workspace_wheel(
+    demo_root: Path,
+) -> None:
+    uv = shutil.which("uv")
+    if uv is None:
+        pytest.skip("uv is required for wheel integration")
+    write(
+        demo_root / "pyproject.toml",
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+        'requires-python = ">=3.12"\ndependencies = ["fixture-lib"]\n'
+        "[tool.uv]\npackage = false\n"
+        '[tool.uv.workspace]\nmembers = ["packages/fixture-lib"]\n'
+        "[tool.uv.sources]\nfixture-lib = { workspace = true }\n",
+    )
+    package = demo_root / "packages/fixture-lib"
+    write(
+        package / "pyproject.toml",
+        '[project]\nname = "fixture-lib"\nversion = "0.1.0"\n'
+        'requires-python = ">=3.9"\ndependencies = []\n'
+        '[build-system]\nrequires = ["uv_build>=0.13.1,<0.14"]\n'
+        'build-backend = "uv_build"\n',
+    )
+    source = package / "src/fixture_lib"
+    write(source / "__init__.py", "VALUE = 1\n")
+    write(source / "removed.txt", "old\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "distribution": "fixture-lib",
+                    "destination": "python",
+                }
+            ],
+        },
+    )
+    subprocess.run(
+        [uv, "lock", "--project", str(demo_root)],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=True,
+    )
+    prefix = "plugins/demo/python/fixture_lib/"
+    initial = build(demo_root)
+    assert initial[prefix + "__init__.py"] == b"VALUE = 1\n"
+    assert initial[prefix + "removed.txt"] == b"old\n"
+    write(source / "__init__.py", "VALUE = 2\n")
+    write(source / "_entry.py", "print('new entry')\n")
+    (source / "removed.txt").unlink()
+    current = build(demo_root)
+    assert current[prefix + "__init__.py"] == b"VALUE = 2\n"
+    assert current[prefix + "_entry.py"] == b"print('new entry')\n"
+    assert prefix + "removed.txt" not in current
+
+
 @pytest.mark.parametrize(
     "record",
     ["../outside.py", "/outside.py", "C:/outside.py", "a\\b.py", "a//b.py", "a/./b.py"],
