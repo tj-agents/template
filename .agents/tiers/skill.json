@@ -1,10 +1,6 @@
 {
-  "schema_version": 3,
   "tier": "skill",
   "stack": "skill authoring",
   "applies": "always",
-  "owner_repository": [
-    "tj-agents/template"
-  ],
   "session_context": "For new skills load skill:new; for edits, renames, splits or consolidation load skill:update. Both apply skill:check and delegate to the current host native skill creator. Retire every superseded public name and active caller in the same cutover, without compatibility aliases."
 }

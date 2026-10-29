@@ -64,11 +64,9 @@ def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
         write_json(
             root / f".agents/tiers/{plugin}.json",
             {
-                "schema_version": 1,
                 "tier": plugin,
                 "applies": "stack-present",
-                "owner_repository": ["owner/demo"],
-                "detect": {"files": ["demo.toml"]},
+                "detect": {"file": "demo.toml"},
             },
         )
         common = {
@@ -1406,9 +1404,12 @@ def test_tier_rules(demo_root: Path) -> None:
     write_json(path, {**tier, "applies": "always"})
     assert_rejected(demo_root, "declares no detect markers")
     write_json(path, {key: value for key, value in tier.items() if key != "detect"})
-    assert_rejected(demo_root, "needs at least one detect marker")
+    assert_rejected(demo_root, "needs one detect predicate")
     write_json(path, {**tier, "owner_repository": ["owner/other"]})
-    assert_rejected(demo_root, "owner_repository must name owner/demo")
+    assert_rejected(demo_root, "unknown tier fields")
+    for version in (1, 2, 3):
+        write_json(path, {**tier, "schema_version": version})
+        assert_rejected(demo_root, "unknown tier fields")
 
 
 def test_manifests_must_agree(demo_root: Path) -> None:

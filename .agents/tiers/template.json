@@ -1,9 +1,5 @@
 {
-  "schema_version": 3,
   "tier": "template",
   "stack": "plugin repositories",
-  "applies": "always",
-  "owner_repository": [
-    "tj-agents/template"
-  ]
+  "applies": "always"
 }
