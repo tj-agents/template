@@ -868,15 +868,19 @@ def test_declared_supporting_material_is_not_discovered_as_skills(
     assert "plugins/demo/skills/entry/SKILL.md" not in output
 
 
+@pytest.mark.parametrize("indentation", ["  ", "    "])
+@pytest.mark.parametrize("key_spacing", ["", " "])
 def test_native_metadata_preserves_canonical_and_existing_metadata(
-    demo_root: Path,
+    demo_root: Path, indentation: str, key_spacing: str
 ) -> None:
     path = demo_root / ".agents/demo/skills/style/SKILL.md"
     canonical = skill_text("style", "standard").replace(
         "provenance: house\n",
         "provenance: house\nlicense: MIT\nallowed-tools: Read\n"
-        "metadata:\n  team: example\n",
+        f"metadata:\n{indentation}team: example\n",
     )
+    for field in ("name", "description", "metadata"):
+        canonical = canonical.replace(f"{field}:", f"{field}{key_spacing}:", 1)
     write(path, canonical)
     output = build(demo_root)
     assert (
@@ -894,9 +898,9 @@ def test_native_metadata_preserves_canonical_and_existing_metadata(
             if line and not line[0].isspace()
         }
         assert fields == {"name", "description", "license", "allowed-tools", "metadata"}
-        assert "  team: example\n" in header
-        assert "  tj-agents-kind: standard\n" in header
-        assert "  tj-agents-domain: demo\n" in header
+        assert f"{indentation}team: example\n" in header
+        assert f"{indentation}tj-agents-kind: standard\n" in header
+        assert f"{indentation}tj-agents-domain: demo\n" in header
 
 
 def test_claude_only_native_options_get_separate_codex_projection(

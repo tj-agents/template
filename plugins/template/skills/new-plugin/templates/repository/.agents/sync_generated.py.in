@@ -1080,8 +1080,9 @@ def native_header(skill: SkillRecord, host: str) -> str:
     current: str | None = None
     for line in match.group("header").splitlines():
         if line and not line[0].isspace() and ":" in line:
-            current = line.split(":", 1)[0]
-            blocks[current] = [line]
+            key, value = line.split(":", 1)
+            current = key.strip()
+            blocks[current] = [f"{current}:{value}"]
         elif current is not None:
             blocks[current].append(line)
     native = NATIVE_FIELDS | (CLAUDE_FIELDS if host == "claude" else set())
@@ -1095,13 +1096,21 @@ def native_header(skill: SkillRecord, host: str) -> str:
         raise ValueError(
             f"{skill['directory']}/SKILL.md: tj-agents metadata keys are generated"
         )
+    indentation = next(
+        (
+            line[: len(line) - len(line.lstrip())]
+            for line in extension[1:]
+            if line.strip() and not line.lstrip().startswith("#")
+        ),
+        "  ",
+    )
     lines.extend(extension)
     for key, block in blocks.items():
         if key in native or key == "metadata":
             continue
         first, *rest = block
-        lines.append(f"  tj-agents-{first}")
-        lines.extend(f"  {line}" for line in rest)
+        lines.append(f"{indentation}tj-agents-{first}")
+        lines.extend(f"{indentation}{line}" for line in rest)
     return "\n".join(lines)
 
 
