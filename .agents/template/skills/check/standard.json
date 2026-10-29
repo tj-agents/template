@@ -1,0 +1,167 @@
+{
+  "root_files": [
+    "AGENTS.md",
+    "README.md"
+  ],
+  "retired_files": [
+    "SOURCE_LAYOUT.md",
+    ".agents/plugins/sources.json"
+  ],
+  "agents_files": [
+    "INDEX.md",
+    "delivery-authorization.json",
+    "delivery-binding.json",
+    "plugins.lock.json",
+    "plugins.json",
+    "settings.json",
+    "repository-harness.json",
+    "sync_generated.py",
+    "sync-generated.ps1"
+  ],
+  "agents_folders": [
+    "continuation",
+    "plugins",
+    "tiers",
+    "tests",
+    "hooks"
+  ],
+  "plugins_entries": [
+    "template.json",
+    "payloads.json",
+    "manifests",
+    "marketplace.json",
+    "skill-references.json",
+    "adapters"
+  ],
+  "skill_content": {
+    "requires_concrete_fenced_example": true
+  },
+  "types": {
+    "stack": {
+      "applies": "stack-present",
+      "skills": {
+        "learning": {
+          "kind": "learning",
+          "profile": "knowledge",
+          "sections": [
+            "## Two modes",
+            "## Calibrate to the learner record",
+            "## Working rules",
+            "## Progress",
+            "## Agreeing a standard"
+          ]
+        },
+        "direction": {
+          "kind": "reference",
+          "profile": "knowledge",
+          "sections": [
+            "## Orientation",
+            "## References"
+          ]
+        },
+        "style": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "structure": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": [
+            "## File structure"
+          ]
+        },
+        "domain-design": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "errors": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "testing": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "build": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "libraries": {
+          "kind": "standard",
+          "profile": "core",
+          "sections": []
+        },
+        "scaffold": {
+          "kind": "operation",
+          "profile": "scaffold",
+          "anywhere": true,
+          "sections": [
+            "## Create a project",
+            "## Build and adapt",
+            "## Validation and publication"
+          ]
+        }
+      },
+      "data": {
+        "learning/knowledge.md": {
+          "sections": [
+            "## ✅ Fluent",
+            "## 🟡 Met, shaky",
+            "## Log"
+          ]
+        }
+      }
+    },
+    "tool": {
+      "applies": "always",
+      "skills": {
+        "learning": {
+          "kind": "learning",
+          "profile": "knowledge",
+          "sections": [
+            "## Calibrate to the learner record",
+            "## Working rules",
+            "## Progress"
+          ]
+        },
+        "direction": {
+          "kind": "reference",
+          "profile": "knowledge",
+          "sections": [
+            "## Orientation",
+            "## References"
+          ]
+        }
+      },
+      "data": {
+        "learning/knowledge.md": {
+          "sections": [
+            "## ✅ Fluent",
+            "## 🟡 Met, shaky",
+            "## Log"
+          ]
+        }
+      }
+    },
+    "profile": {
+      "applies": "always",
+      "required_kinds": [
+        "policy"
+      ],
+      "skills": {}
+    },
+    "plugin": {
+      "applies": [
+        "always",
+        "stack-present"
+      ],
+      "skills": {}
+    }
+  },
+  "standard_opening": "Owns "
+}

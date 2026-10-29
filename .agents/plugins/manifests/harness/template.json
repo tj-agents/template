@@ -2,9 +2,9 @@
   "schema_version": 1,
   "plugin": "tj-agents/template",
   "source_roots": [
-    ".agents/template/utility/check",
-    ".agents/template/utility/new/plugin",
-    ".agents/template/utility/update"
+    ".agents/template/skills/check",
+    ".agents/template/skills/new/plugin",
+    ".agents/template/skills/update"
   ],
   "requires": {
     "marketplaces": [
