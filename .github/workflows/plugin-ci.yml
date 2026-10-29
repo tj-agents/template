@@ -104,7 +104,7 @@ jobs:
         shell: pwsh
         env:
           SKILL_REFERENCES_TOKEN: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-        run: python -B .template/.agents/template/skills/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
+        run: python -B .template/.agents/template/skills/check/scripts/check_skill_references.py --root . --root .template --source-root . --marketplace tj-agents/marketplace
 
   hosts:
     runs-on: ubuntu-latest
