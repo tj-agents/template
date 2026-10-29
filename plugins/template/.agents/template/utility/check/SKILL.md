@@ -142,4 +142,4 @@ python -B .agents/template/utility/check/scripts/check_skill_references.py --roo
 A repository may declare exact external identities in `.agents/plugins/skill-references.json` under
 `external_skills`, mapping each `namespace:skill` to its rationale. This covers standards shipped outside
 the marketplace; wildcards and empty rationales fail.
-Detailed v3 tier predicates and harness requirements remain core's payload contract.
+Detailed tier predicates and harness requirements remain core's payload contract.
