@@ -25,6 +25,15 @@ Native-only skill: validate its native format; Template is not required.
 Template repository: also run its generator and template:check.
 ```
 
+## Fit to the requested outcome
+
+Check the result against the user's outcome, explicit requirements and the assessment carried in the
+[authoring brief](../new/references/native-authoring.md). Review the chosen implementation boundary,
+including whether existing code or native integration should supply the behavior. Challenge an agent's
+proposed edit when it does not resolve the problem; matching that proposal or passing structural checks
+does not establish suitability. Exercise a realistic request and its observable result when behavior or
+integration changes; routine wording edits can reuse existing evidence and the recorded decision.
+
 ## Content and metadata
 
 Check that the name, description and supported metadata match the canonical source and each host's
