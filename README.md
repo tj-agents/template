@@ -15,6 +15,7 @@ Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, pub
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
+- `template:self-repair` repairs a demonstrated defect in tj-agents' own skills, hooks, scripts and routes.
 
 ## Create a skill
 
