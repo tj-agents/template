@@ -18,13 +18,12 @@ on:
         required: false
         default: tj-agents/template
         type: string
-      generate_before_verify:
-        required: false
-        default: false
-        type: boolean
     secrets:
       read_token:
         description: A token that can read the organization's Template and core repositories.
+        required: false
+      UPDATE_APP_PRIVATE_KEY:
+        description: The organization's updater App key that publishes regenerated output to main; absent skips publication.
         required: false
 
 permissions:
@@ -91,7 +90,7 @@ jobs:
           "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
           "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" >> $env:GITHUB_ENV
       - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -151,7 +150,7 @@ jobs:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -172,3 +171,103 @@ jobs:
         run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
       - name: Claude Code and Codex accept the marketplace and plugins
         run: python -B .template/.github/scripts/validate_hosts.py --root .
+
+  regeneration-unconfigured:
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: report skipped publication
+        run: echo "::notice title=Regeneration not published::UPDATE_APP_CLIENT_ID is not configured; run github-actions publish-update owner_setup.py to publish regenerated output to main."
+
+  regenerate:
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID != ''
+    needs: [verify, hosts]
+    runs-on: windows-latest
+    concurrency:
+      group: regenerate-main
+      cancel-in-progress: false
+    env:
+      UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}
+    steps:
+      - name: report skipped publication
+        if: env.UPDATE_APP_KEY_PRESENT != 'true'
+        shell: pwsh
+        run: echo "::notice title=Regeneration not published::UPDATE_APP_PRIVATE_KEY is not configured as an organization secret."
+      - name: mint the updater token
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v4
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          ref: ${{ github.sha }}
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: actions/setup-python@v5
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+      - name: regenerate generated files from authored sources
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: commit and push the regeneration
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $remoteMain = git ls-remote --exit-code origin refs/heads/main
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $remoteMain = ($remoteMain -split "\s+")[0]
+          if ($remoteMain -ne $env:GITHUB_SHA) {
+            "Main advanced since this workflow started; skipping regeneration publication."
+            exit 0
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
+          $staged = git diff --cached --name-only
+          if ($staged) {
+            git commit -m "Regenerate packages for $env:GITHUB_SHA"
+            $nativeErrorActionPreference = $PSNativeCommandUseErrorActionPreference
+            $PSNativeCommandUseErrorActionPreference = $false
+            git push origin HEAD:main
+            $pushExitCode = $LASTEXITCODE
+            $PSNativeCommandUseErrorActionPreference = $nativeErrorActionPreference
+            if ($pushExitCode -ne 0) {
+              $remoteMain = git ls-remote --exit-code origin refs/heads/main
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              $remoteMain = ($remoteMain -split "\s+")[0]
+              if ($remoteMain -ne $env:GITHUB_SHA) {
+                "Main advanced while regeneration was publishing; skipping superseded publication."
+                exit 0
+              }
+              exit $pushExitCode
+            }
+          } else {
+            "Generated output already current."
+          }

@@ -40,11 +40,16 @@ an `always` tier makes a selected profile applicable, but does not itself load i
 ## Shared CI
 
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
-The workflow checks generated outputs, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
+The workflow regenerates generated outputs before checking them, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
 its unittest suite), Template's skill-content and layout validation, core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React, .NET and Rust with
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
+
+On a push to `main`, the `regenerate` job commits regenerated output as `Regenerate packages for <sha>` and pushes it
+with the organization's updater App (`UPDATE_APP_CLIENT_ID` variable, `UPDATE_APP_PRIVATE_KEY` secret, configured once
+by github-actions `publish-update`'s owner setup). A regeneration commit is checked as committed and never regenerated
+again. Without that configuration the job reports a notice and publishes nothing.
 
 ## Authoring and verification
 
