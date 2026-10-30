@@ -3,6 +3,11 @@ name: plugin-ci
 on:
   workflow_call:
     inputs:
+      cli_ref:
+        description: CLI source ref used to build tj_hook for hook execution tests.
+        required: false
+        default: cd8c726e2aadc321251de599b75c4e72e21cecb9
+        type: string
       template_ref:
         description: Template source ref; defaults to main and may be overridden for candidate checks.
         required: false
@@ -21,6 +26,9 @@ on:
       read_token:
         description: A token that can read the organization's Template and core repositories.
         required: false
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -44,6 +52,28 @@ jobs:
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v10.3.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: tj-agents/cli
+          ref: ${{ inputs.cli_ref }}
+          path: .tj-cli
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - name: build the pinned tj_hook candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          Push-Location .tj-cli
+          cargo build --locked --release --bin tj_hook
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          $binaryDirectory = (Resolve-Path .tj-cli/target/release).Path
+          $binaryName = if ($IsWindows) { 'tj_hook.exe' } else { 'tj_hook' }
+          if (-not (Test-Path (Join-Path $binaryDirectory $binaryName))) {
+            throw "Missing built $binaryName"
+          }
+          $binaryDirectory >> $env:GITHUB_PATH
       - name: resolve the authored-guidance comparison range
         shell: pwsh
         run: |
@@ -119,6 +149,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: regenerate generated files from authored sources
         if: inputs.generate_before_verify
         shell: pwsh
