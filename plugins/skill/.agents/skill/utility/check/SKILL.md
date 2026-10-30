@@ -12,9 +12,10 @@ provenance: house
 # Skill check
 
 Assess the canonical skill and its shipped host adapters and assets. `skill:new` and `skill:update`
-apply this contract before native authoring and when verifying the result. `engineering:skill-authoring`
-owns concern selection, sizing, naming and discovery triggers. For Template-layout repositories,
-`template:check` owns repository layout and its machine-checked kind and metadata standard.
+apply this contract before native authoring and when verifying the result. Assess concern selection,
+sizing, naming and discovery triggers against [skill selection](../new/references/selection.md). For
+Template-layout repositories, `template:check` owns repository layout and its machine-checked kind and
+metadata standard.
 
 ```text
 Request: review a skill that polls CI through an inline Python heredoc.
