@@ -16,14 +16,14 @@ validate_hosts: Any = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(validate_hosts)
 
 
-def test_plugin_ci_checks_out_no_consumer_repositories() -> None:
+def test_plugin_ci_checks_out_only_its_template_and_cli_dependencies() -> None:
     workflow = (ROOT / ".github/workflows/plugin-ci.yml").read_text(encoding="utf-8")
     repositories = {
         line.strip().removeprefix("repository: ")
         for line in workflow.splitlines()
         if line.strip().startswith("repository:")
     }
-    assert repositories == {"${{ inputs.template_repository }}"}
+    assert repositories == {"${{ inputs.template_repository }}", "tj-agents/cli"}
 
 
 def test_only_the_omitted_version_warning_is_tolerated() -> None:
