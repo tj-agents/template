@@ -170,6 +170,7 @@ def installed_distribution(
         ),
         "fixture_lib-0.1.0.dist-info/LICENSE": "legacy license\n",
         "fixture_lib-0.1.0.dist-info/RECORD": "receipt",
+        "fixture_lib-0.1.0.dist-info/uv_build.json": "{}",
         "fixture_lib-0.1.0.dist-info/direct_url.json": "local install provenance",
         "fixture_lib-0.1.0.dist-info/licenses/LICENSE": "license\n",
     }
@@ -225,6 +226,10 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
             output[f".{host}/skills/tool/scripts/fixture_lib/__init__.py"]
             == b"VALUE = 42\n"
         )
+    write(site / "fixture_lib-0.1.0.dist-info/WHEEL", "Generator: changed builder\n")
+    write(site / "fixture_lib-0.1.0.dist-info/uv_build.json", '{"build": "changed"}\n')
+    assert build(demo_root) == output
+    assert not any(path.endswith(("/WHEEL", "/uv_build.json")) for path in output)
     assert synchronize(demo_root, check=False)[0] == 0
     write(site / "fixture_lib/__init__.py", "VALUE = 43\n")
     assert synchronize(demo_root, check=True)[0] != 0
