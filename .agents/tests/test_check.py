@@ -367,6 +367,13 @@ def test_repository_can_declare_rolling_plugin_selection(zig_repo: Path) -> None
     assert_problem(zig_repo, ".agents/unexpected.json: not part of the plugin layout")
 
 
+def test_a_path_loading_baseline_is_part_of_the_layout(zig_repo: Path) -> None:
+    (zig_repo / ".agents/plugins/path-loading-baseline.json").write_text(
+        '{"tests/test_entry.py": 1}\n', encoding="utf-8"
+    )
+    assert check.check(zig_repo) == []
+
+
 def test_generated_freshness_is_not_required(zig_repo: Path) -> None:
     for generated in (
         ".claude/skills",
