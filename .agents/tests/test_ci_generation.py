@@ -94,6 +94,10 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
+    for selected, expected_checkouts in ((verify, 3), (hosts, 2)):
+        assert selected.index("- uses: astral-sh/setup-uv@") < selected.index(
+            "- name: regenerate generated files from authored sources"
+        )
     assert "ref: ${{ inputs.template_ref }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
@@ -104,6 +108,13 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert hosts.index(setup_uv) < hosts.index(
         "- name: regenerate generated files from authored sources"
     )
+    for selected in (verify, hosts):
+        checkouts = selected.split("      - uses: actions/checkout@")[1:]
+        assert len(checkouts) == expected_checkouts
+        for checkout in checkouts:
+            assert re.fullmatch(r"[0-9a-f]{40}", checkout.split("\n", 1)[0])
+            configuration = checkout.split("      - ", 1)[0]
+            assert "persist-credentials: false" in configuration
 
 
 def test_verify_checks_changed_authored_guidance_against_the_event_base(
