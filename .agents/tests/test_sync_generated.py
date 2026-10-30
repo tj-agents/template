@@ -1,5 +1,4 @@
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -12,15 +11,10 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+import snapshot
+import sync_generated
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location(
-    "sync_generated", ROOT / ".agents" / "sync_generated.py"
-)
-assert SPEC is not None
-assert SPEC.loader is not None
-sync_generated: Any = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(sync_generated)
 
 
 def skill_text(
@@ -127,7 +121,7 @@ def add_publication(root: Path, package: str, source: str) -> None:
 
 
 def build(root: Path) -> dict[str, bytes]:
-    return cast(dict[str, bytes], sync_generated.build(root))
+    return sync_generated.build(root)
 
 
 def assert_rejected(root: Path, message: str) -> None:
@@ -188,8 +182,8 @@ def installed_distribution(
         calls.append(command)
         return subprocess.CompletedProcess(command, 0, json.dumps(metadata), "")
 
-    monkeypatch.setattr(sync_generated.shutil, "which", lambda _name: "uv")
-    monkeypatch.setattr(sync_generated.subprocess, "run", resolve)
+    monkeypatch.setattr(shutil, "which", lambda _name: "uv")
+    monkeypatch.setattr(subprocess, "run", resolve)
     return site, metadata, calls
 
 
@@ -868,7 +862,9 @@ def test_package_adapters_cannot_link_to_another_package(
     adapter_body = sync_generated.adapter_body
 
     def cross_package_adapter(
-        skill: dict[str, Any], adapter_dir: str, canonical_dir: str | None = None
+        skill: sync_generated.SkillRecord,
+        adapter_dir: str,
+        canonical_dir: str | None = None,
     ) -> str:
         body: str = adapter_body(skill, adapter_dir, canonical_dir)
         if adapter_dir == "plugins/demo/skills/style":
@@ -1814,19 +1810,8 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(
     assert "integrity check failed" in result.stderr
 
 
-def load_snapshot_loader() -> Any:
-    spec = importlib.util.spec_from_file_location(
-        "codex_hook_snapshot", ROOT / ".codex/hooks/snapshot.py"
-    )
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def snapshot_package(tmp_path: Path) -> tuple[Any, Path, str]:
-    loader = load_snapshot_loader()
+    loader: Any = snapshot
     package = tmp_path / "cache/demo/1.0.0"
     write(package / "hooks/probe.py", "print('probe ran')\n")
     return loader, package, loader.digest_tree(package)

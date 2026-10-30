@@ -11,6 +11,9 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any, TypedDict
 
+import check_examples
+import path_loading
+
 sys.dont_write_bytecode = True
 
 SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
@@ -59,9 +62,6 @@ def load_module(name: str, path: Path) -> Any:
 
 new_plugin = load_module("template_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
 generator = load_module("template_generator", new_plugin.GENERATOR_TEMPLATE)
-examples = load_module(
-    "template_check_examples", SKILL_DIRECTORY / "scripts/check_examples.py"
-)
 
 
 def text(path: Path) -> str:
@@ -89,13 +89,13 @@ def skill_example_paths(
                 "an explicit --base range requires --root to be a Git repository root"
             )
         try:
-            changed_paths = examples.changed_paths(root, base, head, merge_base)
-        except examples.CheckError as error:
+            changed_paths = check_examples.changed_paths(root, base, head, merge_base)
+        except check_examples.CheckError as error:
             raise ValueError(str(error)) from error
         return {
             root.joinpath(*path.parts)
             for path in changed_paths
-            if path.name == "SKILL.md" and examples.is_authored_guidance(path)
+            if path.name == "SKILL.md" and check_examples.is_authored_guidance(path)
         }, True
 
     assert plugins is not None
@@ -117,11 +117,11 @@ def skill_example_paths(
         try:
             changed_bytes += b"\0".join(
                 path.as_posix().encode("utf-8")
-                for path in examples.changed_paths(
+                for path in check_examples.changed_paths(
                     root, merge_base_ref.decode("utf-8").strip(), "HEAD"
                 )
             )
-        except examples.CheckError as error:
+        except check_examples.CheckError as error:
             raise ValueError(str(error)) from error
     paths = {
         root / Path(raw.decode("utf-8", errors="surrogateescape"))
@@ -142,28 +142,28 @@ def check_skill_examples(
         return []
     if base is not None:
         try:
-            head = examples.commit(root, head, "--head")
-        except examples.CheckError as error:
+            head = check_examples.commit(root, head, "--head")
+        except check_examples.CheckError as error:
             raise ValueError(str(error)) from error
     paths, committed = skill_example_paths(root, plugins, base, head, merge_base)
     problems = []
     for path in sorted(paths):
         try:
             content = (
-                examples.committed_text(
+                check_examples.committed_text(
                     root,
                     head,
-                    examples.normalized_path(path.relative_to(root).as_posix()),
+                    check_examples.normalized_path(path.relative_to(root).as_posix()),
                 )
                 if committed
                 else text(path)
             )
-        except (examples.CheckError, OSError, UnicodeDecodeError) as error:
+        except (check_examples.CheckError, OSError, UnicodeDecodeError) as error:
             problems.append(
                 f"{path.relative_to(root).as_posix()}: cannot read skill ({error})"
             )
             continue
-        if not examples.has_concrete_example(content):
+        if not check_examples.has_concrete_example(content):
             problems.append(
                 f"{path.relative_to(root).as_posix()}: add a concrete "
                 "non-placeholder fenced example"
@@ -480,6 +480,21 @@ def check_effective_dependency_projection(
     return problems
 
 
+def baseline_command(root: Path) -> str:
+    return (
+        f"python -B {Path(__file__).resolve().as_posix()} --root {root.as_posix()} "
+        "--write-path-loading-baseline"
+    )
+
+
+def generated_python() -> tuple[str, ...]:
+    return (
+        *generator.GENERATED_ROOTS,
+        generator.CODEX_HOOK_LOADER,
+        generator.CODEX_HOOK_BOOTSTRAP,
+    )
+
+
 def check_adoption(root: Path) -> list[str]:
     """Observe declaration drift; Core owns schema and native settings validation."""
     relative = ".agents/plugins.json"
@@ -526,6 +541,7 @@ def check(
     problems = check_vendored(root, config["repository"])
     problems += check_files(root)
     problems += check_marketplace_identity(root)
+    problems += path_loading.check(root, generated_python(), baseline_command(root))
     try:
         payloads = generator.load(root / ".agents/plugins/payloads.json")
         plugins = generator.discover(
@@ -588,8 +604,27 @@ def main() -> int:
     parser.add_argument("--base")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--merge-base", action="store_true")
+    parser.add_argument(
+        "--write-path-loading-baseline",
+        action="store_true",
+        help=f"Record existing path loads in {path_loading.BASELINE}; "
+        "an existing baseline only shrinks",
+    )
     arguments = parser.parse_args()
     root = arguments.root.resolve()
+    if arguments.write_path_loading_baseline:
+        try:
+            counts = path_loading.write_baseline(root, generated_python())
+        except (OSError, ValueError) as error:
+            print(error, file=sys.stderr)
+            return 1
+        for relative, count in counts.items():
+            print(f"{relative}: {count}")
+        print(
+            f"{root.name}: {sum(counts.values())} path load(s) in {len(counts)} "
+            f"file(s) recorded in {path_loading.BASELINE}"
+        )
+        return 0
     problems = (
         check_adoption(root)
         if arguments.adoption

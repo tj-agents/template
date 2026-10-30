@@ -24,9 +24,21 @@ select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "P
 strict = true
 warn_unreachable = true
 files = [".agents", ".github/scripts"]
+mypy_path = [
+    ".agents",
+    ".agents/template/utility/check/scripts",
+    ".github/scripts",
+    ".codex/hooks",
+]
 
 [tool.pytest]
 strict = true
 testpaths = [".agents/tests"]
+pythonpath = [
+    ".agents",
+    ".agents/template/utility/check/scripts",
+    ".github/scripts",
+    ".codex/hooks",
+]
 addopts = ["--import-mode=importlib", "-ra"]
 filterwarnings = ["error"]

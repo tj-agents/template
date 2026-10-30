@@ -24,6 +24,7 @@ Every plugin repository, Template included, has the same layout. The repository 
     <plugin>/<kind>/<name>/scripts/     a skill's own files sit beside it and ship beside it
     <plugin>/<kind>/<name>/templates/
     <plugin>/<kind>/<family>/<member>/SKILL.md   a family groups related skills; <family>/SKILL.md is optional
+    <plugin>/runtime/<package>/         importable Python: an owner-qualified package such as tj_agent
     tiers/<plugin>.json
     plugins/template.json               repository and type
     plugins/payloads.json               published plugins, dependencies, compatibility aliases, mapped resources and host adapters
@@ -40,6 +41,7 @@ Every plugin repository, Template included, has the same layout. The repository 
 
 ```bash
 python <skill-directory>/scripts/check.py --root <repository>
+python <skill-directory>/scripts/check.py --root <repository> --write-path-loading-baseline
 ```
 
 CI supplies its exact `--base` and `--head` range. Locally, the checker considers working, staged and untracked
@@ -57,6 +59,43 @@ layout checks fail before existing repositories migrate.
 ```bash
 python <skill-directory>/scripts/check.py --root ../coding-repository --adoption
 ```
+
+## Python imports
+
+Importable Python lives in an owner-qualified package under its plugin's runtime root,
+`.agents/<plugin>/runtime/<package>/`, as Agent's `tj_agent` does. `payloads.json` maps that root to the same
+destination, `{"plugin": "demo", "source": ".agents/demo/runtime", "destination": ".agents/demo/runtime"}`, so
+the source checkout and the installed plugin share its bundle-relative path. Skill `scripts/*.py`, hooks and runtime
+commands are thin entry points that put the package root on `sys.path` once, at module level, then import by
+name. Tests import packages by name from a configured import root, such as pytest `pythonpath`, never files.
+
+The bootstrap is `sys.path.insert(0, str(<root>))`. `<root>` derives from `Path(__file__)` through `.resolve()`,
+`.parent`, `.parents[n]` and literal relative segments, directly or through a module-level constant, and stays
+inside the repository. A skill script's depth differs between the source and installed layouts, so it takes the
+nearest ancestor's `.agents/...` package root:
+
+```python
+# .agents/demo/utility/report/scripts/report.py
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(next(
+    root / ".agents/demo/runtime"
+    for root in Path(__file__).resolve().parents
+    if (root / ".agents/demo/runtime/tj_demo/__init__.py").is_file()
+)))
+
+from tj_demo.report import main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+The check fails on any other `sys.path` insert, append or extend, and on `spec_from_file_location`,
+`SourceFileLoader` and `runpy.run_path`, in authored Python; generated outputs are not scanned.
+`.agents/plugins/path-loading-baseline.json` maps each file's existing loads to a count. A load beyond its
+file's count fails, as does a count above what remains. `--write-path-loading-baseline` records every load
+when the file is absent; otherwise it only lowers counts, and it deletes the file once empty.
 
 ## Skill families
 
@@ -90,6 +129,7 @@ structural subset listed below; authoring and review apply the remaining skill r
 - A required skill's legacy kind (`contract` for a convention, `knowledge` for `learning`) still satisfies the
   check during the compatibility period; a fresh scaffold always emits the new kind.
 - Manifests, harnesses, selections and payloads name no marketplace but `tj-agents`.
+- Authored Python loads no source by path beyond its baseline; see Python imports.
 - `payloads.json` may map a regular file or recursive directory from `.agents/hooks`, any declared canonical
   plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside its `SKILL.md`
   (never the body itself), into a declared `plugins/<package>/` destination. Runtime and resources directories
