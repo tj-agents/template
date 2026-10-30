@@ -12,7 +12,8 @@ Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, pub
 - `skill:new` resolves a new skill's concern and scope before native creator delegation.
 - `skill:check` owns skill content checks and the requirement for separate typed executable source files.
 - `skill:update` updates existing skills and completes renames without old entries or compatibility aliases.
-- `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
+- `template:structure` owns the shared authored, generated and installed source layout.
+- `template:new-plugin` creates a stack, tool, plugin or profile repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
 
@@ -28,10 +29,14 @@ Native creator availability and fresh host loading are verified separately from 
 
 | Type | Skills created | Tier |
 |---|---|---|
-| stack | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | applies where the stack is detected |
-| tool | `knowledge`, `direction` (knowledge); `learning` (policy) | always |
-| utility | the utility skills it needs | always |
-| profile | a policy named by `--skill`, with supporting policies, conventions, workflows and utilities as needed | always, in projects that explicitly select it |
+| stack | `learning` (learning), `direction` (reference), construction standards and `scaffold` (operation); learner data under `learning/` | applies where the stack is detected |
+| tool | `learning` (learning), `direction` (reference); learner data under `learning/` | always |
+| plugin | a first skill named by `--skill`, classified explicitly with `--skill-kind` | always or explicitly scoped |
+| profile | a policy named by `--skill`, with other responsibilities as needed | always, in projects that explicitly select it |
+
+Each preset permits all six kinds: policy, standard, operation, workflow, learning and reference. Presets
+select starter content and required capabilities; they do not classify every additional skill. Authored
+skills live under `.agents/<namespace>/skills/<subject>/SKILL.md`. A kind change does not move the skill.
 
 A profile bundles project policies without a stack's teaching and knowledge scaffolding. It depends on
 `base@tj-agents` through the canonical marketplace. Declare mandatory host delivery in its shipped harness manifest;
@@ -62,7 +67,7 @@ uv run mypy
 uv run pytest
 ```
 
-Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's v3
+Plugin tiers default to `always`; an explicitly scoped plugin may declare `stack-present`, including core's v3
 predicates. Core validates their detailed shape. New repositories include a self/dependency harness manifest under
 `.agents/plugins/manifests/harness/`; the generator ships any declared manifest as `plugins/<plugin>/harness.json`.
 Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
@@ -70,7 +75,7 @@ Existing repositories can add one when needed. Selection dependencies accept loc
 marketplace files `tj-agents`, drops any other harness marketplace, and `template:check` fails on any other.
 
 `payloads.json` may also ship explicit package resources: a file or recursive directory from `.agents/hooks`, a
-declared canonical plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside
+declared canonical plugin's `.agents/<plugin>/references`, `learning` or `assets` directory, or discovered skill assets beside
 that plugin's canonical `SKILL.md`, maps into `plugins/<package>/<destination>`. Optional host discovery extensions
 append from the exact declared `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` source, while the canonical skill
 body remains singular. Packages with host extensions keep Claude entries in `skills/` and ship separate Codex entries
@@ -89,7 +94,7 @@ Codex scripts, and beside a separate installed Codex entry when declared. This k
 entry points able to import the same bundled library. Authored source runs in the project's uv environment.
 
 ```json
-{"plugin": "demo", "distribution": "owner-library", "destination": ".agents/demo/runtime"}
+{"plugin": "demo", "distribution": "owner-library", "destination": "python"}
 ```
 
 `template:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual

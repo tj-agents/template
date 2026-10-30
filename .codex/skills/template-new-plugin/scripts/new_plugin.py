@@ -31,34 +31,37 @@ VENDORED = (
 SKILL_SETS = {
     "stack": ("common", "stack"),
     "tool": ("common", "tool"),
-    "utility": ("utility",),
+    "plugin": ("plugin",),
     "profile": ("profile",),
 }
 KIND_HEADINGS = {
-    "knowledge": "Knowledge",
     "policy": "Policies",
-    "convention": "Conventions, empty until a decision is recorded",
-    "utility": "Utilities",
+    "standard": "Standards, empty until a decision is recorded",
+    "operation": "Operations",
+    "workflow": "Workflows",
+    "learning": "Learning",
+    "reference": "References",
 }
 AGENTS_RULES = {
     "stack": (
-        "`knowledge` is {learner}'s progress record: change it only under "
-        "`learning`'s Progress rules. A `convention`\n"
-        "skill gains a rule only through `learning`'s convention procedure, "
+        "`learning/knowledge.md` is {learner}'s progress record: change it only under "
+        "`{namespace}:learning`'s Progress rules. A standard\n"
+        "skill gains a rule only through `{namespace}:learning`'s standard procedure, "
         "after {learner} decides it."
     ),
     "tool": (
-        "`knowledge` is {learner}'s progress record: change it only under "
-        "`learning`'s Progress rules."
+        "`learning/knowledge.md` is {learner}'s progress record: change it only under "
+        "`{namespace}:learning`'s Progress rules."
     ),
-    "utility": (
-        "Every skill here is a `utility`. Its scripts and templates sit "
-        "beside its `SKILL.md`."
+    "plugin": (
+        "Choose each skill's kind by its responsibility. Its scripts and assets sit "
+        "beside its `SKILL.md`; shared implementation follows its language's "
+        "package layout."
     ),
     "profile": (
         "This profile applies in projects that explicitly select it. Policies "
-        "live under `policy/`; supporting conventions, workflows and utilities "
-        "stay beside their owning skills. Declare mandatory host hooks in the "
+        "and other capabilities live under `skills/`, with kind in metadata. "
+        "Declare mandatory host hooks in the "
         "shipped harness manifest and verify their delivery on each supported "
         "host."
     ),
@@ -66,7 +69,7 @@ AGENTS_RULES = {
 DEFAULT_PROMPTS = {
     "stack": "Teach me the next {stack} concept my current task needs.",
     "tool": "Teach me the next {stack} step at my current level.",
-    "utility": "Show me what {namespace} can do.",
+    "plugin": "Show me what {namespace} can do.",
     "profile": "Apply the {namespace} project policies.",
 }
 
@@ -139,10 +142,17 @@ def tier(arguments: argparse.Namespace, namespace: str) -> dict[str, Any]:
 
 def skill_list(files: dict[str, str], namespace: str) -> str:
     grouped: dict[str, list[str]] = {}
-    for path in files:
+    for path, content in files.items():
         parts = PurePosixPath(path).parts
-        if len(parts) == 5 and parts[0] == ".agents" and parts[4] == "SKILL.md":
-            grouped.setdefault(parts[2], []).append(f"`{namespace}:{parts[3]}`")
+        if (
+            len(parts) >= 5
+            and parts[:3] == (".agents", namespace, "skills")
+            and parts[-1] == "SKILL.md"
+        ):
+            match = re.search(r"^kind: (\w+)$", content, re.MULTILINE)
+            assert match is not None
+            name = "-".join(parts[3:-1])
+            grouped.setdefault(match.group(1), []).append(f"`{namespace}:{name}`")
     lines = []
     for kind in sorted(
         grouped,
@@ -181,7 +191,10 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
             stack=arguments.stack, namespace=namespace
         ),
         "date": date.today().isoformat(),
-        "agents_rules": AGENTS_RULES[arguments.type].format(learner=arguments.learner),
+        "agents_rules": AGENTS_RULES[arguments.type].format(
+            learner=arguments.learner, namespace=namespace
+        ),
+        "skill_kind": arguments.skill_kind or "policy",
         "harness_requires_json": json.dumps(
             {
                 "marketplaces": [
@@ -198,7 +211,7 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
             }
         ),
     }
-    if arguments.type in ("utility", "profile"):
+    if arguments.type in ("plugin", "profile"):
         values["skill"] = arguments.skill
     files: dict[str, str] = {}
     sources: list[tuple[Path, PurePosixPath]] = []
@@ -247,9 +260,16 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         )
         + "\n"
     )
-    files[".agents/plugins/payloads.json"] = (
-        json.dumps({"payloads": {namespace: [namespace]}}, indent=2) + "\n"
-    )
+    payloads: dict[str, Any] = {"payloads": {namespace: [namespace]}}
+    if arguments.type in ("stack", "tool"):
+        payloads["resources"] = [
+            {
+                "plugin": namespace,
+                "source": f".agents/{namespace}/learning",
+                "destination": f".agents/{namespace}/learning",
+            }
+        ]
+    files[".agents/plugins/payloads.json"] = json.dumps(payloads, indent=2) + "\n"
     return files
 
 
@@ -273,12 +293,16 @@ def validate(arguments: argparse.Namespace) -> Path:
         raise ValueError("a stack repository needs --detect-file or --detect-glob")
     if arguments.type != "stack" and (arguments.detect_file or arguments.detect_glob):
         raise ValueError("only a stack repository declares detect markers")
-    if arguments.type in ("utility", "profile") and not (
+    if arguments.type in ("plugin", "profile") and not (
         arguments.skill and NAME.fullmatch(arguments.skill)
     ):
         raise ValueError(
             f"a {arguments.type} repository needs --skill with a lowercase name"
         )
+    if arguments.type == "plugin" and not arguments.skill_kind:
+        raise ValueError("a plugin repository needs --skill-kind for its first skill")
+    if arguments.type != "plugin" and arguments.skill_kind:
+        raise ValueError("only a plugin repository selects --skill-kind")
     destination: Path = arguments.destination.resolve()
     if not destination.is_dir():
         raise ValueError(f"{destination} does not exist")
@@ -313,8 +337,9 @@ def main() -> int:
     parser.add_argument("--detect-glob", action="append", default=[])
     parser.add_argument(
         "--skill",
-        help="first utility or policy skill name, for a utility or profile repository",
+        help="first skill name, for a plugin or profile repository",
     )
+    parser.add_argument("--skill-kind", choices=tuple(KIND_HEADINGS))
     parser.add_argument("--keywords", help="comma-separated; defaults to the name")
     parser.add_argument("--category", default="Productivity")
     parser.add_argument("--dry-run", action="store_true")

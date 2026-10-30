@@ -1,0 +1,25 @@
+---
+name: direction
+description: Orientation and teaching sources for {{learner}}'s {{Stack}} learning. Use when explaining how the subject fits together or selecting sources for a lesson or proposed standard; maintained progress lives in the learner record.
+kind: reference
+domain: {{namespace}}
+profile: knowledge
+applicability: {{Stack}} learning
+requires: {{namespace}}
+provenance: house
+---
+
+# Where {{learner}} is headed with {{Stack}}
+
+`{{namespace}}:learning` owns teaching and assessment. Its
+[learner record](../../learning/knowledge.md) holds proven knowledge, goals and progress.
+
+## Orientation
+
+_Unfinished starter._ Explain the subject's main concepts and their relationship, with a concrete fenced
+example that helps choose a learning step. Keep changing goals, skill-tree statuses and proficiency in
+the learner record. The guidance-example check rejects this placeholder.
+
+## References
+
+_Unfinished starter._ Record the maintained teaching sources that support the orientation and example above.

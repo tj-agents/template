@@ -1,0 +1,18 @@
+---
+name: {{skill}}
+description: {{description}}
+kind: {{skill_kind}}
+domain: {{namespace}}
+profile: core
+applicability: {{Stack}}
+requires: {{namespace}}
+provenance: house
+---
+
+# {{skill}}
+
+Owns {{skill}} within {{namespace}}; replace this starter with its actual responsibility.
+
+_Unfinished starter._ Replace this with the skill's real behaviour and a concrete fenced command, configuration,
+or input/output example before committing. The guidance-example check rejects this placeholder. Its scripts and
+templates sit beside this file.
