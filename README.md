@@ -47,9 +47,9 @@ installs the marketplace with the real Claude Code and Codex CLIs. It reads Temp
 access, only while one of them is private.
 
 On a push to `main`, the `regenerate` job commits regenerated output as `Regenerate packages for <sha>` and pushes it
-with the updater App token from the `update-pins` environment (`UPDATE_APP_CLIENT_ID` variable,
-`UPDATE_APP_PRIVATE_KEY` secret). A regeneration commit is checked as committed and never regenerated again. Without
-that configuration the job reports a notice and publishes nothing.
+with the organization's updater App (`UPDATE_APP_CLIENT_ID` variable, `UPDATE_APP_PRIVATE_KEY` secret, configured once
+by github-actions `publish-update`'s owner setup). A regeneration commit is checked as committed and never regenerated
+again. Without that configuration the job reports a notice and publishes nothing.
 
 ## Authoring and verification
 
