@@ -195,7 +195,7 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert REGENERATION_COMMIT in condition
     assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
     assert "needs: [verify, hosts]" in regenerate
-    assert "environment: update-pins" in regenerate
+    assert "environment:" not in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate
     assert "ref: ${{ github.sha }}" in regenerate
