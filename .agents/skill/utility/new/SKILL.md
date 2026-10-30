@@ -26,6 +26,9 @@ Finish: Template generation/checks, evidence routes, then fresh Claude and Codex
 
 ## Resolve the brief
 
+Resolve the intended outcome and implementation boundary using
+[native skill authoring](references/native-authoring.md) before choosing the skill edit.
+
 Load `engineering:skill-authoring` for the shared existence, sizing, naming and collision rules.
 Inspect the capability index, existing skills, repository instructions and selected policy. Extend the
 existing concern owner when it already covers the behavior. Keep product behavior in its application.
