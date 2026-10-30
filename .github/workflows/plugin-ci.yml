@@ -23,7 +23,7 @@ on:
         description: A token that can read the organization's Template and core repositories.
         required: false
       UPDATE_APP_PRIVATE_KEY:
-        description: The updater App key that publishes regenerated output to main; absent skips publication.
+        description: The organization's updater App key that publishes regenerated output to main; absent skips publication.
         required: false
 
 permissions:
@@ -180,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: report skipped publication
-        run: echo "::notice title=Regeneration not published::UPDATE_APP_CLIENT_ID is not configured; run the updater owner setup to publish regenerated output to main."
+        run: echo "::notice title=Regeneration not published::UPDATE_APP_CLIENT_ID is not configured; run github-actions publish-update owner_setup.py to publish regenerated output to main."
 
   regenerate:
     if: >-
@@ -189,7 +189,6 @@ jobs:
       && vars.UPDATE_APP_CLIENT_ID != ''
     needs: [verify, hosts]
     runs-on: windows-latest
-    environment: update-pins
     concurrency:
       group: regenerate-main
       cancel-in-progress: false
@@ -199,7 +198,7 @@ jobs:
       - name: report skipped publication
         if: env.UPDATE_APP_KEY_PRESENT != 'true'
         shell: pwsh
-        run: echo "::notice title=Regeneration not published::UPDATE_APP_PRIVATE_KEY is not configured in the update-pins environment."
+        run: echo "::notice title=Regeneration not published::UPDATE_APP_PRIVATE_KEY is not configured as an organization secret."
       - name: mint the updater token
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         id: app-token
