@@ -1708,7 +1708,7 @@ def add_codex_hook(root: Path) -> None:
     write_json(path, payloads)
 
 
-def add_claude_hook(root: Path) -> dict[str, Any]:
+def add_claude_hook(root: Path, command: str = sys.executable) -> dict[str, Any]:
     write(
         root / ".agents/hooks/claude_probe.py",
         "import sys\n"
@@ -1718,7 +1718,7 @@ def add_claude_hook(root: Path) -> dict[str, Any]:
     )
     command_hook = {
         "type": "command",
-        "command": sys.executable,
+        "command": command,
         "args": ["-I", "-B", "${CLAUDE_PLUGIN_ROOT}/hooks/claude_probe.py"],
         "timeout": 42,
         "statusMessage": "Running probe",
@@ -2000,6 +2000,28 @@ def test_claude_command_hooks_use_exec_arguments_and_preserve_metadata(
     assert result.stderr == ""
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "C:/Program Files/Python313/python.exe",
+        "/opt/Python 3.13/bin/python",
+    ],
+)
+def test_claude_command_hooks_preserve_spaced_executable_paths(
+    tmp_path: Path, command: str
+) -> None:
+    make_repository(tmp_path)
+    authored = add_claude_hook(tmp_path, command)
+
+    output = sync_generated.build(tmp_path)
+    command_hook = json.loads(output["plugins/demo/hooks/claude.json"])["hooks"][
+        "PreToolUse"
+    ][0]["hooks"][0]
+
+    assert command_hook["command"] == "tj_hook"
+    assert command_hook["args"] == ["--", command, *authored["args"]]
+
+
 def test_codex_snapshot_digest_includes_the_wrapped_claude_hook_manifest(
     tmp_path: Path,
 ) -> None:
@@ -2029,12 +2051,12 @@ def test_codex_snapshot_digest_includes_the_wrapped_claude_hook_manifest(
 @pytest.mark.parametrize(
     ("command", "arguments", "message"),
     [
-        ("python3 -B", [], "command must be one executable"),
-        ("python3", "-B probe.py", "args must be a list of strings"),
+        ("", [], "command must be a nonempty string without NUL"),
+        ("python3", ["-B", "probe\0.py"], "args must be a list of strings"),
     ],
 )
-def test_claude_command_hooks_reject_shell_style_registrations(
-    tmp_path: Path, command: str, arguments: object, message: str
+def test_claude_command_hooks_reject_malformed_registrations(
+    tmp_path: Path, command: object, arguments: object, message: str
 ) -> None:
     make_repository(tmp_path)
     add_claude_hook(tmp_path)

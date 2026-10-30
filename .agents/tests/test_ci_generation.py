@@ -97,8 +97,11 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "ref: ${{ inputs.template_ref }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
-    assert "- uses: astral-sh/setup-uv@v10.3.0" in hosts
-    assert hosts.index("- uses: astral-sh/setup-uv@v10.3.0") < hosts.index(
+    setup_uv = (
+        "- uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0"
+    )
+    assert setup_uv in hosts
+    assert hosts.index(setup_uv) < hosts.index(
         "- name: regenerate generated files from authored sources"
     )
 
