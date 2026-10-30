@@ -165,6 +165,7 @@ def installed_distribution(
         "fixture_lib/__pycache__/__init__.cpython-312.pyc": "cache",
         "fixture_lib-0.1.0.dist-info/METADATA": "Name: fixture-lib\n",
         "fixture_lib-0.1.0.dist-info/WHEEL": "Root-Is-Purelib: true\n",
+        "fixture_lib-0.1.0.dist-info/uv_build.json": '{"version": "0.13.1"}\n',
         "fixture_lib-0.1.0.dist-info/entry_points.txt": (
             "[demo]\nprobe=fixture_lib:VALUE\n"
         ),
@@ -218,7 +219,10 @@ def test_distribution_resources_ship_stable_files_and_resolve_once(
         assert output[prefix + "fixture_lib-0.1.0.dist-info/METADATA"]
         assert output[prefix + "fixture_lib-0.1.0.dist-info/entry_points.txt"]
         assert output[prefix + "fixture_lib-0.1.0.dist-info/LICENSE"]
-    assert not any("direct_url" in path or path.endswith("/RECORD") for path in output)
+    assert not any(
+        path.endswith(("/WHEEL", "/uv_build.json", "/direct_url.json", "/RECORD"))
+        for path in output
+    )
     assert not any("__pycache__" in path for path in output)
     for host in ("claude", "codex"):
         assert (
@@ -1704,6 +1708,58 @@ def add_codex_hook(root: Path) -> None:
     write_json(path, payloads)
 
 
+def add_claude_hook(root: Path, command: str = sys.executable) -> dict[str, Any]:
+    write(
+        root / ".agents/hooks/claude_probe.py",
+        "import sys\n"
+        "print(sys.stdin.read(), end='')\n"
+        "print('hook stdout')\n"
+        "raise SystemExit(17)\n",
+    )
+    command_hook = {
+        "type": "command",
+        "command": command,
+        "args": ["-I", "-B", "${CLAUDE_PLUGIN_ROOT}/hooks/claude_probe.py"],
+        "timeout": 42,
+        "statusMessage": "Running probe",
+    }
+    prompt_hook = {"type": "prompt", "prompt": "Describe the tool call.", "timeout": 8}
+    hooks = {
+        "hooks": {
+            "PreToolUse": [{"matcher": "Write", "hooks": [command_hook, prompt_hook]}]
+        }
+    }
+    write_json(root / ".claude/hooks/demo.json", hooks)
+    path = root / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text(encoding="utf-8"))
+    payloads.setdefault("resources", []).extend(
+        [
+            {
+                "plugin": "demo",
+                "source": ".claude/hooks/demo.json",
+                "destination": "hooks/claude.json",
+            },
+            {
+                "plugin": "demo",
+                "source": ".agents/hooks/claude_probe.py",
+                "destination": "hooks/claude_probe.py",
+            },
+        ]
+    )
+    write_json(path, payloads)
+    return command_hook
+
+
+def install_hook_runner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    if os.name == "nt":
+        assert shutil.which("tj_hook") is not None
+        return
+    runner = tmp_path / "tj_hook"
+    write(runner, '#!/bin/sh\n[ "$1" = "--" ] || exit 97\nshift\nexec "$@"\n')
+    runner.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+
+
 def install_package(output: dict[str, bytes], destination: Path) -> None:
     for path, data in output.items():
         relative = path.removeprefix("plugins/demo/")
@@ -1717,8 +1773,10 @@ def run_codex_hook(
     command: str, package: Path, data: Path
 ) -> subprocess.CompletedProcess[str]:
     arguments = shlex.split(command.replace("${PLUGIN_ROOT}", package.as_posix()))
+    assert arguments[:3] == ["tj_hook", "--", "python3"]
+    arguments[2] = sys.executable
     return subprocess.run(
-        [sys.executable, *arguments[1:]],
+        arguments,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -1728,9 +1786,12 @@ def run_codex_hook(
     )
 
 
-def test_codex_hooks_run_through_a_verified_package_snapshot(tmp_path: Path) -> None:
+def test_codex_hooks_run_through_a_verified_package_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     make_repository(tmp_path)
     add_codex_hook(tmp_path)
+    install_hook_runner(tmp_path, monkeypatch)
     output = sync_generated.build(tmp_path)
     assert output["plugins/demo/hooks/codex/snapshot.py"] == (
         ROOT / ".codex/hooks/snapshot.py"
@@ -1738,8 +1799,8 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(tmp_path: Path) -> 
     hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"]["SessionStart"][
         0
     ]["hooks"][0]
-    assert hook["command"].startswith("python3 -I -B -c ")
-    assert hook["commandWindows"].startswith("python -I -B -c ")
+    assert hook["command"].startswith("tj_hook -- python3 -I -B -c ")
+    assert hook["commandWindows"].startswith("tj_hook -- python -I -B -c ")
     package = tmp_path / "cache/demo/1.0.0"
     install_package(output, package)
 
@@ -1862,10 +1923,11 @@ def test_codex_hook_snapshot_creation_prunes_only_stale_siblings(
 
 
 def test_codex_hook_runs_from_the_live_package_when_snapshots_are_unavailable(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     make_repository(tmp_path)
     add_codex_hook(tmp_path)
+    install_hook_runner(tmp_path, monkeypatch)
     output = sync_generated.build(tmp_path)
     hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"]["SessionStart"][
         0
@@ -1888,6 +1950,145 @@ def test_codex_hook_runs_from_the_live_package_when_snapshots_are_unavailable(
     result = run_codex_hook(hook["command"], package, data)
     assert result.returncode == 0, result.stderr
     assert result.stdout == "probe ran\n"
+
+
+def test_claude_command_hooks_use_exec_arguments_and_preserve_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_repository(tmp_path)
+    authored = add_claude_hook(tmp_path)
+    install_hook_runner(tmp_path, monkeypatch)
+
+    output = sync_generated.build(tmp_path)
+    payload = json.loads(output["plugins/demo/hooks/claude.json"])
+    group = payload["hooks"]["PreToolUse"][0]
+    command_hook, prompt_hook = group["hooks"]
+
+    assert group["matcher"] == "Write"
+    assert command_hook == {
+        **authored,
+        "command": "tj_hook",
+        "args": ["--", authored["command"], *authored["args"]],
+    }
+    assert prompt_hook == {
+        "type": "prompt",
+        "prompt": "Describe the tool call.",
+        "timeout": 8,
+    }
+
+    package = tmp_path / "cache/demo/1.0.0"
+    install_package(output, package)
+    result = subprocess.run(
+        [
+            command_hook["command"],
+            *[
+                argument.replace("${PLUGIN_ROOT}", package.as_posix()).replace(
+                    "${CLAUDE_PLUGIN_ROOT}", package.as_posix()
+                )
+                for argument in command_hook["args"]
+            ],
+        ],
+        input="hook stdin\n",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+        timeout=30,
+    )
+    assert result.returncode == 17
+    assert result.stdout == "hook stdin\nhook stdout\n"
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "C:/Program Files/Python313/python.exe",
+        "/opt/Python 3.13/bin/python",
+    ],
+)
+def test_claude_command_hooks_preserve_spaced_executable_paths(
+    tmp_path: Path, command: str
+) -> None:
+    make_repository(tmp_path)
+    authored = add_claude_hook(tmp_path, command)
+
+    output = sync_generated.build(tmp_path)
+    command_hook = json.loads(output["plugins/demo/hooks/claude.json"])["hooks"][
+        "PreToolUse"
+    ][0]["hooks"][0]
+
+    assert command_hook["command"] == "tj_hook"
+    assert command_hook["args"] == ["--", command, *authored["args"]]
+
+
+def test_codex_snapshot_digest_includes_the_wrapped_claude_hook_manifest(
+    tmp_path: Path,
+) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    authored = add_claude_hook(tmp_path)
+
+    output = sync_generated.build(tmp_path)
+    command = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"][
+        "SessionStart"
+    ][0]["hooks"][0]["command"]
+    arguments = shlex.split(command)
+    expected = arguments[8]
+    assert expected == sync_generated.package_digest(output, "demo")
+
+    before_claude_binding = dict(output)
+    payload = json.loads(before_claude_binding["plugins/demo/hooks/claude.json"])
+    command_hook = payload["hooks"]["PreToolUse"][0]["hooks"][0]
+    command_hook["command"] = authored["command"]
+    command_hook["args"] = authored["args"]
+    before_claude_binding["plugins/demo/hooks/claude.json"] = sync_generated.dump(
+        payload
+    ).encode("utf-8")
+    assert expected != sync_generated.package_digest(before_claude_binding, "demo")
+
+
+@pytest.mark.parametrize(
+    ("command", "arguments", "message"),
+    [
+        ("", [], "command must be a nonempty string without NUL"),
+        ("python3", ["-B", "probe\0.py"], "args must be a list of strings"),
+    ],
+)
+def test_claude_command_hooks_reject_malformed_registrations(
+    tmp_path: Path, command: object, arguments: object, message: str
+) -> None:
+    make_repository(tmp_path)
+    add_claude_hook(tmp_path)
+    hook_path = tmp_path / ".claude/hooks/demo.json"
+    hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+    hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"] = command
+    hooks["hooks"]["PreToolUse"][0]["hooks"][0]["args"] = arguments
+    write_json(hook_path, hooks)
+
+    with pytest.raises(ValueError, match=message):
+        sync_generated.build(tmp_path)
+
+
+def test_codex_hook_windows_budget_includes_wrapper(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    output = sync_generated.build(tmp_path)
+    hook_path = tmp_path / ".agents/hooks/demo-codex.json"
+    hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+    wrapped = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"][
+        "SessionStart"
+    ][0]["hooks"][0]["commandWindows"]
+    assert wrapped.startswith("tj_hook -- python -I -B ")
+    expanded = len(wrapped) + wrapped.count("${PLUGIN_ROOT}") * (
+        sync_generated.WINDOWS_MAX_PATH - len("${PLUGIN_ROOT}")
+    )
+    padding = "x" * (sync_generated.CODEX_WINDOWS_COMMAND_BUDGET - expanded)
+    hooks["hooks"]["SessionStart"][0]["hooks"][0]["commandWindows"] += " " + padding
+    write_json(hook_path, hooks)
+
+    with pytest.raises(ValueError, match=r"cmd\.exe budget"):
+        sync_generated.build(tmp_path)
 
 
 def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> None:
@@ -1918,7 +2119,7 @@ def test_codex_hook_commands_must_start_from_the_plugin_root(tmp_path: Path) -> 
 def test_host_hook_manifests_ship_from_their_host_directory(tmp_path: Path) -> None:
     make_repository(tmp_path)
     add_codex_hook(tmp_path)
-    claude_hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "command"}]}]}}
+    claude_hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "prompt"}]}]}}
     write_json(tmp_path / ".claude/hooks/demo.json", claude_hooks)
     path = tmp_path / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text(encoding="utf-8"))

@@ -70,6 +70,20 @@ def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
     )
 
 
+def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
+    inputs = plugin_ci[: plugin_ci.index("    secrets:")]
+    verify = job("verify", plugin_ci, "hosts")
+    provision = step(verify, "build the pinned tj_hook candidate")
+    assert "default: cd8c726e2aadc321251de599b75c4e72e21cecb9" in inputs
+    assert "repository: tj-agents/cli" in verify
+    assert "ref: ${{ inputs.cli_ref }}" in verify
+    assert "path: .tj-cli" in verify
+    assert "persist-credentials: false" in verify
+    assert "cargo build --locked --release --bin tj_hook" in provision
+    assert "$binaryDirectory >> $env:GITHUB_PATH" in provision
+    assert verify.index(provision) < verify.index("- name: repository tests")
+
+
 def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     verify = job("verify", plugin_ci, "hosts")
     hosts = job("hosts", plugin_ci)
@@ -83,6 +97,13 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "ref: ${{ inputs.template_ref }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
+    setup_uv = (
+        "- uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0"
+    )
+    assert setup_uv in hosts
+    assert hosts.index(setup_uv) < hosts.index(
+        "- name: regenerate generated files from authored sources"
+    )
 
 
 def test_verify_checks_changed_authored_guidance_against_the_event_base(
