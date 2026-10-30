@@ -1,30 +1,17 @@
-import importlib.util
 import json
 import shutil
 import subprocess
 import sys
 from collections.abc import Callable
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any
 
+import check
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 NEW_PLUGIN = ROOT / ".agents/template/utility/new/plugin/scripts/new_plugin.py"
 UPDATE = ROOT / ".agents/template/utility/update/scripts/update.py"
-
-
-def load(name: str, path: Path) -> Any:
-    loader = SourceFileLoader(name, str(path))
-    spec = importlib.util.spec_from_loader(name, loader)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
-
-
-check = load("template_check", ROOT / ".agents/template/utility/check/scripts/check.py")
 CHECK = ROOT / ".agents/template/utility/check/scripts/check.py"
 EXAMPLE_PROBLEM = (
     ".agents/tools/utility/sweep/SKILL.md: add a concrete "
@@ -143,6 +130,32 @@ def commit_initial_repository(root: Path) -> None:
 
 
 def test_a_new_stack_repository_conforms(zig_repo: Path) -> None:
+    assert check.check(zig_repo) == []
+
+
+def test_path_loading_fails_until_the_printed_baseline_command_records_it(
+    zig_repo: Path,
+) -> None:
+    (zig_repo / ".agents/tests").mkdir(exist_ok=True)
+    (zig_repo / ".agents/tests/test_entry.py").write_text(
+        "import runpy\nrunpy.run_path('entry.py')\n", encoding="utf-8"
+    )
+    result = run(str(CHECK), "--root", str(zig_repo))
+    assert result.returncode == 1
+    assert ".agents/tests/test_entry.py: 1 path load(s), baseline allows 0" in (
+        result.stderr
+    )
+    command = result.stderr.split("record the existing path loads with `")[1]
+    command = command.split("`", 1)[0]
+    assert command.endswith("--write-path-loading-baseline")
+
+    recorded = run(str(CHECK), "--root", str(zig_repo), "--write-path-loading-baseline")
+    assert recorded.returncode == 0, recorded.stderr
+    assert json.loads(
+        (zig_repo / ".agents/plugins/path-loading-baseline.json").read_text(
+            encoding="utf-8"
+        )
+    ) == {".agents/tests/test_entry.py": 1}
     assert check.check(zig_repo) == []
 
 
@@ -365,6 +378,17 @@ def test_repository_can_declare_rolling_plugin_selection(zig_repo: Path) -> None
     assert check.check(zig_repo) == []
     (zig_repo / ".agents/unexpected.json").write_text("{}", encoding="utf-8")
     assert_problem(zig_repo, ".agents/unexpected.json: not part of the plugin layout")
+
+
+def test_a_path_loading_baseline_is_part_of_the_layout(zig_repo: Path) -> None:
+    (zig_repo / "tests").mkdir()
+    (zig_repo / "tests/test_entry.py").write_text(
+        "import runpy\nrunpy.run_path('entry.py')\n", encoding="utf-8"
+    )
+    (zig_repo / ".agents/plugins/path-loading-baseline.json").write_text(
+        '{"tests/test_entry.py": 1}\n', encoding="utf-8"
+    )
+    assert check.check(zig_repo) == []
 
 
 def test_generated_freshness_is_not_required(zig_repo: Path) -> None:

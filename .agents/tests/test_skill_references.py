@@ -1,21 +1,13 @@
-import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
+import check_skill_references
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location(
-    "skill_references",
-    ROOT / ".agents/template/utility/check/scripts/check_skill_references.py",
-)
-assert SPEC is not None
-assert SPEC.loader is not None
-checker: Any = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(checker)
 
 
 def write(root: Path, name: str, body: str) -> Path:
@@ -38,7 +30,7 @@ def test_old_clip_description_detects_both_missing_ask_skills(tmp_path: Path) ->
         "---\ndescription: Used by Teams-message skills (`ask-the-team`, "
         "`ask-infra`).\n---",
     )
-    problems = checker.check([tmp_path])
+    problems = check_skill_references.check([tmp_path])
     assert len(problems) == 2
     assert any(":2: missing skill ask-the-team" in item for item in problems)
     assert any(":2: missing skill ask-infra" in item for item in problems)
@@ -54,8 +46,10 @@ def test_namespaces_aliases_and_unknown_explicit_namespace(tmp_path: Path) -> No
     )
     write(tmp_path, "plugins/work/skills/message-person/SKILL.md", "alias")
     write(tmp_path, "README.md", "Load `work:message-person`.")
-    assert len(checker.check([tmp_path])) == 1
-    assert "missing skill wrong:ask-person" in checker.check([tmp_path])[0]
+    assert len(check_skill_references.check([tmp_path])) == 1
+    assert (
+        "missing skill wrong:ask-person" in check_skill_references.check([tmp_path])[0]
+    )
 
 
 def test_bare_resolves_locally_then_uniquely_and_reports_ambiguity(
@@ -64,10 +58,11 @@ def test_bare_resolves_locally_then_uniquely_and_reports_ambiguity(
     skill(tmp_path, "one", "shared", "The `shared` skill pairs with skill `unique`.")
     skill(tmp_path, "two", "shared")
     skill(tmp_path, "two", "unique")
-    assert checker.check([tmp_path]) == []
+    assert check_skill_references.check([tmp_path]) == []
     write(tmp_path, "AGENTS.md", "Use the `shared` skill.")
     assert (
-        "ambiguous skill shared: one:shared, two:shared" in checker.check([tmp_path])[0]
+        "ambiguous skill shared: one:shared, two:shared"
+        in check_skill_references.check([tmp_path])[0]
     )
 
 
@@ -87,7 +82,7 @@ def test_history_adapters_fixtures_templates_and_non_skill_identifiers_are_not_s
         ".agents/one/utility/real/templates/old/SKILL.md.in",
     ):
         write(tmp_path, name, "Use `one:missing`.")
-    assert checker.check([tmp_path]) == []
+    assert check_skill_references.check([tmp_path]) == []
 
 
 def test_unknown_namespace_requires_skill_context_not_oauth_scope(
@@ -99,7 +94,7 @@ def test_unknown_namespace_requires_skill_context_not_oauth_scope(
         "real",
         "Use OAuth `admin:org`, plus `/unknown:invoke` and skills (`unknown:list`).",
     )
-    problems = checker.check([tmp_path])
+    problems = check_skill_references.check([tmp_path])
     assert len(problems) == 2
     assert any("unknown:invoke" in item for item in problems)
     assert any("unknown:list" in item for item in problems)
@@ -113,7 +108,9 @@ def test_source_roots_use_sibling_inventory_without_scanning_sibling_body(
     path = sibling / "plugins/two/skills/legacy/SKILL.md"
     path.parent.mkdir(parents=True)
     path.write_text("Use `two:missing`.", encoding="utf-8")
-    assert checker.check([tmp_path, sibling], source_roots=[tmp_path]) == []
+    assert (
+        check_skill_references.check([tmp_path, sibling], source_roots=[tmp_path]) == []
+    )
 
 
 def test_a_kind_skill_is_prose_but_a_requested_named_skill_is_checked(
@@ -125,9 +122,9 @@ def test_a_kind_skill_is_prose_but_a_requested_named_skill_is_checked(
         "real",
         "A `contract` skill gains a rule. An `utility` skill runs scripts.",
     )
-    assert checker.check([tmp_path]) == []
+    assert check_skill_references.check([tmp_path]) == []
     write(tmp_path, "README.md", "Load the `contract` skill.")
-    assert "missing skill contract" in checker.check([tmp_path])[0]
+    assert "missing skill contract" in check_skill_references.check([tmp_path])[0]
 
 
 @pytest.mark.parametrize(
@@ -144,7 +141,7 @@ def test_ordinary_plural_skill_lists_resolve_every_name(
 ) -> None:
     skill(tmp_path, "one", "real")
     write(tmp_path, "README.md", body)
-    problems = checker.check([tmp_path])
+    problems = check_skill_references.check([tmp_path])
     assert len(problems) == (2 if "another-missing" in body else 1)
     assert any("missing skill missing" in item for item in problems)
 
@@ -154,9 +151,11 @@ def test_ordinary_plural_skill_lists_resolve_qualified_and_builtin_names(
 ) -> None:
     skill(tmp_path, "one", "real")
     write(tmp_path, "README.md", "Use the `one:real` and `unknown:missing` skills.")
-    assert "missing skill unknown:missing" in checker.check([tmp_path])[0]
+    assert (
+        "missing skill unknown:missing" in check_skill_references.check([tmp_path])[0]
+    )
     write(tmp_path, "README.md", "The `file` and `directory` values control output.")
-    assert checker.check([tmp_path]) == []
+    assert check_skill_references.check([tmp_path]) == []
 
 
 def test_concrete_hyphenated_names_are_not_illustrative_placeholders(
@@ -168,7 +167,7 @@ def test_concrete_hyphenated_names_are_not_illustrative_placeholders(
         "README.md",
         "Use `sample:nonexistent-plugin` and skills (`missing-plugin`).",
     )
-    problems = checker.check([tmp_path])
+    problems = check_skill_references.check([tmp_path])
     assert len(problems) == 2
     assert any("missing skill sample:nonexistent-plugin" in item for item in problems)
     assert any("missing skill missing-plugin" in item for item in problems)
@@ -178,7 +177,7 @@ def test_concrete_hyphenated_names_are_not_illustrative_placeholders(
         "Examples: `plugin:skill`, `namespace:skill`, `your-plugin:your-skill`, "
         "`sample:*`, and skills (`<skill-name>`).",
     )
-    assert checker.check([tmp_path]) == []
+    assert check_skill_references.check([tmp_path]) == []
 
 
 def test_multiple_roots_and_legacy_payload_body(tmp_path: Path) -> None:
@@ -187,9 +186,12 @@ def test_multiple_roots_and_legacy_payload_body(tmp_path: Path) -> None:
     path = sibling / "plugins/two/skills/legacy/SKILL.md"
     path.parent.mkdir(parents=True)
     path.write_text("Use `one:real`.", encoding="utf-8")
-    assert checker.check([tmp_path, sibling]) == []
+    assert check_skill_references.check([tmp_path, sibling]) == []
     path.write_text("Use `two:missing`.", encoding="utf-8")
-    assert "missing skill two:missing" in checker.check([tmp_path, sibling])[0]
+    assert (
+        "missing skill two:missing"
+        in check_skill_references.check([tmp_path, sibling])[0]
+    )
 
 
 def test_exact_external_declaration_needs_rationale_and_rejects_wildcard(
@@ -207,12 +209,13 @@ def test_exact_external_declaration_needs_rationale_and_rejects_wildcard(
             }
         ),
     )
-    assert checker.check([tmp_path], [config]) == []
+    assert check_skill_references.check([tmp_path], [config]) == []
     config.write_text(
         json.dumps({"external_skills": {"outside:*": "anything"}}), encoding="utf-8"
     )
     assert any(
-        "exact namespace:skill" in item for item in checker.check([tmp_path], [config])
+        "exact namespace:skill" in item
+        for item in check_skill_references.check([tmp_path], [config])
     )
 
 
@@ -224,14 +227,14 @@ def test_explicit_document_callers_follow_the_shipped_producer(
     skill(producer, "react", "style")
     document = write(consumer, "standards/STATE.md", "Load `react:client-state`.")
     inputs = [document.parent]
-    problems = checker.check(
+    problems = check_skill_references.check(
         [consumer, producer], source_roots=[consumer], reference_paths=inputs
     )
     assert len(problems) == 1
     assert "missing skill react:client-state" in problems[0]
     document.write_text("Load `react:state-client`.")
     assert (
-        checker.check(
+        check_skill_references.check(
             [consumer, producer], source_roots=[consumer], reference_paths=inputs
         )
         == []
@@ -239,7 +242,7 @@ def test_explicit_document_callers_follow_the_shipped_producer(
     (producer / "plugins/react/skills/state-client/SKILL.md").unlink()
     assert (
         len(
-            checker.check(
+            check_skill_references.check(
                 [consumer, producer], source_roots=[consumer], reference_paths=inputs
             )
         )
@@ -260,7 +263,9 @@ def test_reference_paths_cannot_read_outside_scanned_roots(
         return original(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "read_text", scoped_read)
-    problems = checker.check([consumer], reference_paths=[outside, consumer / "absent"])
+    problems = check_skill_references.check(
+        [consumer], reference_paths=[outside, consumer / "absent"]
+    )
     assert len(problems) == 2
     assert "outside scanned repositories" in problems[0]
     assert "does not exist" in problems[1]
@@ -300,7 +305,7 @@ def test_explicit_unsupported_reference_file_is_not_a_passing_empty_scan(
     tmp_path: Path,
 ) -> None:
     path = write(tmp_path, "routes.yaml", "routes: []")
-    problems = checker.check([tmp_path], reference_paths=[path])
+    problems = check_skill_references.check([tmp_path], reference_paths=[path])
     assert len(problems) == 1
     assert "expected Markdown" in problems[0]
 
@@ -327,7 +332,7 @@ def test_published_roots_fetch_only_referenced_publishers(tmp_path: Path) -> Non
             )
         return destination
 
-    roots = checker.published_roots(
+    roots = check_skill_references.published_roots(
         "owner/marketplace", [source], tmp_path / "work", fetch
     )
     assert fetched == ["owner/marketplace", "owner/agent", "owner/cli"]
@@ -336,4 +341,4 @@ def test_published_roots_fetch_only_referenced_publishers(tmp_path: Path) -> Non
 
 def test_html_comment_markers_are_not_skill_references() -> None:
     line = "<!-- BEGIN personal:current-solution sha256:abc -->"
-    assert checker.references(line, {"personal"}) == []
+    assert check_skill_references.references(line, {"personal"}) == []

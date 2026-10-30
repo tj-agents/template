@@ -1,19 +1,11 @@
-import importlib.util
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import pytest
+import validate_hosts
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location(
-    "validate_hosts", ROOT / ".github/scripts/validate_hosts.py"
-)
-assert SPEC is not None
-assert SPEC.loader is not None
-validate_hosts: Any = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(validate_hosts)
 
 
 def test_plugin_ci_checks_out_only_its_template_and_cli_dependencies() -> None:
