@@ -82,7 +82,8 @@ to collect its installed pure Python wheel; it never imports the library. Declar
 at runtime. Native extensions, `.pth` import hooks and records outside the installed package root are rejected.
 Installation receipts and caches are omitted; package code, data, licenses and stable wheel metadata ship.
 Host adapters establish their shipped package root, then use normal public imports. Neither generation nor
-runtime locates a sibling source checkout.
+runtime locates a sibling source checkout. `template:check` owns the package layout and bundle-root bootstrap,
+and fails on any other Python path loading beyond the repository's shrinking baseline.
 
 Resources mapped beneath `skills/<skill>/` also ship beside that skill's repository-local Claude and
 Codex scripts, and beside a separate installed Codex entry when declared. This keeps all generated
