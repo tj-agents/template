@@ -15,6 +15,8 @@ Own a bounded repair of tj-agents' reusable agent instructions or tooling. Answe
 question first and correct the active task within its existing authority. Establish a causal source
 defect before changing a standard; a mistake alone does not prove the standard is defective. Do this
 before any host product feedback, which is only for a genuine host defect no tj-agents source can fix.
+Apply [Workflow's incidental-problems decision](https://github.com/tj-agents/core/blob/main/.agents/workflow/resources/problem-records.md#incidental-problems)
+before entering the repair phase. The active goal determines when that repair authority is exercised.
 
 ## Establish source and authority
 
@@ -40,7 +42,7 @@ hook, work item or blocker to satisfy this workflow.
 
 ```text
 Personal task exposes a reproducible Core handoff defect; Core is explicitly adopted personal tooling:
-repair the Core source under this skill.
+establish eligible source authority, then apply Workflow's active-goal decision before repair.
 Infonetica task exposes the same defect: correct the active task where authorized and propose a separate
 source repair; no employer tracker item or cross-repository repair follows automatically.
 Agent skipped a clear testing instruction: run the required checks and correct the task; an adequate
@@ -64,7 +66,9 @@ recovery state. Priority alone does not pause unrelated tasks or authorize new l
 
 ## Repair the eligible source
 
-Fix the standard or tool in the current session. When the current checkout belongs to unrelated work,
+When repair is selected under Workflow's active-goal decision, fix the standard or tool in the current
+session. For an incidental eligible defect, complete its recording decision and continue the active goal.
+When the current checkout belongs to unrelated work,
 use a separate worktree of the source repository from its current default branch. Hand the repair off
 only when the user asks. Respect exclusions on product work, installation, destructive cleanup and
 unrelated redesign. A skill change follows `skill:update`.
@@ -91,9 +95,10 @@ authorizes taking over an unrelated pending delivery.
 
 ## Complete truthfully
 
-Resume the original task after the authorized source repair is tested and committed, or after explaining
-the no-source-change outcome, proposed repair awaiting a decision, or genuine blocker. Retain unsent
-facts in the existing task when recording is not authorized. A proposal is not a completed repair.
+Keep the original task active through a deferred repair or no-source-change outcome. After a selected
+source repair is tested and committed, return to its preserved next action unless the user changed that
+priority. Explain any proposed repair awaiting a decision or genuine blocker. Retain unsent facts in the
+existing task when recording is not authorized. A proposal is not a completed repair.
 
 When delivery is authorized, own it through the source repository's gates. Report source correction,
 publication and installed-host verification separately; a source commit does not update instructions
