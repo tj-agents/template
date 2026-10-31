@@ -49,6 +49,11 @@ access, only while one of them is private.
 
 ## Authoring and verification
 
+The vendored `.gitattributes` prevents Git from inserting conflict markers into live Codex, Claude and
+plugin-selection configuration. Conflicting merges, cherry-picks and stash applications keep the current
+complete file and leave an unresolved Git conflict. Resolve it by combining the configurations as valid
+TOML or JSON; Git retains the base and both changed versions in the index. One-sided updates still apply.
+
 Every added or updated skill must show its actual behaviour in a meaningful fenced code, command, configuration, or
 input/output example. `template:check` validates that contract for local edits and CI's exact committed range; it does
 not require a retrofit of unchanged skills.
