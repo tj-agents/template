@@ -23,14 +23,31 @@ on:
         description: A token that can read the organization's Template and core repositories.
         required: false
       UPDATE_APP_PRIVATE_KEY:
-        description: The organization's updater App key that publishes regenerated output to main; absent skips publication.
+        description: The organization's updater App key required to publish regenerated output to main.
         required: false
 
 permissions:
   contents: read
 
 jobs:
+  resolve-template:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.template.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ inputs.template_ref }}
+          path: .template
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - id: template
+        shell: bash
+        run: echo "sha=$(git -C .template rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   verify:
+    needs: resolve-template
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
@@ -138,6 +155,7 @@ jobs:
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
 
   host-platforms:
+    needs: resolve-template
     strategy:
       fail-fast: false
       matrix:
@@ -151,7 +169,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
@@ -213,7 +231,7 @@ jobs:
       github.event_name == 'push' && github.ref == 'refs/heads/main'
       && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
       && vars.UPDATE_APP_CLIENT_ID != ''
-    needs: [verify, hosts]
+    needs: [resolve-template, verify, hosts]
     runs-on: windows-latest
     concurrency:
       group: regenerate-main
@@ -249,7 +267,7 @@ jobs:
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
           token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
           persist-credentials: false
