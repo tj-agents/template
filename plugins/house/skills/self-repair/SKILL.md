@@ -11,5 +11,5 @@ provenance: house
 
 # Repair tj-agents standards and tooling
 
-Read and follow the [canonical definition](../../.agents/template/utility/self-repair/SKILL.md) in full.
+Read and follow the [canonical definition](../../.agents/house/utility/self-repair/SKILL.md) in full.
 This discovery entry is generated; edit the referenced `.agents/` definition.

@@ -2,6 +2,10 @@
 
 Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's name is its folder path below the kind folder joined by hyphens.
 
+## house
+
+- `self-repair` — utility — core — `.agents/house/utility/self-repair/SKILL.md`
+
 ## skill
 
 - `check` — utility — core — `.agents/skill/utility/check/SKILL.md`
@@ -12,5 +16,4 @@ Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's n
 
 - `check` — utility — core — `.agents/template/utility/check/SKILL.md`
 - `new-plugin` — utility — core — `.agents/template/utility/new/plugin/SKILL.md`
-- `self-repair` — utility — core — `.agents/template/utility/self-repair/SKILL.md`
 - `update` — utility — core — `.agents/template/utility/update/SKILL.md`

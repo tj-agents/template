@@ -1,0 +1,23 @@
+{
+  "name": "house",
+  "description": "Repair a demonstrated defect in tj-agents' own skills, hooks, scripts or routes, before any host product feedback.",
+  "author": {
+    "name": "Tommy Seery"
+  },
+  "repository": "https://github.com/tj-agents/template",
+  "skills": "./skills/",
+  "keywords": [
+    "self-repair",
+    "standards",
+    "tj-agents"
+  ],
+  "interface": {
+    "displayName": "House",
+    "shortDescription": "Repair tj-agents' own tooling before any host product feedback.",
+    "longDescription": "Repairs a demonstrated defect in tj-agents' own skills, hooks, scripts or routes under the source repository's own repair authority, before any host product feedback.",
+    "developerName": "Tommy Seery",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Repair a tj-agents standards defect."
+  }
+}
