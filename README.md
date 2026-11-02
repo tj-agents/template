@@ -15,6 +15,7 @@ Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, pub
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
+- `template:self-repair` repairs a demonstrated defect in tj-agents' own skills, hooks, scripts and routes.
 
 ## Create a skill
 
@@ -52,6 +53,11 @@ by github-actions `publish-update`'s owner setup). A regeneration commit is chec
 again. Without that configuration the job reports a notice and publishes nothing.
 
 ## Authoring and verification
+
+The vendored `.gitattributes` prevents Git from inserting conflict markers into live Codex, Claude and
+plugin-selection configuration. Conflicting merges, cherry-picks and stash applications keep the current
+complete file and leave an unresolved Git conflict. Resolve it by combining the configurations as valid
+TOML or JSON; Git retains the base and both changed versions in the index. One-sided updates still apply.
 
 Every added or updated skill must show its actual behaviour in a meaningful fenced code, command, configuration, or
 input/output example. `template:check` validates that contract for local edits and CI's exact committed range; it does
