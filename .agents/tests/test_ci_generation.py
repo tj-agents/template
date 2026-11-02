@@ -85,6 +85,26 @@ def test_generation_is_not_an_opt_in_and_the_updater_key_is_optional(
     assert "        required: false\n" in key
 
 
+def test_verification_and_publication_share_one_resolved_template(
+    plugin_ci: str,
+) -> None:
+    resolver = job("resolve-template", plugin_ci, "verify")
+    assert "ref: ${{ inputs.template_ref }}" in resolver
+    assert "git -C .template rev-parse HEAD" in resolver
+    assert "sha: ${{ steps.template.outputs.sha }}" in resolver
+    # A moving input ref is resolved once; every consumer uses that same commit.
+    assert plugin_ci.count("ref: ${{ inputs.template_ref }}") == 1
+    assert plugin_ci.count("ref: ${{ needs.resolve-template.outputs.sha }}") == 3
+    for name, following in (
+        ("verify", "host-platforms"),
+        ("host-platforms", "hosts"),
+        ("regenerate", None),
+    ):
+        consumer = job(name, plugin_ci, following)
+        assert "resolve-template" in consumer[: consumer.index("    steps:")]
+        assert "ref: ${{ needs.resolve-template.outputs.sha }}" in consumer
+
+
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
@@ -109,13 +129,13 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "needs: host-platforms" in stable_gate
     assert 'test "$HOST_RESULT" = success' in stable_gate
     assert '--baseline "$env:UPGRADE_BASE"' in hosts
-    assert "ref: ${{ inputs.template_ref }}" in verify
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
     assert_generation_precedes(verify, "- name: repository tests")
     assert verify.index("- name: generated files are current") < verify.index(
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
-    assert "ref: ${{ inputs.template_ref }}" in hosts
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
     setup_uv = (
@@ -204,7 +224,7 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "github.event_name == 'push' && github.ref == 'refs/heads/main'" in condition
     assert REGENERATION_COMMIT in condition
     assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
-    assert "needs: [verify, hosts]" in regenerate
+    assert "needs: [resolve-template, verify, hosts]" in regenerate
     assert "environment:" not in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate
