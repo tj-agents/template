@@ -1786,6 +1786,27 @@ def run_codex_hook(
     )
 
 
+def run_windows_bootstrap(
+    command: str, package: Path
+) -> subprocess.CompletedProcess[str]:
+    prefix = "cmd.exe /d /s /v:off /c "
+    assert command.startswith(prefix)
+    arguments = shlex.split(command.removeprefix(prefix))
+    assert arguments[:6] == ["tj_hook", "--", "python", "-I", "-B", "-c"]
+    environment = {**os.environ, "PLUGIN_ROOT": str(package)}
+    environment.pop("PLUGIN_DATA", None)
+    environment.pop("TJ_AGENTS_STARTUP_SNAPSHOT_DIRECTORY", None)
+    return subprocess.run(
+        [sys.executable, "-I", "-B", "-c", arguments[6]],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=environment,
+        check=False,
+        timeout=30,
+    )
+
+
 def test_codex_hooks_run_through_a_verified_package_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1800,7 +1821,9 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(
         0
     ]["hooks"][0]
     assert hook["command"].startswith("tj_hook -- python3 -I -B -c ")
-    assert hook["commandWindows"].startswith("tj_hook -- python -I -B -c ")
+    assert hook["commandWindows"].startswith(
+        "cmd.exe /d /s /v:off /c tj_hook -- python -I -B -c "
+    )
     package = tmp_path / "cache/demo/1.0.0"
     install_package(output, package)
 
@@ -1810,6 +1833,55 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(
 
     (package / "hooks/probe.py").write_text("print('tampered')\n", encoding="utf-8")
     result = run_codex_hook(hook["command"], package, tmp_path / "fresh-data")
+    assert result.returncode == 2
+    assert "integrity check failed" in result.stderr
+
+
+def test_codex_windows_hook_bootstrap_uses_the_native_plugin_root(
+    tmp_path: Path,
+) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    write(
+        tmp_path / ".agents/hooks/probe.py",
+        "import json, sys\nprint(json.dumps(sys.argv))\n",
+    )
+    hook_path = tmp_path / ".agents/hooks/demo-codex.json"
+    hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+    hook = hooks["hooks"]["SessionStart"][0]["hooks"][0]
+    hook["command"] += ' --hook "${PLUGIN_ROOT}/nested" --flag'
+    hook["commandWindows"] += ' --hook "${PLUGIN_ROOT}/nested" --flag'
+    write_json(hook_path, hooks)
+
+    output = sync_generated.build(tmp_path)
+    hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"]["SessionStart"][
+        0
+    ]["hooks"][0]
+    windows = hook["commandWindows"]
+    assert windows.startswith("cmd.exe /d /s /v:off /c tj_hook -- python -I -B -c ")
+    assert "${PLUGIN_ROOT}" not in windows
+    assert "%PLUGIN_ROOT%" not in windows
+    assert "PLUGIN_ROOT" in windows
+    assert hook["command"].startswith("tj_hook -- python3 -I -B -c ")
+    assert "${PLUGIN_ROOT}" in hook["command"]
+
+    package = (
+        tmp_path
+        / "fixture space \u03b1 %AGENT_HOOK_PROBE_MARKER% !MARKER!"
+        / "demo"
+        / "1.0.0"
+    )
+    install_package(output, package)
+    result = run_windows_bootstrap(windows, package)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [
+        str(package / "hooks/probe.py"),
+        "--hook",
+        str(package) + "/nested",
+        "--flag",
+    ]
+
+    result = run_windows_bootstrap(windows, package.with_name("other"))
     assert result.returncode == 2
     assert "integrity check failed" in result.stderr
 
@@ -2079,15 +2151,27 @@ def test_codex_hook_windows_budget_includes_wrapper(tmp_path: Path) -> None:
     wrapped = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"][
         "SessionStart"
     ][0]["hooks"][0]["commandWindows"]
-    assert wrapped.startswith("tj_hook -- python -I -B ")
-    expanded = len(wrapped) + wrapped.count("${PLUGIN_ROOT}") * (
-        sync_generated.WINDOWS_MAX_PATH - len("${PLUGIN_ROOT}")
-    )
-    padding = "x" * (sync_generated.CODEX_WINDOWS_COMMAND_BUDGET - expanded)
+    assert wrapped.startswith("cmd.exe /d /s /v:off /c tj_hook -- python -I -B ")
+    assert "${PLUGIN_ROOT}" not in wrapped
+    padding = "x" * (sync_generated.CODEX_WINDOWS_COMMAND_BUDGET - len(wrapped))
     hooks["hooks"]["SessionStart"][0]["hooks"][0]["commandWindows"] += " " + padding
     write_json(hook_path, hooks)
 
     with pytest.raises(ValueError, match=r"cmd\.exe budget"):
+        sync_generated.build(tmp_path)
+
+
+def test_codex_windows_hook_rejects_unparseable_arguments(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    hook_path = tmp_path / ".agents/hooks/demo-codex.json"
+    hooks = json.loads(hook_path.read_text(encoding="utf-8"))
+    hooks["hooks"]["SessionStart"][0]["hooks"][0]["commandWindows"] = (
+        'python -B "${PLUGIN_ROOT}/hooks/probe.py'
+    )
+    write_json(hook_path, hooks)
+
+    with pytest.raises(ValueError, match="invalid shell arguments"):
         sync_generated.build(tmp_path)
 
 
