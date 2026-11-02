@@ -40,6 +40,10 @@ def assert_generation_precedes(job_body: str, following: str) -> None:
     assert job_body.index(current) < job_body.index(following)
     assert f"if: github.event_name != 'push' || {REGENERATION_COMMIT}" in generate
     assert (
+        "python -B .template/.agents/template/utility/update/scripts/update.py --root ."
+        in generate
+    )
+    assert (
         "./.agents/sync-generated.ps1\n"
         "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in generate
     )
@@ -97,8 +101,14 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
 
 def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     verify = job("verify", plugin_ci, "hosts")
-    hosts = job("hosts", plugin_ci, "regeneration-unconfigured")
+    hosts = job("host-platforms", plugin_ci, "hosts")
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in verify
+    assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in hosts
+    stable_gate = job("hosts", plugin_ci, "regeneration-unconfigured")
+    assert "if: always()" in stable_gate
+    assert "needs: host-platforms" in stable_gate
+    assert 'test "$HOST_RESULT" = success' in stable_gate
+    assert '--baseline "$env:UPGRADE_BASE"' in hosts
     assert "ref: ${{ inputs.template_ref }}" in verify
     assert_generation_precedes(verify, "- name: repository tests")
     assert verify.index("- name: generated files are current") < verify.index(
@@ -203,7 +213,7 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}" in regenerate
     assert "private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}" in regenerate
     assert "permission-contents: write" in regenerate
-    assert "permission-workflows" not in regenerate
+    assert "permission-workflows: write" in regenerate
     assert "contents: write" not in plugin_ci.replace("permission-contents: write", "")
     order = [
         "- name: mint the updater token",
@@ -215,19 +225,21 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert positions == sorted(positions)
 
 
-def test_unconfigured_regeneration_succeeds_with_a_notice(plugin_ci: str) -> None:
+def test_unconfigured_regeneration_fails_explicitly(plugin_ci: str) -> None:
     unconfigured = job("regeneration-unconfigured", plugin_ci, "regenerate")
     assert "vars.UPDATE_APP_CLIENT_ID == ''" in unconfigured
     assert REGENERATION_COMMIT in unconfigured
-    assert "::notice " in unconfigured
+    assert "::error " in unconfigured
+    assert "exit 1" in unconfigured
     regenerate = job("regenerate", plugin_ci)
     assert (
         "UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}"
         in regenerate
     )
-    missing = step(regenerate, "report skipped publication")
+    missing = step(regenerate, "require automatic publication credentials")
     assert "if: env.UPDATE_APP_KEY_PRESENT != 'true'" in missing
-    assert "::notice " in missing
+    assert "Write-Error" in missing
+    assert "exit 1" in missing
     steps = regenerate[regenerate.index("    steps:\n") :].split("      - ")[1:]
     assert len(steps) > 1
     for later in steps[1:]:
@@ -247,11 +259,21 @@ def test_callers_pass_the_updater_key_and_template_has_no_second_publisher(
     )
 
 
-def test_staging_is_limited_to_generated_roots(plugin_ci: str) -> None:
+def test_staging_includes_exact_vendored_files_and_generated_roots(
+    plugin_ci: str,
+) -> None:
     regenerate = job("regenerate", plugin_ci)
     staged = re.search(r"git add -- (?P<paths>.+)", regenerate)
     assert staged is not None
     assert set(staged.group("paths").split()) == {
+        ".agents/sync_generated.py",
+        ".agents/sync-generated.ps1",
+        ".codex/hooks/snapshot.py",
+        ".codex/hooks/bootstrap.py",
+        ".gitattributes",
+        ".gitignore",
+        "CLAUDE.md",
+        ".github/workflows/ci.yml",
         ".codex/skills",
         ".claude/skills",
         ".agents/INDEX.md",
@@ -310,6 +332,14 @@ def harness(tmp_path: Path) -> PublisherHarness:
     git(repository, "config", "user.name", "Fixture")
     git(repository, "config", "user.email", "fixture@example.com")
     for relative in (
+        ".agents/sync_generated.py",
+        ".agents/sync-generated.ps1",
+        ".codex/hooks/snapshot.py",
+        ".codex/hooks/bootstrap.py",
+        ".gitattributes",
+        ".gitignore",
+        "CLAUDE.md",
+        ".github/workflows/ci.yml",
         ".codex/skills/placeholder.txt",
         ".claude/skills/placeholder.txt",
         ".agents/INDEX.md",

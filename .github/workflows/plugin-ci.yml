@@ -95,6 +95,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
@@ -135,10 +137,17 @@ jobs:
           SKILL_REFERENCES_TOKEN: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
 
-  hosts:
-    runs-on: ubuntu-latest
+  host-platforms:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: ${{ inputs.template_repository }}
@@ -155,6 +164,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
@@ -170,7 +181,20 @@ jobs:
       - name: install the pinned host CLIs
         run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
       - name: Claude Code and Codex accept the marketplace and plugins
-        run: python -B .template/.github/scripts/validate_hosts.py --root .
+        shell: pwsh
+        env:
+          UPGRADE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python -B .template/.github/scripts/validate_hosts.py --root . --baseline "$env:UPGRADE_BASE"
+
+  hosts:
+    if: always()
+    needs: host-platforms
+    runs-on: ubuntu-latest
+    steps:
+      - name: require both native host platforms
+        env:
+          HOST_RESULT: ${{ needs.host-platforms.result }}
+        run: test "$HOST_RESULT" = success
 
   regeneration-unconfigured:
     if: >-
@@ -179,8 +203,10 @@ jobs:
       && vars.UPDATE_APP_CLIENT_ID == ''
     runs-on: ubuntu-latest
     steps:
-      - name: report skipped publication
-        run: echo "::notice title=Regeneration not published::UPDATE_APP_CLIENT_ID is not configured; run github-actions publish-update owner_setup.py to publish regenerated output to main."
+      - name: require automatic publication configuration
+        run: |
+          echo "::error title=Regeneration not configured::UPDATE_APP_CLIENT_ID is required; run github-actions publish-update owner_setup.py once for the organization."
+          exit 1
 
   regenerate:
     if: >-
@@ -195,10 +221,12 @@ jobs:
     env:
       UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}
     steps:
-      - name: report skipped publication
+      - name: require automatic publication credentials
         if: env.UPDATE_APP_KEY_PRESENT != 'true'
         shell: pwsh
-        run: echo "::notice title=Regeneration not published::UPDATE_APP_PRIVATE_KEY is not configured as an organization secret."
+        run: |
+          Write-Error "UPDATE_APP_PRIVATE_KEY is required to publish the synchronized files."
+          exit 1
       - name: mint the updater token
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         id: app-token
@@ -207,6 +235,7 @@ jobs:
           client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
           permission-contents: write
+          permission-workflows: write
       - uses: actions/checkout@v4
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
@@ -216,6 +245,14 @@ jobs:
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
           python-version: '3.12'
+      - uses: actions/checkout@v4
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ inputs.template_ref }}
+          path: .template
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
       - name: regenerate generated files from authored sources
@@ -224,6 +261,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
@@ -249,7 +288,7 @@ jobs:
           }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
+          git add -- .agents/sync_generated.py .agents/sync-generated.ps1 .codex/hooks/snapshot.py .codex/hooks/bootstrap.py .gitattributes .gitignore CLAUDE.md .github/workflows/ci.yml .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
           $staged = git diff --cached --name-only
           if ($staged) {
             git commit -m "Regenerate packages for $env:GITHUB_SHA"
