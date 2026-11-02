@@ -13,25 +13,32 @@ provenance: house
 
 Own a bounded repair of tj-agents' reusable agent instructions or tooling. Answer the user's direct
 question first and correct the active task within its existing authority. Establish a causal source
-defect before changing a standard; a mistake alone does not prove the standard is defective. Do this
-before any host product feedback, which is only for a genuine host defect no tj-agents source can fix.
+defect before changing a standard; a mistake alone does not prove the standard is defective. Never send
+host feedback for a tj-agents-caused mistake. Host product feedback is only for a separately established
+host defect no tj-agents source can fix.
 Apply [Workflow's incidental-problems decision](https://github.com/tj-agents/core/blob/main/.agents/workflow/resources/problem-records.md#incidental-problems)
-before entering the repair phase. The active goal determines when that repair authority is exercised.
+before entering the repair phase. Preserve the active goal while applying the source's repair authority.
 
 ## Establish source and authority
 
-Read the governing source and its repository's README.md and AGENTS.md. Automatic repair requires all
+Read the governing source and its repository's README.md and AGENTS.md. Automatic source handling requires all
 of these conditions:
 
 - The cause is a demonstrated defect in a reusable agent standard, skill, route, hook or lifecycle tool.
 - Its owning source is an explicitly authorized `tj-agents` standards or tooling repository.
-- Both the originating task and the source repository have explicitly adopted personal scope, and the
-  repair remains within the user's existing limits.
+- The source repository has explicitly adopted personal scope and its selected policy authorizes the
+  recording and repair, within the user's existing limits.
 
 An organization name, publisher account or checkout location does not establish these conditions.
-`tj-agents/infonetica` is employer tooling and remains outside automatic repair. An employer task does
-not grant automatic repair authority even when the proposed destination is personal tooling. Explain
-the defect and propose a separate source repair within the employer's evidence boundaries.
+`tj-agents/infonetica` is employer tooling and remains outside this automatic personal routine. The
+observing repository need not adopt Personal: the source's existing policy supplies authority for its
+item. Import that policy and selected provider operation without changing the observing task's policy.
+
+Keep employer-owned facts within the employer task. A personal tooling record may contain only the
+independently supported reusable source defect, a sanitized reproduction and source-side evidence.
+Do not copy employer code, logs, identifiers or task context into its tracker. If those boundaries
+prevent an actionable source record, retain the unsent facts with the original task and explain the
+resolver; do not publish them elsewhere.
 
 Standards owned outside tj-agents, such as Concertable's, and product defects are outside this skill;
 they use their owner's bugfix, feature or plan workflow with that owner's authorization.
@@ -41,10 +48,10 @@ Conclude with no standards change when no reusable source defect is established.
 hook, work item or blocker to satisfy this workflow.
 
 ```text
-Personal task exposes a reproducible Core handoff defect; Core is explicitly adopted personal tooling:
-establish eligible source authority, then apply Workflow's active-goal decision before repair.
-Infonetica task exposes the same defect: correct the active task where authorized and propose a separate
-source repair; no employer tracker item or cross-repository repair follows automatically.
+Personal or employer task exposes a reproducible Core handoff defect; Core explicitly adopts Personal:
+apply Core's recording policy to sanitized source evidence and reconcile its repair owner. Keep the
+observing task active; an eligible unowned incidental repair receives a bounded source handoff.
+The affected source is tj-agents/infonetica: follow its employer authority and evidence boundaries.
 Agent skipped a clear testing instruction: run the required checks and correct the task; an adequate
 instruction needs no source edit.
 ```
@@ -55,7 +62,7 @@ Before changing a shared lifecycle, use `agent:recover` to check for a verified 
 same repair. Reconcile that owner and contribute the evidence without creating a duplicate writer.
 Keep the original task's owner and writer lease.
 
-Record only through the repository's selected problem-record profile under Workflow's recording contract.
+Record through the source repository's selected provider under its policy and Workflow's recording contract.
 Creating a record, fixing the active task and repairing a source are separate decisions. Preserve
 employer-owned facts within the authorized employer task; do not redirect them into a personal tracker.
 Missing recording consent does not require a substitute record or prevent unaffected authorized work.
@@ -66,12 +73,17 @@ recovery state. Priority alone does not pause unrelated tasks or authorize new l
 
 ## Repair the eligible source
 
-When repair is selected under Workflow's active-goal decision, fix the standard or tool in the current
-session. For an incidental eligible defect, complete its recording decision and continue the active goal.
-When the current checkout belongs to unrelated work,
-use a separate worktree of the source repository from its current default branch. Hand the repair off
-only when the user asks. Respect exclusions on product work, installation, destructive cleanup and
-unrelated redesign. A skill change follows `skill:update`.
+For a direct source-repair request, enter its normal repair lifecycle. Correct a source defect required
+for the active task's acceptance within that task's existing authority, establishing the dependency
+with evidence. For an incidental eligible defect, apply its recording policy and refine the canonical
+item with new evidence. Reuse a verified existing repair owner; when unowned, the standing source
+routine authorizes a separate bounded repair handoff by default through `workflow:handoff`. Keep the
+observing task's goal, owner and next action. An explicit user limit overrides that default. This rule
+does not dispatch ordinary recorded backlog work.
+
+The source repair uses a separate source checkout when the current checkout belongs to unrelated work.
+Respect exclusions on product work, installation, destructive cleanup and unrelated redesign. A skill
+change follows `skill:update`.
 
 For an eligible automatic repair, standing authorization covers implementation, tests, review, pull
 request, merge and publication in that source repository once its gates pass. It does not authorize
@@ -81,6 +93,8 @@ specific source-repair authority the user granted and that source's normal engin
 ```text
 The eligible Core repair already has a live owner and pending PR: append evidence to its authorized
 record and reconcile with that owner. Do not start a second writer or take over its delivery.
+An eligible incidental Core repair has no owner: record its source evidence and hand off that bounded
+repair, then continue the original task. The new source owner maintains its verified issue and boards.
 ```
 
 ## Preserve existing delivery ownership
