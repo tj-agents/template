@@ -30,8 +30,10 @@ of these conditions:
 
 An organization name, publisher account or checkout location does not establish these conditions.
 `tj-agents/infonetica` is employer tooling and remains outside automatic repair. An employer task does
-not grant automatic repair authority even when the proposed destination is personal tooling. Explain
-the defect and propose a separate source repair within the employer's evidence boundaries.
+not grant automatic repair authority even when the proposed destination is personal tooling. Explicit
+user instructions to repair the source authorize that repair within their stated scope; preserve the
+employer's evidence boundaries. Otherwise, explain the defect and propose a separate source repair
+within those boundaries.
 
 Standards owned outside tj-agents, such as Concertable's, and product defects are outside this skill;
 they use their owner's bugfix, feature or plan workflow with that owner's authorization.
@@ -44,7 +46,7 @@ hook, work item or blocker to satisfy this workflow.
 Personal task exposes a reproducible Core handoff defect; Core is explicitly adopted personal tooling:
 establish eligible source authority, then apply Workflow's active-goal decision before repair.
 Infonetica task exposes the same defect: correct the active task where authorized and propose a separate
-source repair; no employer tracker item or cross-repository repair follows automatically.
+source repair unless the user already authorized it; no employer tracker item or repair follows automatically.
 Agent skipped a clear testing instruction: run the required checks and correct the task; an adequate
 instruction needs no source edit.
 ```
@@ -66,12 +68,12 @@ recovery state. Priority alone does not pause unrelated tasks or authorize new l
 
 ## Repair the eligible source
 
-When repair is selected under Workflow's active-goal decision, fix the standard or tool in the current
-session. For an incidental eligible defect, complete its recording decision and continue the active goal.
-When the current checkout belongs to unrelated work,
-use a separate worktree of the source repository from its current default branch. Hand the repair off
-only when the user asks. Respect exclusions on product work, installation, destructive cleanup and
-unrelated redesign. A skill change follows `skill:update`.
+When tooling repair is the active task under Workflow's active-goal decision, fix the standard or tool
+in the current session. A distinct, unrelated authorized repair follows `workflow:handoff`'s bounded
+side-workstream default. When no repair is selected, complete the incidental defect's recording decision
+and continue the active goal. When the current checkout belongs to unrelated work, use a separate
+worktree of the source repository from its current default branch. Respect exclusions on product work,
+installation, destructive cleanup and unrelated redesign. A skill change follows `skill:update`.
 
 For an eligible automatic repair, standing authorization covers implementation, tests, review, pull
 request, merge and publication in that source repository once its gates pass. It does not authorize
@@ -79,6 +81,9 @@ installation into a consuming repository or publication elsewhere. Outside autom
 specific source-repair authority the user granted and that source's normal engineering lifecycle.
 
 ```text
+The active task is a Core tooling repair: continue that repair in-session.
+A distinct Template repair is authorized during unrelated work: hand off that bounded repair through
+workflow:handoff and preserve the active task's owner and next action.
 The eligible Core repair already has a live owner and pending PR: append evidence to its authorized
 record and reconcile with that owner. Do not start a second writer or take over its delivery.
 ```
