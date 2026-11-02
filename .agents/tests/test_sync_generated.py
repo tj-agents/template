@@ -1850,7 +1850,9 @@ def test_codex_windows_hook_bootstrap_uses_the_native_plugin_root(
     hooks = json.loads(hook_path.read_text(encoding="utf-8"))
     hook = hooks["hooks"]["SessionStart"][0]["hooks"][0]
     hook["command"] += ' --hook "${PLUGIN_ROOT}/nested" --flag'
-    hook["commandWindows"] += ' --hook "${PLUGIN_ROOT}/nested" --flag'
+    hook["commandWindows"] += (
+        ' --hook "${PLUGIN_ROOT}/nested" --value "%AGENT_HOOK_PROBE_MARKER%" --flag'
+    )
     write_json(hook_path, hooks)
 
     output = sync_generated.build(tmp_path)
@@ -1861,6 +1863,7 @@ def test_codex_windows_hook_bootstrap_uses_the_native_plugin_root(
     assert windows.startswith("cmd.exe /d /s /v:off /c tj_hook -- python -I -B -c ")
     assert "${PLUGIN_ROOT}" not in windows
     assert "%PLUGIN_ROOT%" not in windows
+    assert "%AGENT_HOOK_PROBE_MARKER%" not in windows
     assert "PLUGIN_ROOT" in windows
     assert hook["command"].startswith("tj_hook -- python3 -I -B -c ")
     assert "${PLUGIN_ROOT}" in hook["command"]
@@ -1878,6 +1881,8 @@ def test_codex_windows_hook_bootstrap_uses_the_native_plugin_root(
         str(package / "hooks/probe.py"),
         "--hook",
         str(package) + "/nested",
+        "--value",
+        "%AGENT_HOOK_PROBE_MARKER%",
         "--flag",
     ]
 
