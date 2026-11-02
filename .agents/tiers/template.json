@@ -6,5 +6,5 @@
   "owner_repository": [
     "tj-agents/template"
   ],
-  "session_context": "When a mistake traces to a tj-agents skill, hook, script or route, load template:self-repair before changing it or filing host feedback."
+  "session_context": "When a mistake traces to a tj-agents skill, hook, script or route, load template:self-repair first; never send host feedback for it."
 }
