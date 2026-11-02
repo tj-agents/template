@@ -6,6 +6,17 @@
   },
   "plugins": [
     {
+      "name": "house",
+      "source": "./plugins/house",
+      "description": "Repair a demonstrated defect in tj-agents' own skills, hooks, scripts or routes, before any host product feedback.",
+      "category": "Productivity",
+      "keywords": [
+        "self-repair",
+        "standards",
+        "tj-agents"
+      ]
+    },
+    {
       "name": "skill",
       "source": "./plugins/skill",
       "description": "Create and update skills through the native host creator with complete current-name migrations.",

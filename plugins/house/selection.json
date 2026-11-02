@@ -1,0 +1,28 @@
+{
+  "plugin": "house",
+  "dependencies": [
+    "tj-agents/engineering"
+  ],
+  "profiles": {
+    "core": [
+      "self-repair"
+    ]
+  },
+  "compatibilitySkillAliases": {},
+  "skills": [
+    {
+      "name": "self-repair",
+      "kind": "utility",
+      "profile": "core",
+      "applicability": [
+        "tj-agents source repositories"
+      ],
+      "requires": [
+        "selected engineering lifecycle"
+      ],
+      "provenance": [
+        "house"
+      ]
+    }
+  ]
+}

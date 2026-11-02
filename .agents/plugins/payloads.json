@@ -5,6 +5,9 @@
     ],
     "skill": [
       "skill"
+    ],
+    "house": [
+      "house"
     ]
   },
   "dependencies": {
@@ -13,6 +16,9 @@
       "skill"
     ],
     "skill": [
+      "tj-agents/engineering"
+    ],
+    "house": [
       "tj-agents/engineering"
     ]
   },

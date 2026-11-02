@@ -5,6 +5,18 @@
   },
   "plugins": [
     {
+      "name": "house",
+      "source": {
+        "source": "local",
+        "path": "./plugins/house"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "skill",
       "source": {
         "source": "local",

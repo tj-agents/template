@@ -8,7 +8,6 @@
     "core": [
       "check",
       "new-plugin",
-      "self-repair",
       "update"
     ]
   },
@@ -38,20 +37,6 @@
       "requires": [
         "python",
         "pwsh"
-      ],
-      "provenance": [
-        "house"
-      ]
-    },
-    {
-      "name": "self-repair",
-      "kind": "utility",
-      "profile": "core",
-      "applicability": [
-        "tj-agents source repositories"
-      ],
-      "requires": [
-        "selected engineering lifecycle"
       ],
       "provenance": [
         "house"
