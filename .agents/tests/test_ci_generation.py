@@ -105,6 +105,19 @@ def test_verification_and_publication_share_one_resolved_template(
         assert "ref: ${{ needs.resolve-template.outputs.sha }}" in consumer
 
 
+def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None:
+    steps = plugin_ci.split("      - ")[1:]
+    for checkout in (value for value in steps if "uses: actions/checkout@" in value):
+        assert "persist-credentials: false" in checkout
+    publication = step(job("regenerate", plugin_ci), "commit and push the regeneration")
+    assert "PUBLISH_TOKEN: ${{ steps.app-token.outputs.token }}" in publication
+    assert "$env:GIT_CONFIG_VALUE_0" in publication
+    assert publication.index("$env:GIT_CONFIG_VALUE_0") < publication.index(
+        "git ls-remote"
+    )
+    assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
+
+
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
