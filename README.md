@@ -48,8 +48,10 @@ installs the marketplace with the real Claude Code and Codex CLIs. It reads Temp
 access, only while one of them is private.
 
 On a push to `main`, the `regenerate` job commits regenerated output as `Regenerate packages for <sha>` and pushes it
-with the organization's updater App (`UPDATE_APP_CLIENT_ID` variable, `UPDATE_APP_PRIVATE_KEY` secret, configured once
-by github-actions `publish-update`'s owner setup). A regeneration commit is checked as committed and never regenerated
+with the updater App (`UPDATE_APP_CLIENT_ID` variable and `UPDATE_APP_PRIVATE_KEY` in the caller's
+default-branch-only `update-pins` environment). GitHub Actions' `publish-update` owner setup bootstraps protected
+enrollment once for the organization. The caller passes the named secret to the reusable workflow; its
+publication job selects the protected environment. A regeneration commit is checked as committed and never regenerated
 again. Missing updater configuration fails publication instead of reporting a successful sync. The
 published commit includes the vendored generator, hooks, Git attributes and CI caller as well as generated
 packages. Native host acceptance installs a baseline and upgrades to the candidate in isolated homes on
