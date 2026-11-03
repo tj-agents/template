@@ -45,6 +45,48 @@
             "if": "MultiEdit(**/SKILL.md)"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "SendFeedback",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "command": "python",
+            "args": [
+              "-B",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
+            ]
+          }
+        ]
       }
     ]
   }
