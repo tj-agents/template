@@ -179,6 +179,7 @@ def test_upgrade_checks_installed_bytes_in_isolated_homes(
     git("config", "user.name", "Fixture")
     git("config", "user.email", "fixture@example.invalid")
     git("config", "core.hooksPath", "")
+    git("config", "core.longpaths", "true")
     for host, catalog in (
         ("claude", ".claude-plugin/marketplace.json"),
         ("codex", ".agents/plugins/marketplace.json"),
@@ -199,10 +200,16 @@ def test_upgrade_checks_installed_bytes_in_isolated_homes(
     payload = root / "plugins/demo/payload.txt"
     payload.parent.mkdir(parents=True)
     payload.write_text("baseline", encoding="utf-8")
+    deep = root / "plugins/demo" / ("scaffold-component/" * 9) / "template.cs"
+    deep.parent.mkdir(parents=True)
+    deep.write_text("long path payload", encoding="utf-8")
     git("add", ".")
     git("-c", "commit.gpgSign=false", "commit", "-m", "Baseline")
     baseline = git("rev-parse", "HEAD")
     payload.write_text("candidate", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.longpaths")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
     original_run = validate_hosts.run
     sources: dict[str, Path] = {}
     calls: list[tuple[str, list[str]]] = []
@@ -221,12 +228,31 @@ def test_upgrade_checks_installed_bytes_in_isolated_homes(
         home = Path(environment["CODEX_HOME"])
         assert environment["CLAUDE_CONFIG_DIR"] == str(home)
         assert cwd == home.parent
+        assert environment["GIT_CONFIG_KEY_0"] == "core.longpaths"
+        assert environment["GIT_CONFIG_VALUE_0"] == "false"
+        effective = original_run(
+            ["git", "config", "--get", "core.longpaths"], environment
+        )
+        assert effective.stdout.strip() == "true"
         key = str(home)
         calls.append((key, command))
         if command[1:4] == ["plugin", "marketplace", "add"]:
             sources[key] = Path(command[4])
         elif command[:4] == ["codex", "plugin", "marketplace", "upgrade"]:
-            sources[key] = home.parent / "marketplace"
+            source = home.parent / "marketplace"
+            cloned = (
+                home
+                / f".tmp/marketplaces/.staging/native-upgrade-checkout-{len(calls)}"
+            )
+            result = original_run(
+                ["git", "clone", str(source), str(cloned)], environment
+            )
+            assert result.returncode == 0, result.stderr
+            assert len(str(cloned / deep.relative_to(root))) > 260
+            assert (cloned / deep.relative_to(root)).read_text(
+                encoding="utf-8"
+            ) == "long path payload"
+            sources[key] = cloned
             assert 'source_type = "git"' in (home / "config.toml").read_text(
                 encoding="utf-8"
             )
