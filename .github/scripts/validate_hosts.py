@@ -14,6 +14,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from tj_cli.git_environment import native_plugin_environment
+
 
 def run(
     command: list[str],
@@ -224,16 +226,14 @@ def validate_upgrade(root: Path, baseline: str | None, host: str) -> str | None:
         home, source = directory / "home", directory / "marketplace"
         source.mkdir()
         home.mkdir()
-        environment = {
-            **os.environ,
-            "CLAUDE_CONFIG_DIR": str(home),
-            "CODEX_HOME": str(home),
-        }
-        # Native hosts spawn Git for their own marketplace staging directories.
-        count = int(environment.get("GIT_CONFIG_COUNT", "0"))
-        environment[f"GIT_CONFIG_KEY_{count}"] = "core.longpaths"
-        environment[f"GIT_CONFIG_VALUE_{count}"] = "true"
-        environment["GIT_CONFIG_COUNT"] = str(count + 1)
+        environment = native_plugin_environment(
+            {
+                **os.environ,
+                "CLAUDE_CONFIG_DIR": str(home),
+                "CODEX_HOME": str(home),
+            },
+            windows=os.name == "nt",
+        )
         archive = directory / "baseline.tar"
         try:
             if baseline:

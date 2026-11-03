@@ -1,7 +1,9 @@
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -162,6 +164,11 @@ def test_an_implicit_second_install_is_rejected(
 def test_upgrade_checks_installed_bytes_in_isolated_homes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stale: bool
 ) -> None:
+    for name in list(os.environ):
+        if name == "GIT_CONFIG_COUNT" or name.startswith(
+            ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+        ):
+            monkeypatch.delenv(name, raising=False)
     root = tmp_path / "publisher"
     root.mkdir()
     (root / ".gitattributes").write_text("* text=auto eol=lf\n", encoding="utf-8")
@@ -233,7 +240,7 @@ def test_upgrade_checks_installed_bytes_in_isolated_homes(
         effective = original_run(
             ["git", "config", "--get", "core.longpaths"], environment
         )
-        assert effective.stdout.strip() == "true"
+        assert effective.stdout.strip() == ("true" if os.name == "nt" else "false")
         key = str(home)
         calls.append((key, command))
         if command[1:4] == ["plugin", "marketplace", "add"]:
@@ -309,3 +316,24 @@ def test_upgrade_checks_installed_bytes_in_isolated_homes(
     )
     if stale:
         assert all("Installed bytes differ after upgrade" in error for error in errors)
+
+
+def test_host_validator_runs_outside_checkout_with_installed_dependencies(
+    tmp_path: Path,
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            str(ROOT / ".github/scripts/validate_hosts.py"),
+            "--help",
+        ],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--baseline" in result.stdout
