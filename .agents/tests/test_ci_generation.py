@@ -70,6 +70,12 @@ def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
     )
 
 
+def test_template_ci_uses_its_repository_token_for_public_sources(ci: str) -> None:
+    verify = job("verify", ci, "system-python-resources")
+    assert "secrets:" not in verify
+    assert "TJ_AGENTS_READ_TOKEN" not in ci
+
+
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
