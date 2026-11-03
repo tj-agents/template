@@ -171,7 +171,6 @@ def installed_distribution(
         ),
         "fixture_lib-0.1.0.dist-info/LICENSE": "legacy license\n",
         "fixture_lib-0.1.0.dist-info/RECORD": "receipt",
-        "fixture_lib-0.1.0.dist-info/uv_build.json": "{}",
         "fixture_lib-0.1.0.dist-info/direct_url.json": "local install provenance",
         "fixture_lib-0.1.0.dist-info/licenses/LICENSE": "license\n",
     }

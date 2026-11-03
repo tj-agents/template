@@ -94,7 +94,7 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
-    for selected, expected_checkouts in ((verify, 3), (hosts, 2)):
+    for selected in (verify, hosts):
         assert selected.index("- uses: astral-sh/setup-uv@") < selected.index(
             "- name: regenerate generated files from authored sources"
         )
@@ -108,7 +108,7 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert hosts.index(setup_uv) < hosts.index(
         "- name: regenerate generated files from authored sources"
     )
-    for selected in (verify, hosts):
+    for selected, expected_checkouts in ((verify, 3), (hosts, 2)):
         checkouts = selected.split("      - uses: actions/checkout@")[1:]
         assert len(checkouts) == expected_checkouts
         for checkout in checkouts:
