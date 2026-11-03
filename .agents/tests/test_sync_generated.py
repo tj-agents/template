@@ -1,8 +1,10 @@
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
 import os
+import py_compile
 import shlex
 import shutil
 import subprocess
@@ -1830,6 +1832,225 @@ def snapshot_package(tmp_path: Path) -> tuple[Any, Path, str]:
     package = tmp_path / "cache/demo/1.0.0"
     write(package / "hooks/probe.py", "print('probe ran')\n")
     return loader, package, loader.digest_tree(package)
+
+
+def stale_source_cache(path: Path, mode: py_compile.PycInvalidationMode) -> Path:
+    write(path, "VALUE = 'CACHED'\n")
+    stamp = path.stat().st_mtime_ns
+    cache = Path(importlib.util.cache_from_source(str(path)))
+    py_compile.compile(
+        str(path), cfile=str(cache), doraise=True, invalidation_mode=mode
+    )
+    write(path, "VALUE = 'SOURCE'\n")
+    os.utime(path, ns=(stamp, stamp))
+    return cache
+
+
+def source_cache_bootstrap(
+    package: Path, digest: str, snapshots: Path | None
+) -> subprocess.CompletedProcess[str]:
+    loader = (ROOT / ".codex/hooks/snapshot.py").read_bytes().replace(b"\r\n", b"\n")
+    bootstrap = (ROOT / ".codex/hooks/bootstrap.py").read_text(encoding="utf-8")
+    bootstrap = bootstrap.replace(
+        "LOADER_DIGEST", repr(hashlib.sha256(loader).hexdigest())
+    )
+    write(package / "hooks/codex/snapshot.py", loader.decode("utf-8"))
+    environment = dict(os.environ)
+    environment.pop("PLUGIN_DATA", None)
+    environment.pop("TJ_AGENTS_STARTUP_SNAPSHOT_DIRECTORY", None)
+    if snapshots is not None:
+        environment["TJ_AGENTS_STARTUP_SNAPSHOT_DIRECTORY"] = str(snapshots)
+    return subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            "-c",
+            bootstrap,
+            str(package),
+            digest,
+            "demo",
+            str(package / "hooks/probe.py"),
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=environment,
+        check=False,
+        timeout=30,
+    )
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        py_compile.PycInvalidationMode.TIMESTAMP,
+        py_compile.PycInvalidationMode.UNCHECKED_HASH,
+    ],
+)
+@pytest.mark.parametrize("snapshot", [False, True])
+def test_codex_bootstrap_executes_pinned_source_instead_of_stale_cache(
+    tmp_path: Path, mode: py_compile.PycInvalidationMode, snapshot: bool
+) -> None:
+    loader, package, _expected = snapshot_package(tmp_path)
+    write(
+        package / "hooks/probe.py", "import frozen_source\nprint(frozen_source.VALUE)\n"
+    )
+    stale_source_cache(package / "hooks/frozen_source.py", mode)
+    write(
+        package / "hooks/codex/snapshot.py",
+        (ROOT / ".codex/hooks/snapshot.py").read_text(encoding="utf-8"),
+    )
+    expected = loader.digest_tree(package)
+    snapshots = tmp_path / "snapshots" if snapshot else None
+    result = source_cache_bootstrap(package, expected, snapshots)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "SOURCE\n"
+    if snapshots is not None:
+        selected = loader.Snapshot.for_package(package, expected, snapshots).path
+        stale_source_cache(selected / "hooks/frozen_source.py", mode)
+        result = source_cache_bootstrap(package, expected, snapshots)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == "SOURCE\n"
+
+
+def test_codex_snapshot_digest_ignores_recognized_source_cache(tmp_path: Path) -> None:
+    loader, package, _expected = snapshot_package(tmp_path)
+    write(package / "hooks/frozen_source.py", "VALUE = 'SOURCE'\n")
+    expected = loader.digest_tree(package)
+    stale_source_cache(
+        package / "hooks/frozen_source.py", py_compile.PycInvalidationMode.TIMESTAMP
+    )
+    assert loader.digest_tree(package) == expected
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "hooks/probe.py",
+        "hooks/legacy.pyc",
+        "hooks/__pycache__/legacy.pyc",
+        "hooks/__pycache__/payload.bin",
+        "hooks/__pycache__/probe.cpython-312.pyc.extra",
+    ],
+)
+def test_codex_snapshot_digest_retains_source_and_unexpected_cache_contents(
+    tmp_path: Path, relative: str
+) -> None:
+    loader, package, expected = snapshot_package(tmp_path)
+    write(package / relative, "changed\n")
+    assert loader.digest_tree(package) != expected
+    with pytest.raises(SystemExit) as error:
+        loader.verified(package, expected)
+    assert error.value.code == 2
+
+
+def test_codex_snapshot_copy_omits_only_recognized_source_caches(
+    tmp_path: Path,
+) -> None:
+    loader, package, _expected = snapshot_package(tmp_path)
+    cache = stale_source_cache(
+        package / "hooks/frozen_source.py", py_compile.PycInvalidationMode.TIMESTAMP
+    )
+    unexpected = [
+        "hooks/legacy.pyc",
+        "hooks/__pycache__/legacy.pyc",
+        "hooks/__pycache__/payload.bin",
+    ]
+    for relative in unexpected:
+        write(package / relative, relative)
+    expected = loader.digest_tree(package)
+    selected = loader.Snapshot.for_package(
+        package, expected, tmp_path / "snapshots"
+    ).resolve()
+    assert not (selected / cache.relative_to(package)).exists()
+    for relative in unexpected:
+        assert (selected / relative).read_bytes() == (package / relative).read_bytes()
+    for path in (package / "hooks/probe.py", selected / "hooks/probe.py"):
+        py_compile.compile(str(path), doraise=True)
+    assert loader.digest_tree(package) == expected
+    assert (
+        loader.Snapshot.for_package(package, expected, tmp_path / "snapshots").resolve()
+        == selected
+    )
+
+
+@pytest.mark.parametrize(
+    "relative", ["", "hooks/codex.json", "hooks/__pycache__/probe.cpython-312.pyc"]
+)
+def test_codex_snapshot_rejects_junctions_before_digest_or_copy_exclusions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, relative: str
+) -> None:
+    loader, package, _expected = snapshot_package(tmp_path)
+    target = package / relative
+    if relative:
+        write(target, "unexpected")
+
+    def junction(path: Path) -> bool:
+        return path == target
+
+    monkeypatch.setattr(Path, "is_junction", junction, raising=False)
+    with pytest.raises(SystemExit) as error:
+        loader.digest_tree(package)
+    assert error.value.code == 2
+    if relative:
+        with pytest.raises(SystemExit) as error:
+            loader.generated_caches(str(target.parent), [target.name])
+        assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "relative", ["hooks/codex.json", "hooks/__pycache__/probe.cpython-312.pyc"]
+)
+def test_codex_snapshot_rejects_symbolic_links_before_exclusions(
+    tmp_path: Path, relative: str
+) -> None:
+    loader, package, _expected = snapshot_package(tmp_path)
+    target = tmp_path / "outside"
+    write(target, "outside")
+    link = package / relative
+    link.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        link.symlink_to(target)
+    except OSError as error:
+        pytest.skip(f"symbolic links are unavailable: {error}")
+    with pytest.raises(SystemExit) as failure:
+        loader.digest_tree(package)
+    assert failure.value.code == 2
+    with pytest.raises(SystemExit) as failure:
+        loader.generated_caches(str(link.parent), [link.name])
+    assert failure.value.code == 2
+
+
+def test_codex_snapshot_rejects_a_real_windows_cache_junction(tmp_path: Path) -> None:
+    if sys.platform != "win32":
+        pytest.skip("Windows directory junction")
+    loader, package, _expected = snapshot_package(tmp_path)
+    target = tmp_path / "outside"
+    write(target / "probe.cpython-312.pyc", "unexpected")
+    link = package / "hooks/__pycache__"
+    created = subprocess.run(
+        ["cmd.exe", "/d", "/c", "mklink", "/J", str(link), str(target)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+        timeout=10,
+    )
+    assert created.returncode == 0, created.stdout + created.stderr
+    assert link.is_junction() and link.resolve() == target.resolve()
+    try:
+        with pytest.raises(SystemExit) as failure:
+            loader.digest_tree(package)
+        assert failure.value.code == 2
+        with pytest.raises(SystemExit) as failure:
+            loader.generated_caches(str(link.parent), [link.name])
+        assert failure.value.code == 2
+    finally:
+        link.rmdir()
+    assert (target / "probe.cpython-312.pyc").read_text(
+        encoding="utf-8"
+    ) == "unexpected"
 
 
 def counting_digests(monkeypatch: pytest.MonkeyPatch, loader: Any) -> list[Path]:
