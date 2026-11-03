@@ -24,12 +24,32 @@
     },
     {
       "plugin": "skill",
-      "source": ".claude/hooks/pretooluse",
-      "destination": "hooks/pretooluse/claude"
+      "source": ".claude/hooks/pretooluse/skill_authoring.py",
+      "destination": "hooks/pretooluse/claude/skill_authoring.py"
+    },
+    {
+      "plugin": "skill",
+      "source": ".claude/hooks/pretooluse/transcript.py",
+      "destination": "hooks/pretooluse/claude/transcript.py"
     },
     {
       "plugin": "skill",
       "source": ".claude/hooks/skill.json",
+      "destination": "hooks/claude.json"
+    },
+    {
+      "plugin": "template",
+      "source": ".claude/hooks/pretooluse/send_feedback.py",
+      "destination": "hooks/pretooluse/claude/send_feedback.py"
+    },
+    {
+      "plugin": "template",
+      "source": ".claude/hooks/pretooluse/transcript.py",
+      "destination": "hooks/pretooluse/claude/transcript.py"
+    },
+    {
+      "plugin": "template",
+      "source": ".claude/hooks/template.json",
       "destination": "hooks/claude.json"
     }
   ]
