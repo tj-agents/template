@@ -63,7 +63,8 @@ PS_SWITCHES = {
     "-noclobber",
 }
 PS_PATHS = ("-path", "-literalpath", "-lp", "-pspath", "-filepath")
-DEPTH = 4
+DEPTH = 6
+HERE_STRING = re.compile(r"@([\"'])[ \t]*\r?\n(?:.*?\r?\n)?\1@", re.DOTALL)
 
 
 def required_procedures(path: str | None, cwd: str | None) -> set[str]:
@@ -106,9 +107,9 @@ def _expand(path: Path) -> list[Path]:
 def _skills(path: Path, depth: int = DEPTH) -> list[Path]:
     if path.name == SKILL:
         return [path]
-    if path.is_symlink():
-        return []
     try:
+        if path.is_symlink():
+            return []
         with os.scandir(path) as entries:
             children = list(entries)
     except OSError:
@@ -344,6 +345,7 @@ def _ps_tokens(command: str) -> list[str]:
 
 
 def _powershell(command: str, base: Path) -> list[Path]:
+    command = HERE_STRING.sub("''", command)
     targets: list[Path] = []
     if IO_FILE.search(command):
         targets += [_path(literal, base) for literal in LITERAL.findall(command)]
@@ -387,6 +389,8 @@ def _ps_command(words: list[str], base: Path) -> tuple[Path, list[Path]]:
             named[key] = value
         else:
             positional.append(argument)
+    if named.get("-whatif", "$false").lower() != "$false":
+        return base, []
 
     def paths(values: list[str]) -> list[Path]:
         return [

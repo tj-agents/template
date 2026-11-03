@@ -29,11 +29,14 @@ def main() -> int:
         return 0
     tool = data.get("tool_name") or ""
     cwd = data.get("cwd")
-    required = {
-        target: procedures
-        for target in targets(tool, data.get("tool_input") or {}, cwd)
-        if (procedures := shared.required_procedures(target, cwd))
-    }
+    try:
+        required = {
+            target: procedures
+            for target in targets(tool, data.get("tool_input") or {}, cwd)
+            if (procedures := shared.required_procedures(target, cwd))
+        }
+    except Exception:
+        return 0
     if not required:
         return 0
     loaded = transcript.loaded_skills(data.get("transcript_path"))
