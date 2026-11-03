@@ -12,8 +12,6 @@ jobs:
       template_ref: ${{ github.sha }}
       template_repository: ${{ github.repository }}
       generate_before_verify: true
-    secrets:
-      read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
 
   system-python-resources:
     runs-on: ubuntu-24.04
