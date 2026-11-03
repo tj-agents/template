@@ -5,36 +5,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+here = Path(__file__).resolve()
+sys.path[:0] = [str(here.parents[1]), str(here.parent)]
 shared = importlib.import_module("skill_authoring")
+transcript = importlib.import_module("transcript")
 
 SHELLS = {"Bash": "bash", "PowerShell": "powershell"}
-
-
-def loaded_skills(transcript: str | None) -> set[str]:
-    if not transcript:
-        return set()
-    requested: dict[str, str] = {}
-    succeeded: set[str] = set()
-    try:
-        with Path(transcript).open(encoding="utf-8", errors="replace") as stream:
-            for line in stream:
-                try:
-                    record = json.loads(line)
-                except ValueError:
-                    continue
-                for item in (record.get("message") or {}).get("content") or []:
-                    if not isinstance(item, dict):
-                        continue
-                    if item.get("type") == "tool_use" and item.get("name") == "Skill":
-                        requested[item.get("id")] = (item.get("input") or {}).get(
-                            "skill"
-                        )
-                    elif item.get("type") == "tool_result" and not item.get("is_error"):
-                        succeeded.add(item.get("tool_use_id"))
-    except OSError:
-        return set()
-    return {skill for key, skill in requested.items() if key in succeeded}
 
 
 def targets(tool: str, tool_input: dict[str, str], cwd: str | None) -> list[str]:
@@ -52,14 +28,6 @@ def main() -> int:
     if not isinstance(data, dict):
         return 0
     tool = data.get("tool_name") or ""
-    if tool == "SendFeedback":
-        if "template:self-repair" in loaded_skills(data.get("transcript_path")):
-            return 0
-        sys.stderr.write(
-            "SELF-REPAIR - load template:self-repair before host feedback. Host feedback is only "
-            "for a genuine host defect no tj-agents source can fix. The feedback was not sent.\n"
-        )
-        return 2
     cwd = data.get("cwd")
     required = {
         target: procedures
@@ -68,7 +36,7 @@ def main() -> int:
     }
     if not required:
         return 0
-    loaded = loaded_skills(data.get("transcript_path"))
+    loaded = transcript.loaded_skills(data.get("transcript_path"))
     unmet = {
         target: needed for target, needed in required.items() if not needed & loaded
     }

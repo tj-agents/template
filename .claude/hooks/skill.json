@@ -73,20 +73,6 @@
             ]
           }
         ]
-      },
-      {
-        "matcher": "SendFeedback",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 10,
-            "command": "python",
-            "args": [
-              "-B",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
-            ]
-          }
-        ]
       }
     ]
   }

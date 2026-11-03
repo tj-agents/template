@@ -201,24 +201,14 @@ class SkillAuthoringHookTests(unittest.TestCase):
                     0, self.run_hook(tool, {"command": "ls -la"}, "").returncode
                 )
 
-    def test_host_feedback_requires_self_repair(self) -> None:
-        feedback = {"feedback": "x"}
-        refused = self.run_hook("SendFeedback", feedback)
-        self.assertEqual(2, refused.returncode)
-        self.assertIn("template:self-repair", refused.stderr)
-        self.load_procedure(error=True, procedure="template:self-repair")
-        self.assertEqual(2, self.run_hook("SendFeedback", feedback).returncode)
-        self.load_procedure(procedure="template:self-repair")
-        self.assertEqual(0, self.run_hook("SendFeedback", feedback).returncode)
-
-    def test_claude_filters_writes_and_starts_shell_and_feedback_hooks(self) -> None:
+    def test_claude_filters_writes_and_starts_shell_hooks(self) -> None:
         manifest = json.loads(
             (PACKAGE / "hooks" / "claude.json").read_text(encoding="utf-8")
         )["hooks"]
         self.assertEqual(["PreToolUse"], list(manifest))
         groups = manifest["PreToolUse"]
         self.assertEqual(
-            ["Write", "Edit", "MultiEdit", "Bash", "PowerShell", "SendFeedback"],
+            ["Write", "Edit", "MultiEdit", "Bash", "PowerShell"],
             [group["matcher"] for group in groups],
         )
         for group in groups:

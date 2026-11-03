@@ -18,5 +18,7 @@ Host-neutral logic lives here and is imported by each host's implementation unde
 
 ```text
 skill_authoring.py                           shared: which SKILL.md files a write or shell command changes, and are they new?
-.claude/hooks/pretooluse/skill_authoring.py  Claude: block them until skill:new or skill:update, SendFeedback until template:self-repair, is loaded
+.claude/hooks/pretooluse/skill_authoring.py  Claude: block them until skill:new or skill:update is loaded
+.claude/hooks/pretooluse/send_feedback.py    Claude: block SendFeedback until template:self-repair is loaded
+.claude/hooks/pretooluse/transcript.py       Claude: skills loaded in a transcript, packaged into each hook's plugin
 ```
