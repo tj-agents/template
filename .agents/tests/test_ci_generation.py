@@ -128,7 +128,8 @@ def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
     for checkout in checkouts:
         assert (
             "(inputs.template_repository == github.repository || "
-            "inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN "
+            "inputs.template_repository == 'tj-agents/template') "
+            "&& secrets.GITHUB_TOKEN "
             "|| secrets.read_token || secrets.GITHUB_TOKEN" in checkout
         )
     cli = next(
