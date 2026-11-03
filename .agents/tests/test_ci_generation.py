@@ -127,7 +127,8 @@ def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
     assert len(checkouts) == 4
     for checkout in checkouts:
         assert (
-            "inputs.template_repository == github.repository && secrets.GITHUB_TOKEN "
+            "(inputs.template_repository == github.repository || "
+            "inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN "
             "|| secrets.read_token || secrets.GITHUB_TOKEN" in checkout
         )
     cli = next(
@@ -135,7 +136,8 @@ def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
         for value in plugin_ci.split("      - ")
         if "repository: tj-agents/cli" in value
     )
-    assert "token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}" in cli
+    assert "token: ${{ secrets.GITHUB_TOKEN }}" in cli
+    assert "SKILL_REFERENCES_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in plugin_ci
 
 
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
