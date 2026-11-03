@@ -35,7 +35,8 @@ claiming Zod is required by React. Give a framework its own selectable namespace
 lifecycle or substantial API practices warrant one, such as `efcore:specification` or `tauri:commands`.
 Disambiguate cross-ecosystem library names: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
 
-A namespace need not have its own repository. The repository name identifies the main plugin; separately
+A requested `plugin:skill` name is literal: create that plugin when it does not exist, in the named
+repository, and never fold the skill into another plugin. A namespace need not have its own repository. The repository name identifies the main plugin; separately
 named siblings may share that source repository, as dotnet/efcore do. Use existing payload, manifest and
 tier contracts when registering a necessary sibling. Create no empty placeholder skill families.
 
