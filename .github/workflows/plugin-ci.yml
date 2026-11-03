@@ -23,7 +23,7 @@ on:
         description: A token that can read the organization's Template and core repositories.
         required: false
       UPDATE_APP_PRIVATE_KEY:
-        description: The organization's updater App key required to publish regenerated output to main.
+        description: Updater App key from the caller's default-branch-only update-pins environment.
         required: false
 
 permissions:
@@ -237,6 +237,7 @@ jobs:
       && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
       && vars.UPDATE_APP_CLIENT_ID != ''
     needs: [resolve-template, verify, hosts]
+    environment: update-pins
     runs-on: windows-latest
     concurrency:
       group: regenerate-main
