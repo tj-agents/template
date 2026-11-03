@@ -8,7 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 ATTRIBUTES = (
-    ROOT / ".agents/template/utility/new/plugin/templates/repository/.gitattributes.in"
+    ROOT / ".agents/template/skills/new/plugin/templates/repository/.gitattributes.in"
 )
 CONFIGS = (
     (
