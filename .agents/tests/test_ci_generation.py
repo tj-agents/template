@@ -118,6 +118,26 @@ def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None
     assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
 
 
+def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
+    checkouts = [
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: ${{ inputs.template_repository }}" in value
+    ]
+    assert len(checkouts) == 4
+    for checkout in checkouts:
+        assert (
+            "inputs.template_repository == github.repository && secrets.GITHUB_TOKEN "
+            "|| secrets.read_token || secrets.GITHUB_TOKEN" in checkout
+        )
+    cli = next(
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: tj-agents/cli" in value
+    )
+    assert "token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}" in cli
+
+
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
