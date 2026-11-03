@@ -229,6 +229,11 @@ def validate_upgrade(root: Path, baseline: str | None, host: str) -> str | None:
             "CLAUDE_CONFIG_DIR": str(home),
             "CODEX_HOME": str(home),
         }
+        # Native hosts spawn Git for their own marketplace staging directories.
+        count = int(environment.get("GIT_CONFIG_COUNT", "0"))
+        environment[f"GIT_CONFIG_KEY_{count}"] = "core.longpaths"
+        environment[f"GIT_CONFIG_VALUE_{count}"] = "true"
+        environment["GIT_CONFIG_COUNT"] = str(count + 1)
         archive = directory / "baseline.tar"
         try:
             if baseline:
