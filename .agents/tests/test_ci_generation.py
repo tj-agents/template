@@ -70,6 +70,12 @@ def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
     )
 
 
+def test_template_ci_uses_its_repository_token_for_public_sources(ci: str) -> None:
+    verify = job("verify", ci, "system-python-resources")
+    assert "secrets:" not in verify
+    assert "TJ_AGENTS_READ_TOKEN" not in ci
+
+
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
@@ -94,6 +100,10 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
+    for selected in (verify, hosts):
+        assert selected.index("- uses: astral-sh/setup-uv@") < selected.index(
+            "- name: regenerate generated files from authored sources"
+        )
     assert "ref: ${{ inputs.template_ref }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
@@ -104,6 +114,13 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert hosts.index(setup_uv) < hosts.index(
         "- name: regenerate generated files from authored sources"
     )
+    for selected, expected_checkouts in ((verify, 3), (hosts, 2)):
+        checkouts = selected.split("      - uses: actions/checkout@")[1:]
+        assert len(checkouts) == expected_checkouts
+        for checkout in checkouts:
+            assert re.fullmatch(r"[0-9a-f]{40}", checkout.split("\n", 1)[0])
+            configuration = checkout.split("      - ", 1)[0]
+            assert "persist-credentials: false" in configuration
 
 
 def test_verify_checks_changed_authored_guidance_against_the_event_base(
@@ -120,14 +137,13 @@ def test_verify_checks_changed_authored_guidance_against_the_event_base(
     assert "$mergeBase = '--merge-base'" in comparison
     assert "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" in comparison
     conformance = step(verify, "the repository conforms to the current Template source")
-    assert ".template/.agents/template/utility/check/scripts/check.py" in conformance
+    assert ".template/.agents/template/skills/check/scripts/check.py" in conformance
     assert "'--base', $env:GUIDANCE_EXAMPLES_BASE" in conformance
     assert "'--head', $env:GUIDANCE_EXAMPLES_HEAD" in conformance
     assert "$env:GUIDANCE_EXAMPLES_MERGE_BASE" in conformance
     assert "changed authored guidance has concrete examples" not in verify
     assert (
-        ".core/.agents/engineering/convention/docs/scripts/check_examples.py"
-        not in verify
+        ".core/.agents/engineering/skills/docs/scripts/check_examples.py" not in verify
     )
 
 
@@ -141,7 +157,7 @@ def test_conformance_step_passes_only_present_native_arguments(
     )
     body = conformance.split("        run: |\n", 1)[1]
     command = "\n".join(line.removeprefix("          ") for line in body.splitlines())
-    checker = tmp_path / ".template/.agents/template/utility/check/scripts/check.py"
+    checker = tmp_path / ".template/.agents/template/skills/check/scripts/check.py"
     checker.parent.mkdir(parents=True)
     checker.write_text(
         "import argparse, json\n"

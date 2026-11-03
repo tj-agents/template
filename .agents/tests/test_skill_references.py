@@ -10,7 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
     "skill_references",
-    ROOT / ".agents/template/utility/check/scripts/check_skill_references.py",
+    ROOT / ".agents/template/skills/check/scripts/check_skill_references.py",
 )
 assert SPEC is not None
 assert SPEC.loader is not None
@@ -27,7 +27,7 @@ def write(root: Path, name: str, body: str) -> Path:
 
 def skill(root: Path, plugin: str, name: str, body: str = "") -> Path:
     write(root, f"plugins/{plugin}/skills/{name}/SKILL.md", "published")
-    return write(root, f".agents/{plugin}/utility/{name}/SKILL.md", body)
+    return write(root, f".agents/{plugin}/skills/{name}/SKILL.md", body)
 
 
 def test_old_clip_description_detects_both_missing_ask_skills(tmp_path: Path) -> None:
@@ -84,7 +84,7 @@ def test_history_adapters_fixtures_templates_and_non_skill_identifiers_are_not_s
         "plans/old.md",
         ".codex/skills/old/SKILL.md",
         ".agents/tests/fixtures/old/SKILL.md",
-        ".agents/one/utility/real/templates/old/SKILL.md.in",
+        ".agents/one/skills/real/templates/old/SKILL.md.in",
     ):
         write(tmp_path, name, "Use `one:missing`.")
     assert checker.check([tmp_path]) == []
@@ -116,18 +116,22 @@ def test_source_roots_use_sibling_inventory_without_scanning_sibling_body(
     assert checker.check([tmp_path, sibling], source_roots=[tmp_path]) == []
 
 
+@pytest.mark.parametrize(
+    "kind", ["policy", "standard", "operation", "workflow", "learning", "reference"]
+)
 def test_a_kind_skill_is_prose_but_a_requested_named_skill_is_checked(
     tmp_path: Path,
+    kind: str,
 ) -> None:
     skill(
         tmp_path,
         "one",
         "real",
-        "A `contract` skill gains a rule. An `utility` skill runs scripts.",
+        f"A `{kind}` skill describes its responsibility.",
     )
     assert checker.check([tmp_path]) == []
-    write(tmp_path, "README.md", "Load the `contract` skill.")
-    assert "missing skill contract" in checker.check([tmp_path])[0]
+    write(tmp_path, "README.md", f"Load the `{kind}` skill.")
+    assert f"missing skill {kind}" in checker.check([tmp_path])[0]
 
 
 @pytest.mark.parametrize(
@@ -278,7 +282,7 @@ def test_cli_checks_explicit_caller_documents_against_sibling_inventory(
     )
     args = [
         sys.executable,
-        str(ROOT / ".agents/template/utility/check/scripts/check_skill_references.py"),
+        str(ROOT / ".agents/template/skills/check/scripts/check_skill_references.py"),
         "--root",
         str(consumer),
         "--root",
@@ -307,8 +311,8 @@ def test_explicit_unsupported_reference_file_is_not_a_passing_empty_scan(
 
 def test_published_roots_fetch_only_referenced_publishers(tmp_path: Path) -> None:
     source = tmp_path / "source"
-    (source / ".agents/demo/convention/style").mkdir(parents=True)
-    (source / ".agents/demo/convention/style/SKILL.md").write_text(
+    (source / ".agents/demo/skills/style").mkdir(parents=True)
+    (source / ".agents/demo/skills/style/SKILL.md").write_text(
         "Pair with `agent:handoff` and `cli:clip`.\n", encoding="utf-8"
     )
     fetched: list[str] = []
