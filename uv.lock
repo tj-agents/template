@@ -333,6 +333,9 @@ wheels = [
 name = "template"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "tj-cli" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -342,6 +345,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "tj-cli", git = "https://github.com/tj-agents/cli.git?subdirectory=packages%2Ftj-cli&rev=9cb34d371bfdf29829cb6e2c7ddfde4c36943fec" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -349,6 +353,11 @@ dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.17.1" },
 ]
+
+[[package]]
+name = "tj-cli"
+version = "0.1.0"
+source = { git = "https://github.com/tj-agents/cli.git?subdirectory=packages%2Ftj-cli&rev=9cb34d371bfdf29829cb6e2c7ddfde4c36943fec#9cb34d371bfdf29829cb6e2c7ddfde4c36943fec" }
 
 [[package]]
 name = "typing-extensions"
