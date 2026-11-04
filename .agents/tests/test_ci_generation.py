@@ -11,6 +11,14 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_CI = ROOT / ".github/workflows/plugin-ci.yml"
 CI = ROOT / ".github/workflows/ci.yml"
+STUB = (
+    ROOT
+    / ".agents/template/utility/new/plugin/templates/repository"
+    / ".github/workflows/ci.yml.in"
+)
+REGENERATION_COMMIT = (
+    "!startsWith(github.event.head_commit.message, 'Regenerate packages for ')"
+)
 
 
 def job(name: str, workflow: str, next_name: str | None = None) -> str:
@@ -30,7 +38,11 @@ def assert_generation_precedes(job_body: str, following: str) -> None:
     current = step(job_body, "generated files are current")
     assert job_body.index(generate) < job_body.index(current)
     assert job_body.index(current) < job_body.index(following)
-    assert "if: inputs.generate_before_verify" in generate
+    assert f"if: github.event_name != 'push' || {REGENERATION_COMMIT}" in generate
+    assert (
+        "python -B .template/.agents/template/utility/update/scripts/update.py --root ."
+        in generate
+    )
     assert (
         "./.agents/sync-generated.ps1\n"
         "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in generate
@@ -52,8 +64,13 @@ def ci() -> str:
     return CI.read_text(encoding="utf-8")
 
 
-def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
+def test_generation_is_not_an_opt_in_and_the_updater_key_is_optional(
+    plugin_ci: str,
+) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
+    secrets = plugin_ci[
+        plugin_ci.index("    secrets:") : plugin_ci.index("permissions:")
+    ]
     assert (
         "      template_ref:\n"
         "        description: Template source ref; defaults to main and may be "
@@ -62,12 +79,66 @@ def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
         "        default: main\n"
         "        type: string" in inputs
     )
-    assert (
-        "      generate_before_verify:\n"
-        "        required: false\n"
-        "        default: false\n"
-        "        type: boolean" in inputs
+    assert "generate_before_verify" not in plugin_ci
+    assert "      UPDATE_APP_PRIVATE_KEY:\n" in secrets
+    key = secrets[secrets.index("      UPDATE_APP_PRIVATE_KEY:\n") :]
+    assert "        required: false\n" in key
+
+
+def test_verification_and_publication_share_one_resolved_template(
+    plugin_ci: str,
+) -> None:
+    resolver = job("resolve-template", plugin_ci, "verify")
+    assert "ref: ${{ inputs.template_ref }}" in resolver
+    assert "git -C .template rev-parse HEAD" in resolver
+    assert "sha: ${{ steps.template.outputs.sha }}" in resolver
+    # A moving input ref is resolved once; every consumer uses that same commit.
+    assert plugin_ci.count("ref: ${{ inputs.template_ref }}") == 1
+    assert plugin_ci.count("ref: ${{ needs.resolve-template.outputs.sha }}") == 3
+    for name, following in (
+        ("verify", "host-platforms"),
+        ("host-platforms", "hosts"),
+        ("regenerate", None),
+    ):
+        consumer = job(name, plugin_ci, following)
+        assert "resolve-template" in consumer[: consumer.index("    steps:")]
+        assert "ref: ${{ needs.resolve-template.outputs.sha }}" in consumer
+
+
+def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None:
+    steps = plugin_ci.split("      - ")[1:]
+    for checkout in (value for value in steps if "uses: actions/checkout@" in value):
+        assert "persist-credentials: false" in checkout
+    publication = step(job("regenerate", plugin_ci), "commit and push the regeneration")
+    assert "PUBLISH_TOKEN: ${{ steps.app-token.outputs.token }}" in publication
+    assert "$env:GIT_CONFIG_VALUE_0" in publication
+    assert publication.index("$env:GIT_CONFIG_VALUE_0") < publication.index(
+        "git ls-remote"
     )
+    assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
+
+
+def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
+    checkouts = [
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: ${{ inputs.template_repository }}" in value
+    ]
+    assert len(checkouts) == 4
+    for checkout in checkouts:
+        assert (
+            "(inputs.template_repository == github.repository || "
+            "inputs.template_repository == 'tj-agents/template') "
+            "&& secrets.GITHUB_TOKEN "
+            "|| secrets.read_token || secrets.GITHUB_TOKEN" in checkout
+        )
+    cli = next(
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: tj-agents/cli" in value
+    )
+    assert "token: ${{ secrets.GITHUB_TOKEN }}" in cli
+    assert "SKILL_REFERENCES_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in plugin_ci
 
 
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
@@ -86,15 +157,21 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
 
 def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     verify = job("verify", plugin_ci, "hosts")
-    hosts = job("hosts", plugin_ci)
+    hosts = job("host-platforms", plugin_ci, "hosts")
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in verify
-    assert "ref: ${{ inputs.template_ref }}" in verify
+    assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in hosts
+    stable_gate = job("hosts", plugin_ci, "regeneration-unconfigured")
+    assert "if: always()" in stable_gate
+    assert "needs: host-platforms" in stable_gate
+    assert 'test "$HOST_RESULT" = success' in stable_gate
+    assert '--baseline "$env:UPGRADE_BASE"' in hosts
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
     assert_generation_precedes(verify, "- name: repository tests")
     assert verify.index("- name: generated files are current") < verify.index(
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
-    assert "ref: ${{ inputs.template_ref }}" in hosts
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
     setup_uv = (
@@ -175,32 +252,84 @@ def test_conformance_step_passes_only_present_native_arguments(
     }
 
 
-def test_regeneration_is_main_push_only_and_uses_the_verified_head(ci: str) -> None:
-    assert "push:\n    branches: [main]" in ci
-    assert "pull_request:" in ci
-    regenerate = job("regenerate", ci)
-    assert "if: github.event_name == 'push'" in regenerate
-    assert "needs: verify" in regenerate
-    assert "ref: ${{ github.sha }}" in regenerate
+def test_regeneration_publishes_only_unregenerated_main_pushes_after_verification(
+    plugin_ci: str,
+) -> None:
+    regenerate = job("regenerate", plugin_ci)
+    condition = regenerate[: regenerate.index("    needs:")]
+    assert "github.event_name == 'push' && github.ref == 'refs/heads/main'" in condition
+    assert REGENERATION_COMMIT in condition
+    assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
+    assert "needs: [resolve-template, verify, hosts]" in regenerate
+    assert "    environment: update-pins\n" in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate
-    assert "generate_before_verify: true" in job("verify", ci, "regenerate")
+    assert "ref: ${{ github.sha }}" in regenerate
+    assert "token: ${{ steps.app-token.outputs.token }}" in regenerate
+    assert "client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}" in regenerate
+    assert "private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}" in regenerate
+    assert "permission-contents: write" in regenerate
+    assert "permission-workflows: write" in regenerate
+    assert "contents: write" not in plugin_ci.replace("permission-contents: write", "")
+    order = [
+        "- name: mint the updater token",
+        "- name: regenerate generated files from authored sources",
+        "- name: generated files are current",
+        "- name: commit and push the regeneration",
+    ]
+    positions = [regenerate.index(name) for name in order]
+    assert positions == sorted(positions)
+
+
+def test_unconfigured_regeneration_fails_explicitly(plugin_ci: str) -> None:
+    unconfigured = job("regeneration-unconfigured", plugin_ci, "regenerate")
+    assert "vars.UPDATE_APP_CLIENT_ID == ''" in unconfigured
+    assert REGENERATION_COMMIT in unconfigured
+    assert "::error " in unconfigured
+    assert "exit 1" in unconfigured
+    regenerate = job("regenerate", plugin_ci)
+    assert (
+        "UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}"
+        in regenerate
+    )
+    missing = step(regenerate, "require automatic publication credentials")
+    assert "if: env.UPDATE_APP_KEY_PRESENT != 'true'" in missing
+    assert "Write-Error" in missing
+    assert "exit 1" in missing
+    steps = regenerate[regenerate.index("    steps:\n") :].split("      - ")[1:]
+    assert len(steps) > 1
+    for later in steps[1:]:
+        assert "if: env.UPDATE_APP_KEY_PRESENT == 'true'" in later
+
+
+def test_callers_pass_the_updater_key_and_template_has_no_second_publisher(
+    ci: str,
+) -> None:
+    passed = "      UPDATE_APP_PRIVATE_KEY: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}\n"
+    assert passed in ci
+    assert passed in STUB.read_text(encoding="utf-8")
+    assert "  regenerate:\n" not in ci
+    assert "generate_before_verify" not in ci
     assert "template_repository: ${{ github.repository }}" in job(
-        "verify", ci, "regenerate"
+        "verify", ci, "system-python-resources"
     )
 
 
-def test_write_permission_and_staging_are_limited_to_regeneration(ci: str) -> None:
-    verify = job("verify", ci, "system-python-resources")
-    system_python = job("system-python-resources", ci, "regenerate")
-    regenerate = job("regenerate", ci)
-    assert "permissions:" not in verify
-    assert "contents: read" in system_python
-    assert "contents: write" not in system_python
-    assert "permissions:\n      contents: write" in regenerate
+def test_staging_includes_exact_vendored_files_and_generated_roots(
+    plugin_ci: str,
+) -> None:
+    regenerate = job("regenerate", plugin_ci)
     staged = re.search(r"git add -- (?P<paths>.+)", regenerate)
     assert staged is not None
     assert set(staged.group("paths").split()) == {
+        ".agents/sync_generated.py",
+        ".agents/sync-generated.ps1",
+        ".codex/hooks/snapshot.py",
+        ".codex/hooks/bootstrap.py",
+        ".gitattributes",
+        ".gitignore",
+        "CLAUDE.md",
+        ".github/workflows/ci.yml",
         ".codex/skills",
         ".claude/skills",
         ".agents/INDEX.md",
@@ -259,6 +388,14 @@ def harness(tmp_path: Path) -> PublisherHarness:
     git(repository, "config", "user.name", "Fixture")
     git(repository, "config", "user.email", "fixture@example.com")
     for relative in (
+        ".agents/sync_generated.py",
+        ".agents/sync-generated.ps1",
+        ".codex/hooks/snapshot.py",
+        ".codex/hooks/bootstrap.py",
+        ".gitattributes",
+        ".gitignore",
+        "CLAUDE.md",
+        ".github/workflows/ci.yml",
         ".codex/skills/placeholder.txt",
         ".claude/skills/placeholder.txt",
         ".agents/INDEX.md",
@@ -275,7 +412,7 @@ def harness(tmp_path: Path) -> PublisherHarness:
     git(repository, "remote", "add", "origin", str(remote))
     git(repository, "push", "-u", "origin", "HEAD:main")
     source = git(repository, "rev-parse", "HEAD").stdout.strip()
-    publisher = publisher_script(CI.read_text(encoding="utf-8"))
+    publisher = publisher_script(PLUGIN_CI.read_text(encoding="utf-8"))
     return PublisherHarness(root, remote, repository, source, publisher)
 
 
