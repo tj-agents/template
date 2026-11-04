@@ -206,7 +206,7 @@ jobs:
         shell: pwsh
         env:
           UPGRADE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: python -B .template/.github/scripts/validate_hosts.py --root . --baseline "$env:UPGRADE_BASE"
+        run: uv run --project .template --locked --no-dev python -B .template/.github/scripts/validate_hosts.py --root . --baseline "$env:UPGRADE_BASE"
 
   hosts:
     permissions: {}

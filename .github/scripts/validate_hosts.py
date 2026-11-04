@@ -14,6 +14,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from tj_cli.git_environment import native_plugin_environment
+
 
 def run(
     command: list[str],
@@ -224,11 +226,14 @@ def validate_upgrade(root: Path, baseline: str | None, host: str) -> str | None:
         home, source = directory / "home", directory / "marketplace"
         source.mkdir()
         home.mkdir()
-        environment = {
-            **os.environ,
-            "CLAUDE_CONFIG_DIR": str(home),
-            "CODEX_HOME": str(home),
-        }
+        environment = native_plugin_environment(
+            {
+                **os.environ,
+                "CLAUDE_CONFIG_DIR": str(home),
+                "CODEX_HOME": str(home),
+            },
+            windows=os.name == "nt",
+        )
         archive = directory / "baseline.tar"
         try:
             if baseline:

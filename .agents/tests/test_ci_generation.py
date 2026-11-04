@@ -163,6 +163,7 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "needs: host-platforms" in stable_gate
     assert 'test "$HOST_RESULT" = success' in stable_gate
     assert '--baseline "$env:UPGRADE_BASE"' in hosts
+    assert "uv run --project .template --locked --no-dev python -B" in hosts
     assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
     assert_generation_precedes(verify, "- name: repository tests")
     assert verify.index("- name: generated files are current") < verify.index(

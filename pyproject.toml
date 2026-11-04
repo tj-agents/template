@@ -2,7 +2,7 @@
 name = "template"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["tj-cli"]
 
 [dependency-groups]
 dev = [
@@ -13,6 +13,9 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+tj-cli = { git = "https://github.com/tj-agents/cli.git", rev = "9cb34d371bfdf29829cb6e2c7ddfde4c36943fec", subdirectory = "packages/tj-cli" }
 
 [tool.ruff]
 include = [".agents/**/*.py", ".github/**/*.py"]
