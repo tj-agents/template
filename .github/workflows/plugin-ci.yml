@@ -6,7 +6,7 @@ on:
       cli_ref:
         description: CLI source ref used to build tj_hook for hook execution tests.
         required: false
-        default: cd8c726e2aadc321251de599b75c4e72e21cecb9
+        default: 344f39d0567a27692c7d55bb64bd36da48a091f6
         type: string
       template_ref:
         description: Template source ref; defaults to main and may be overridden for candidate checks.
