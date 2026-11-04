@@ -1,9 +1,6 @@
 import json
 import os
-import re
-import stat
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -109,12 +106,13 @@ def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None
     steps = plugin_ci.split("      - ")[1:]
     for checkout in (value for value in steps if "uses: actions/checkout@" in value):
         assert "persist-credentials: false" in checkout
-    publication = step(job("regenerate", plugin_ci), "commit and push the regeneration")
-    assert "PUBLISH_TOKEN: ${{ steps.app-token.outputs.token }}" in publication
-    assert "$env:GIT_CONFIG_VALUE_0" in publication
-    assert publication.index("$env:GIT_CONFIG_VALUE_0") < publication.index(
-        "git ls-remote"
+    publication = step(job("regenerate", plugin_ci), "publish generated files")
+    assert "token: ${{ steps.app-token.outputs.token }}" in publication
+    assert (
+        "uses: tj-agents/github-actions/.github/actions/publish-generated@"
+        "1a8099ab95aaf609704f892087081c35d15b331a" in publication
     )
+    assert "source-sha: ${{ github.sha }}" in publication
     assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
 
 
@@ -272,10 +270,10 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "permission-workflows: write" in regenerate
     assert "contents: write" not in plugin_ci.replace("permission-contents: write", "")
     order = [
-        "- name: mint the updater token",
         "- name: regenerate generated files from authored sources",
         "- name: generated files are current",
-        "- name: commit and push the regeneration",
+        "- name: mint the updater token",
+        "- name: publish generated files",
     ]
     positions = [regenerate.index(name) for name in order]
     assert positions == sorted(positions)
@@ -319,236 +317,24 @@ def test_staging_includes_exact_vendored_files_and_generated_roots(
     plugin_ci: str,
 ) -> None:
     regenerate = job("regenerate", plugin_ci)
-    staged = re.search(r"git add -- (?P<paths>.+)", regenerate)
-    assert staged is not None
-    assert set(staged.group("paths").split()) == {
-        ".agents/sync_generated.py",
-        ".agents/sync-generated.ps1",
-        ".codex/hooks/snapshot.py",
-        ".codex/hooks/bootstrap.py",
-        ".gitattributes",
-        ".gitignore",
+    published = step(regenerate, "publish generated files")
+    paths = published.split("          paths: |\n", 1)[1]
+    assert {line.strip() for line in paths.splitlines() if line.strip()} == {
         "CLAUDE.md",
+        ".agents/sync_generated.py",
         ".github/workflows/ci.yml",
+        ".gitattributes",
+        ".codex/hooks/snapshot.py",
         ".codex/skills",
-        ".claude/skills",
-        ".agents/INDEX.md",
-        ".agents/plugins/marketplace.json",
-        ".claude-plugin/marketplace.json",
-        "plugins",
-    }
-    assert "git diff --cached --name-only" in regenerate
-    assert "git push origin HEAD:main" in regenerate
-    assert "git ls-remote --exit-code origin refs/heads/main" in regenerate
-    assert regenerate.index(
-        "git ls-remote --exit-code origin refs/heads/main"
-    ) < regenerate.index("git add --")
-    assert "$PSNativeCommandUseErrorActionPreference = $false" in regenerate
-    assert (
-        "$PSNativeCommandUseErrorActionPreference = $nativeErrorActionPreference"
-        in regenerate
-    )
-
-
-def git(directory: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=directory,
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-
-
-def publisher_script(workflow: str) -> str:
-    regenerate = job("regenerate", workflow)
-    publisher = step(regenerate, "commit and push the regeneration")
-    body = publisher.split("        run: |\n", 1)[1]
-    return "\n".join(line.removeprefix("          ") for line in body.splitlines())
-
-
-@dataclass
-class PublisherHarness:
-    root: Path
-    remote: Path
-    repository: Path
-    source: str
-    publisher: str
-
-
-@pytest.fixture
-def harness(tmp_path: Path) -> PublisherHarness:
-    root = tmp_path
-    remote = root / "remote.git"
-    repository = root / "repository"
-    git(root, "init", "--bare", str(remote))
-    git(root, "init", str(repository))
-    git(repository, "checkout", "-b", "main")
-    git(repository, "config", "user.name", "Fixture")
-    git(repository, "config", "user.email", "fixture@example.com")
-    for relative in (
-        ".agents/sync_generated.py",
-        ".agents/sync-generated.ps1",
-        ".codex/hooks/snapshot.py",
         ".codex/hooks/bootstrap.py",
-        ".gitattributes",
-        ".gitignore",
-        "CLAUDE.md",
-        ".github/workflows/ci.yml",
-        ".codex/skills/placeholder.txt",
-        ".claude/skills/placeholder.txt",
+        "plugins",
         ".agents/INDEX.md",
-        ".agents/plugins/marketplace.json",
+        ".claude/skills",
+        ".agents/sync-generated.ps1",
+        ".gitignore",
         ".claude-plugin/marketplace.json",
-        "plugins/demo/INDEX.md",
-    ):
-        path = repository / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("baseline\n", encoding="utf-8")
-    (repository / "source.txt").write_text("source\n", encoding="utf-8")
-    git(repository, "add", ".")
-    git(repository, "commit", "-m", "source")
-    git(repository, "remote", "add", "origin", str(remote))
-    git(repository, "push", "-u", "origin", "HEAD:main")
-    source = git(repository, "rev-parse", "HEAD").stdout.strip()
-    publisher = publisher_script(PLUGIN_CI.read_text(encoding="utf-8"))
-    return PublisherHarness(root, remote, repository, source, publisher)
-
-
-def remote_tip(harness: PublisherHarness) -> str:
-    return git(
-        harness.root, f"--git-dir={harness.remote}", "rev-parse", "refs/heads/main"
-    ).stdout.strip()
-
-
-def change_generated_output(harness: PublisherHarness) -> None:
-    (harness.repository / "plugins/demo/INDEX.md").write_text(
-        "generated\n", encoding="utf-8"
-    )
-
-
-def run_publisher(harness: PublisherHarness) -> subprocess.CompletedProcess[str]:
-    environment = os.environ | {"GITHUB_SHA": harness.source}
-    return subprocess.run(
-        ["pwsh", "-NoProfile", "-Command", harness.publisher],
-        cwd=harness.repository,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env=environment,
-    )
-
-
-def advance_main(harness: PublisherHarness, name: str) -> str:
-    advance = harness.root / name
-    git(harness.root, "clone", "--branch", "main", str(harness.remote), str(advance))
-    git(advance, "config", "user.name", "Advance")
-    git(advance, "config", "user.email", "advance@example.com")
-    (advance / "advance.txt").write_text("advance\n", encoding="utf-8")
-    git(advance, "add", "advance.txt")
-    git(advance, "commit", "-m", "advance main")
-    git(advance, "push", "origin", "HEAD:main")
-    return remote_tip(harness)
-
-
-def install_hook(location: Path, name: str, body: str) -> None:
-    hook = (
-        location / "hooks" if (location / "HEAD").is_file() else location / ".git/hooks"
-    ) / name
-    hook.write_text(body, encoding="utf-8", newline="\n")
-    hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
-
-
-def test_current_source_publishes_generated_scope_with_the_source_parent(
-    harness: PublisherHarness,
-) -> None:
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    published = remote_tip(harness)
-    assert (
-        harness.source
-        == git(
-            harness.root, f"--git-dir={harness.remote}", "rev-parse", f"{published}^"
-        ).stdout.strip()
-    )
-    assert git(
-        harness.root,
-        f"--git-dir={harness.remote}",
-        "diff-tree",
-        "--no-commit-id",
-        "--name-only",
-        "-r",
-        published,
-    ).stdout.splitlines() == ["plugins/demo/INDEX.md"]
-    assert (
-        git(
-            harness.root,
-            f"--git-dir={harness.remote}",
-            "log",
-            "-1",
-            "--format=%s",
-            published,
-        ).stdout.strip()
-        == f"Regenerate packages for {harness.source}"
-    )
-
-
-def test_preexisting_newer_main_skips_publication_before_staging(
-    harness: PublisherHarness,
-) -> None:
-    advanced = advance_main(harness, "preexisting")
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert remote_tip(harness) == advanced
-    assert git(harness.repository, "rev-parse", "HEAD").stdout.strip() == harness.source
-    assert (
-        git(harness.repository, "status", "--short").stdout.rstrip()
-        == " M plugins/demo/INDEX.md"
-    )
-
-
-def test_main_advance_during_push_skips_superseded_publication(
-    harness: PublisherHarness,
-) -> None:
-    advance = harness.root / "race"
-    git(harness.root, "clone", "--branch", "main", str(harness.remote), str(advance))
-    git(advance, "config", "user.name", "Advance")
-    git(advance, "config", "user.email", "advance@example.com")
-    location = advance.as_posix()
-    install_hook(
-        harness.repository,
-        "pre-push",
-        "#!/bin/sh\n"
-        f"printf advance > '{location}/advance.txt'\n"
-        f"git -C '{location}' add advance.txt\n"
-        f"git -C '{location}' commit -m 'advance main'\n"
-        f"git -C '{location}' push origin HEAD:main\n",
-    )
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert remote_tip(harness) != harness.source
-    assert (
-        git(
-            harness.root,
-            f"--git-dir={harness.remote}",
-            "log",
-            "-1",
-            "--format=%s",
-            "refs/heads/main",
-        ).stdout.strip()
-        == "advance main"
-    )
-
-
-def test_rejected_push_preserves_the_original_failure_when_main_is_unchanged(
-    harness: PublisherHarness,
-) -> None:
-    install_hook(harness.remote, "pre-receive", "#!/bin/sh\nexit 1\n")
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode != 0
-    assert remote_tip(harness) == harness.source
+        ".agents/plugins/marketplace.json",
+    }
+    assert "branch: ${{ github.event.repository.default_branch }}" in published
+    assert "git push" not in regenerate
+    assert "git add" not in regenerate
