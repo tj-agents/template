@@ -251,21 +251,11 @@ jobs:
         run: |
           Write-Error "UPDATE_APP_PRIVATE_KEY is required to publish the synchronized files."
           exit 1
-      - name: mint the updater token
-        if: env.UPDATE_APP_KEY_PRESENT == 'true'
-        id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
-          permission-contents: write
-          permission-workflows: write
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
           persist-credentials: false
           ref: ${{ github.sha }}
-          token: ${{ steps.app-token.outputs.token }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
@@ -298,46 +288,34 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           ./.agents/sync-generated.ps1 -Check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: commit and push the regeneration
+      - name: mint the updater token
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
-        env:
-          PUBLISH_TOKEN: ${{ steps.app-token.outputs.token }}
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $PSNativeCommandUseErrorActionPreference = $true
-          $env:GIT_CONFIG_COUNT = '1'
-          $env:GIT_CONFIG_KEY_0 = 'http.https://github.com/.extraheader'
-          $credential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("x-access-token:$env:PUBLISH_TOKEN"))
-          $env:GIT_CONFIG_VALUE_0 = "AUTHORIZATION: basic $credential"
-          $remoteMain = git ls-remote --exit-code origin refs/heads/main
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $remoteMain = ($remoteMain -split "\s+")[0]
-          if ($remoteMain -ne $env:GITHUB_SHA) {
-            "Main advanced since this workflow started; skipping regeneration publication."
-            exit 0
-          }
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- .agents/sync_generated.py .agents/sync-generated.ps1 .codex/hooks/snapshot.py .codex/hooks/bootstrap.py .gitattributes .gitignore CLAUDE.md .github/workflows/ci.yml .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
-          $staged = git diff --cached --name-only
-          if ($staged) {
-            git commit -m "Regenerate packages for $env:GITHUB_SHA"
-            $nativeErrorActionPreference = $PSNativeCommandUseErrorActionPreference
-            $PSNativeCommandUseErrorActionPreference = $false
-            git push origin HEAD:main
-            $pushExitCode = $LASTEXITCODE
-            $PSNativeCommandUseErrorActionPreference = $nativeErrorActionPreference
-            if ($pushExitCode -ne 0) {
-              $remoteMain = git ls-remote --exit-code origin refs/heads/main
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-              $remoteMain = ($remoteMain -split "\s+")[0]
-              if ($remoteMain -ne $env:GITHUB_SHA) {
-                "Main advanced while regeneration was publishing; skipping superseded publication."
-                exit 0
-              }
-              exit $pushExitCode
-            }
-          } else {
-            "Generated output already current."
-          }
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: publish generated files
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        uses: tj-agents/github-actions/.github/actions/publish-generated@1a8099ab95aaf609704f892087081c35d15b331a
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          source-sha: ${{ github.sha }}
+          branch: ${{ github.event.repository.default_branch }}
+          paths: |
+            .agents/sync_generated.py
+            .agents/sync-generated.ps1
+            .codex/hooks/snapshot.py
+            .codex/hooks/bootstrap.py
+            .gitattributes
+            .gitignore
+            CLAUDE.md
+            .github/workflows/ci.yml
+            .codex/skills
+            .claude/skills
+            .agents/INDEX.md
+            .agents/plugins/marketplace.json
+            .claude-plugin/marketplace.json
+            plugins
