@@ -2022,9 +2022,8 @@ def test_codex_snapshot_rejects_symbolic_links_before_exclusions(
     assert failure.value.code == 2
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows directory junction")
 def test_codex_snapshot_rejects_a_real_windows_cache_junction(tmp_path: Path) -> None:
-    if sys.platform != "win32":
-        pytest.skip("Windows directory junction")
     loader, package, _expected = snapshot_package(tmp_path)
     target = tmp_path / "outside"
     write(target / "probe.cpython-312.pyc", "unexpected")
