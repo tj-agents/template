@@ -18,46 +18,64 @@ on:
         required: false
         default: tj-agents/template
         type: string
-      generate_before_verify:
-        required: false
-        default: false
-        type: boolean
     secrets:
       read_token:
         description: A token that can read the organization's Template and core repositories.
+        required: false
+      UPDATE_APP_PRIVATE_KEY:
+        description: Updater App key from the caller's default-branch-only update-pins environment.
         required: false
 
 permissions:
   contents: read
 
 jobs:
+  resolve-template:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.template.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ inputs.template_ref }}
+          path: .template
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - id: template
+        shell: bash
+        run: echo "sha=$(git -C .template rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   verify:
+    needs: resolve-template
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: tj-agents/cli
           ref: ${{ inputs.cli_ref }}
           path: .tj-cli
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
       - name: build the pinned tj_hook candidate
         shell: pwsh
@@ -91,11 +109,13 @@ jobs:
           "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
           "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" >> $env:GITHUB_ENV
       - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
@@ -133,29 +153,41 @@ jobs:
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         env:
-          SKILL_REFERENCES_TOKEN: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          SKILL_REFERENCES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
 
-  hosts:
-    runs-on: ubuntu-latest
+  host-platforms:
+    needs: resolve-template
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
@@ -165,10 +197,125 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           ./.agents/sync-generated.ps1 -Check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
       - name: install the pinned host CLIs
         run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
       - name: Claude Code and Codex accept the marketplace and plugins
-        run: python -B .template/.github/scripts/validate_hosts.py --root .
+        shell: pwsh
+        env:
+          UPGRADE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: uv run --project .template --locked --no-dev python -B .template/.github/scripts/validate_hosts.py --root . --baseline "$env:UPGRADE_BASE"
+
+  hosts:
+    permissions: {}
+    if: always()
+    needs: host-platforms
+    runs-on: ubuntu-latest
+    steps:
+      - name: require both native host platforms
+        env:
+          HOST_RESULT: ${{ needs.host-platforms.result }}
+        run: test "$HOST_RESULT" = success
+
+  regeneration-unconfigured:
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: require automatic publication configuration
+        run: |
+          echo "::error title=Regeneration not configured::UPDATE_APP_CLIENT_ID is required; run github-actions publish-update owner_setup.py once for the organization."
+          exit 1
+
+  regenerate:
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID != ''
+    needs: [resolve-template, verify, hosts]
+    environment: update-pins
+    runs-on: windows-latest
+    concurrency:
+      group: regenerate-main
+      cancel-in-progress: false
+    env:
+      UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}
+    steps:
+      - name: require automatic publication credentials
+        if: env.UPDATE_APP_KEY_PRESENT != 'true'
+        shell: pwsh
+        run: |
+          Write-Error "UPDATE_APP_PRIVATE_KEY is required to publish the synchronized files."
+          exit 1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          python-version: '3.12'
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
+          path: .template
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+      - name: regenerate generated files from authored sources
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: mint the updater token
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: publish generated files
+        if: env.UPDATE_APP_KEY_PRESENT == 'true'
+        uses: tj-agents/github-actions/.github/actions/publish-generated@1a8099ab95aaf609704f892087081c35d15b331a
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          source-sha: ${{ github.sha }}
+          branch: ${{ github.event.repository.default_branch }}
+          paths: |
+            .agents/sync_generated.py
+            .agents/sync-generated.ps1
+            .codex/hooks/snapshot.py
+            .codex/hooks/bootstrap.py
+            .gitattributes
+            .gitignore
+            CLAUDE.md
+            .github/workflows/ci.yml
+            .codex/skills
+            .claude/skills
+            .agents/INDEX.md
+            .agents/plugins/marketplace.json
+            .claude-plugin/marketplace.json
+            plugins
