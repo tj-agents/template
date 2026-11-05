@@ -27,6 +27,7 @@ Every plugin repository, Template included, has the same layout. The repository 
     tiers/<plugin>.json
     plugins/template.json               repository and type
     plugins/payloads.json               published plugins, dependencies, compatibility aliases, mapped resources and host adapters
+    plugins/path-loading-baseline.json  optional; existing Python path loads, which may only shrink
     plugins/adapters/<host>/<plugin>/<skill>.md  optional host-only discovery extension body
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
