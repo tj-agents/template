@@ -143,7 +143,7 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
     provision = step(verify, "build the pinned tj_hook candidate")
-    assert "default: 344f39d0567a27692c7d55bb64bd36da48a091f6" in inputs
+    assert "default: 92e29a7589a5dcf462af36d960684e49146d9d3b" in inputs
     assert "repository: tj-agents/cli" in verify
     assert "ref: ${{ inputs.cli_ref }}" in verify
     assert "path: .tj-cli" in verify
