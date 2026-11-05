@@ -1,9 +1,6 @@
 import json
 import os
-import re
-import stat
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -11,6 +8,14 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_CI = ROOT / ".github/workflows/plugin-ci.yml"
 CI = ROOT / ".github/workflows/ci.yml"
+STUB = (
+    ROOT
+    / ".agents/template/utility/new/plugin/templates/repository"
+    / ".github/workflows/ci.yml.in"
+)
+REGENERATION_COMMIT = (
+    "!startsWith(github.event.head_commit.message, 'Regenerate packages for ')"
+)
 
 
 def job(name: str, workflow: str, next_name: str | None = None) -> str:
@@ -30,7 +35,11 @@ def assert_generation_precedes(job_body: str, following: str) -> None:
     current = step(job_body, "generated files are current")
     assert job_body.index(generate) < job_body.index(current)
     assert job_body.index(current) < job_body.index(following)
-    assert "if: inputs.generate_before_verify" in generate
+    assert f"if: github.event_name != 'push' || {REGENERATION_COMMIT}" in generate
+    assert (
+        "python -B .template/.agents/template/utility/update/scripts/update.py --root ."
+        in generate
+    )
     assert (
         "./.agents/sync-generated.ps1\n"
         "          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" in generate
@@ -52,8 +61,13 @@ def ci() -> str:
     return CI.read_text(encoding="utf-8")
 
 
-def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
+def test_generation_is_not_an_opt_in_and_the_updater_key_is_optional(
+    plugin_ci: str,
+) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
+    secrets = plugin_ci[
+        plugin_ci.index("    secrets:") : plugin_ci.index("permissions:")
+    ]
     assert (
         "      template_ref:\n"
         "        description: Template source ref; defaults to main and may be "
@@ -62,19 +76,74 @@ def test_reusable_generation_defaults_to_off(plugin_ci: str) -> None:
         "        default: main\n"
         "        type: string" in inputs
     )
+    assert "generate_before_verify" not in plugin_ci
+    assert "      UPDATE_APP_PRIVATE_KEY:\n" in secrets
+    key = secrets[secrets.index("      UPDATE_APP_PRIVATE_KEY:\n") :]
+    assert "        required: false\n" in key
+
+
+def test_verification_and_publication_share_one_resolved_template(
+    plugin_ci: str,
+) -> None:
+    resolver = job("resolve-template", plugin_ci, "verify")
+    assert "ref: ${{ inputs.template_ref }}" in resolver
+    assert "git -C .template rev-parse HEAD" in resolver
+    assert "sha: ${{ steps.template.outputs.sha }}" in resolver
+    # A moving input ref is resolved once; every consumer uses that same commit.
+    assert plugin_ci.count("ref: ${{ inputs.template_ref }}") == 1
+    assert plugin_ci.count("ref: ${{ needs.resolve-template.outputs.sha }}") == 3
+    for name, following in (
+        ("verify", "host-platforms"),
+        ("host-platforms", "hosts"),
+        ("regenerate", None),
+    ):
+        consumer = job(name, plugin_ci, following)
+        assert "resolve-template" in consumer[: consumer.index("    steps:")]
+        assert "ref: ${{ needs.resolve-template.outputs.sha }}" in consumer
+
+
+def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None:
+    steps = plugin_ci.split("      - ")[1:]
+    for checkout in (value for value in steps if "uses: actions/checkout@" in value):
+        assert "persist-credentials: false" in checkout
+    publication = step(job("regenerate", plugin_ci), "publish generated files")
+    assert "token: ${{ steps.app-token.outputs.token }}" in publication
     assert (
-        "      generate_before_verify:\n"
-        "        required: false\n"
-        "        default: false\n"
-        "        type: boolean" in inputs
+        "uses: tj-agents/github-actions/.github/actions/publish-generated@"
+        "1a8099ab95aaf609704f892087081c35d15b331a" in publication
     )
+    assert "source-sha: ${{ github.sha }}" in publication
+    assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
+
+
+def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
+    checkouts = [
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: ${{ inputs.template_repository }}" in value
+    ]
+    assert len(checkouts) == 4
+    for checkout in checkouts:
+        assert (
+            "(inputs.template_repository == github.repository || "
+            "inputs.template_repository == 'tj-agents/template') "
+            "&& secrets.GITHUB_TOKEN "
+            "|| secrets.read_token || secrets.GITHUB_TOKEN" in checkout
+        )
+    cli = next(
+        value
+        for value in plugin_ci.split("      - ")
+        if "repository: tj-agents/cli" in value
+    )
+    assert "token: ${{ secrets.GITHUB_TOKEN }}" in cli
+    assert "SKILL_REFERENCES_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in plugin_ci
 
 
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
     provision = step(verify, "build the pinned tj_hook candidate")
-    assert "default: cd8c726e2aadc321251de599b75c4e72e21cecb9" in inputs
+    assert "default: 92e29a7589a5dcf462af36d960684e49146d9d3b" in inputs
     assert "repository: tj-agents/cli" in verify
     assert "ref: ${{ inputs.cli_ref }}" in verify
     assert "path: .tj-cli" in verify
@@ -86,15 +155,22 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
 
 def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     verify = job("verify", plugin_ci, "hosts")
-    hosts = job("hosts", plugin_ci)
+    hosts = job("host-platforms", plugin_ci, "hosts")
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in verify
-    assert "ref: ${{ inputs.template_ref }}" in verify
+    assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in hosts
+    stable_gate = job("hosts", plugin_ci, "regeneration-unconfigured")
+    assert "if: always()" in stable_gate
+    assert "needs: host-platforms" in stable_gate
+    assert 'test "$HOST_RESULT" = success' in stable_gate
+    assert '--baseline "$env:UPGRADE_BASE"' in hosts
+    assert "uv run --project .template --locked --no-dev python -B" in hosts
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
     assert_generation_precedes(verify, "- name: repository tests")
     assert verify.index("- name: generated files are current") < verify.index(
         "- name: the repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
-    assert "ref: ${{ inputs.template_ref }}" in hosts
+    assert "ref: ${{ needs.resolve-template.outputs.sha }}" in hosts
     assert "repository: ${{ inputs.template_repository }}" in verify
     assert "repository: ${{ inputs.template_repository }}" in hosts
     setup_uv = (
@@ -175,243 +251,91 @@ def test_conformance_step_passes_only_present_native_arguments(
     }
 
 
-def test_regeneration_is_main_push_only_and_uses_the_verified_head(ci: str) -> None:
-    assert "push:\n    branches: [main]" in ci
-    assert "pull_request:" in ci
-    regenerate = job("regenerate", ci)
-    assert "if: github.event_name == 'push'" in regenerate
-    assert "needs: verify" in regenerate
-    assert "ref: ${{ github.sha }}" in regenerate
+def test_regeneration_publishes_only_unregenerated_main_pushes_after_verification(
+    plugin_ci: str,
+) -> None:
+    regenerate = job("regenerate", plugin_ci)
+    condition = regenerate[: regenerate.index("    needs:")]
+    assert "github.event_name == 'push' && github.ref == 'refs/heads/main'" in condition
+    assert REGENERATION_COMMIT in condition
+    assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
+    assert "needs: [resolve-template, verify, hosts]" in regenerate
+    assert "    environment: update-pins\n" in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate
-    assert "generate_before_verify: true" in job("verify", ci, "regenerate")
-    assert "template_repository: ${{ github.repository }}" in job(
-        "verify", ci, "regenerate"
-    )
+    assert "ref: ${{ github.sha }}" in regenerate
+    assert "token: ${{ steps.app-token.outputs.token }}" in regenerate
+    assert "client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}" in regenerate
+    assert "private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}" in regenerate
+    assert "permission-contents: write" in regenerate
+    assert "permission-workflows: write" in regenerate
+    assert "contents: write" not in plugin_ci.replace("permission-contents: write", "")
+    order = [
+        "- name: regenerate generated files from authored sources",
+        "- name: generated files are current",
+        "- name: mint the updater token",
+        "- name: publish generated files",
+    ]
+    positions = [regenerate.index(name) for name in order]
+    assert positions == sorted(positions)
 
 
-def test_write_permission_and_staging_are_limited_to_regeneration(ci: str) -> None:
-    verify = job("verify", ci, "system-python-resources")
-    system_python = job("system-python-resources", ci, "regenerate")
-    regenerate = job("regenerate", ci)
-    assert "permissions:" not in verify
-    assert "contents: read" in system_python
-    assert "contents: write" not in system_python
-    assert "permissions:\n      contents: write" in regenerate
-    staged = re.search(r"git add -- (?P<paths>.+)", regenerate)
-    assert staged is not None
-    assert set(staged.group("paths").split()) == {
-        ".codex/skills",
-        ".claude/skills",
-        ".agents/INDEX.md",
-        ".agents/plugins/marketplace.json",
-        ".claude-plugin/marketplace.json",
-        "plugins",
-    }
-    assert "git diff --cached --name-only" in regenerate
-    assert "git push origin HEAD:main" in regenerate
-    assert "git ls-remote --exit-code origin refs/heads/main" in regenerate
-    assert regenerate.index(
-        "git ls-remote --exit-code origin refs/heads/main"
-    ) < regenerate.index("git add --")
-    assert "$PSNativeCommandUseErrorActionPreference = $false" in regenerate
+def test_unconfigured_regeneration_fails_explicitly(plugin_ci: str) -> None:
+    unconfigured = job("regeneration-unconfigured", plugin_ci, "regenerate")
+    assert "vars.UPDATE_APP_CLIENT_ID == ''" in unconfigured
+    assert REGENERATION_COMMIT in unconfigured
+    assert "::error " in unconfigured
+    assert "exit 1" in unconfigured
+    regenerate = job("regenerate", plugin_ci)
     assert (
-        "$PSNativeCommandUseErrorActionPreference = $nativeErrorActionPreference"
+        "UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}"
         in regenerate
     )
+    missing = step(regenerate, "require automatic publication credentials")
+    assert "if: env.UPDATE_APP_KEY_PRESENT != 'true'" in missing
+    assert "Write-Error" in missing
+    assert "exit 1" in missing
+    steps = regenerate[regenerate.index("    steps:\n") :].split("      - ")[1:]
+    assert len(steps) > 1
+    for later in steps[1:]:
+        assert "if: env.UPDATE_APP_KEY_PRESENT == 'true'" in later
 
 
-def git(directory: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *arguments],
-        cwd=directory,
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
+def test_callers_pass_the_updater_key_and_template_has_no_second_publisher(
+    ci: str,
+) -> None:
+    passed = "      UPDATE_APP_PRIVATE_KEY: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}\n"
+    assert passed in ci
+    assert passed in STUB.read_text(encoding="utf-8")
+    assert "  regenerate:\n" not in ci
+    assert "generate_before_verify" not in ci
+    assert "template_repository: ${{ github.repository }}" in job(
+        "verify", ci, "system-python-resources"
     )
 
 
-def publisher_script(workflow: str) -> str:
-    regenerate = job("regenerate", workflow)
-    publisher = step(regenerate, "commit and push the regeneration")
-    body = publisher.split("        run: |\n", 1)[1]
-    return "\n".join(line.removeprefix("          ") for line in body.splitlines())
-
-
-@dataclass
-class PublisherHarness:
-    root: Path
-    remote: Path
-    repository: Path
-    source: str
-    publisher: str
-
-
-@pytest.fixture
-def harness(tmp_path: Path) -> PublisherHarness:
-    root = tmp_path
-    remote = root / "remote.git"
-    repository = root / "repository"
-    git(root, "init", "--bare", str(remote))
-    git(root, "init", str(repository))
-    git(repository, "checkout", "-b", "main")
-    git(repository, "config", "user.name", "Fixture")
-    git(repository, "config", "user.email", "fixture@example.com")
-    for relative in (
-        ".codex/skills/placeholder.txt",
-        ".claude/skills/placeholder.txt",
+def test_staging_includes_exact_vendored_files_and_generated_roots(
+    plugin_ci: str,
+) -> None:
+    regenerate = job("regenerate", plugin_ci)
+    published = step(regenerate, "publish generated files")
+    paths = published.split("          paths: |\n", 1)[1]
+    assert {line.strip() for line in paths.splitlines() if line.strip()} == {
+        "CLAUDE.md",
+        ".agents/sync_generated.py",
+        ".github/workflows/ci.yml",
+        ".gitattributes",
+        ".codex/hooks/snapshot.py",
+        ".codex/skills",
+        ".codex/hooks/bootstrap.py",
+        "plugins",
         ".agents/INDEX.md",
-        ".agents/plugins/marketplace.json",
+        ".claude/skills",
+        ".agents/sync-generated.ps1",
+        ".gitignore",
         ".claude-plugin/marketplace.json",
-        "plugins/demo/INDEX.md",
-    ):
-        path = repository / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("baseline\n", encoding="utf-8")
-    (repository / "source.txt").write_text("source\n", encoding="utf-8")
-    git(repository, "add", ".")
-    git(repository, "commit", "-m", "source")
-    git(repository, "remote", "add", "origin", str(remote))
-    git(repository, "push", "-u", "origin", "HEAD:main")
-    source = git(repository, "rev-parse", "HEAD").stdout.strip()
-    publisher = publisher_script(CI.read_text(encoding="utf-8"))
-    return PublisherHarness(root, remote, repository, source, publisher)
-
-
-def remote_tip(harness: PublisherHarness) -> str:
-    return git(
-        harness.root, f"--git-dir={harness.remote}", "rev-parse", "refs/heads/main"
-    ).stdout.strip()
-
-
-def change_generated_output(harness: PublisherHarness) -> None:
-    (harness.repository / "plugins/demo/INDEX.md").write_text(
-        "generated\n", encoding="utf-8"
-    )
-
-
-def run_publisher(harness: PublisherHarness) -> subprocess.CompletedProcess[str]:
-    environment = os.environ | {"GITHUB_SHA": harness.source}
-    return subprocess.run(
-        ["pwsh", "-NoProfile", "-Command", harness.publisher],
-        cwd=harness.repository,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env=environment,
-    )
-
-
-def advance_main(harness: PublisherHarness, name: str) -> str:
-    advance = harness.root / name
-    git(harness.root, "clone", "--branch", "main", str(harness.remote), str(advance))
-    git(advance, "config", "user.name", "Advance")
-    git(advance, "config", "user.email", "advance@example.com")
-    (advance / "advance.txt").write_text("advance\n", encoding="utf-8")
-    git(advance, "add", "advance.txt")
-    git(advance, "commit", "-m", "advance main")
-    git(advance, "push", "origin", "HEAD:main")
-    return remote_tip(harness)
-
-
-def install_hook(location: Path, name: str, body: str) -> None:
-    hook = (
-        location / "hooks" if (location / "HEAD").is_file() else location / ".git/hooks"
-    ) / name
-    hook.write_text(body, encoding="utf-8", newline="\n")
-    hook.chmod(hook.stat().st_mode | stat.S_IXUSR)
-
-
-def test_current_source_publishes_generated_scope_with_the_source_parent(
-    harness: PublisherHarness,
-) -> None:
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    published = remote_tip(harness)
-    assert (
-        harness.source
-        == git(
-            harness.root, f"--git-dir={harness.remote}", "rev-parse", f"{published}^"
-        ).stdout.strip()
-    )
-    assert git(
-        harness.root,
-        f"--git-dir={harness.remote}",
-        "diff-tree",
-        "--no-commit-id",
-        "--name-only",
-        "-r",
-        published,
-    ).stdout.splitlines() == ["plugins/demo/INDEX.md"]
-    assert (
-        git(
-            harness.root,
-            f"--git-dir={harness.remote}",
-            "log",
-            "-1",
-            "--format=%s",
-            published,
-        ).stdout.strip()
-        == f"Regenerate packages for {harness.source}"
-    )
-
-
-def test_preexisting_newer_main_skips_publication_before_staging(
-    harness: PublisherHarness,
-) -> None:
-    advanced = advance_main(harness, "preexisting")
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert remote_tip(harness) == advanced
-    assert git(harness.repository, "rev-parse", "HEAD").stdout.strip() == harness.source
-    assert (
-        git(harness.repository, "status", "--short").stdout.rstrip()
-        == " M plugins/demo/INDEX.md"
-    )
-
-
-def test_main_advance_during_push_skips_superseded_publication(
-    harness: PublisherHarness,
-) -> None:
-    advance = harness.root / "race"
-    git(harness.root, "clone", "--branch", "main", str(harness.remote), str(advance))
-    git(advance, "config", "user.name", "Advance")
-    git(advance, "config", "user.email", "advance@example.com")
-    location = advance.as_posix()
-    install_hook(
-        harness.repository,
-        "pre-push",
-        "#!/bin/sh\n"
-        f"printf advance > '{location}/advance.txt'\n"
-        f"git -C '{location}' add advance.txt\n"
-        f"git -C '{location}' commit -m 'advance main'\n"
-        f"git -C '{location}' push origin HEAD:main\n",
-    )
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert remote_tip(harness) != harness.source
-    assert (
-        git(
-            harness.root,
-            f"--git-dir={harness.remote}",
-            "log",
-            "-1",
-            "--format=%s",
-            "refs/heads/main",
-        ).stdout.strip()
-        == "advance main"
-    )
-
-
-def test_rejected_push_preserves_the_original_failure_when_main_is_unchanged(
-    harness: PublisherHarness,
-) -> None:
-    install_hook(harness.remote, "pre-receive", "#!/bin/sh\nexit 1\n")
-    change_generated_output(harness)
-    result = run_publisher(harness)
-    assert result.returncode != 0
-    assert remote_tip(harness) == harness.source
+        ".agents/plugins/marketplace.json",
+    }
+    assert "branch: ${{ github.event.repository.default_branch }}" in published
+    assert "git push" not in regenerate
+    assert "git add" not in regenerate
