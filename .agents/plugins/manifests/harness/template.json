@@ -19,6 +19,14 @@
       "tj-agents/engineering",
       "tj-agents/skill"
     ],
+    "hooks": [
+      {
+        "path": "hooks/pretooluse/claude/send_feedback.py",
+        "hosts": [
+          "claude"
+        ]
+      }
+    ],
     "permissions": {
       "claude_allow": [
         "Bash(python -B ${PLUGIN_ROOT}/skills/check/scripts/check_examples.py:*)",
