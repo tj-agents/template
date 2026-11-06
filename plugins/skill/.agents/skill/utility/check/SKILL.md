@@ -32,8 +32,10 @@ Check that the name, description and supported metadata match the canonical sour
 discovery entry. Apply the format, kind and required sections selected by the host and project.
 Template-layout repositories use `template:check`'s standard for their additional metadata and sections.
 Every convention or contract opens with `Owns …` after its title. Each added or updated skill includes
-a meaningful fenced code, invocation, configuration or input/output example of its actual behavior.
-Follow `engineering:docs` for one rule per owner and concrete examples; a teaching example may stay inline.
+a meaningful fenced example of its deterministic behavior: code, an invocation, configuration, script
+input/output or a routing decision. Never give an example of open-ended output such as prose, a message or a
+design; the agent copies its shape, so state the requirements instead.
+Follow `engineering:docs` for one rule per owner; a teaching example may stay inline.
 
 ## Executable skill assets
 
