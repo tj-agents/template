@@ -33,7 +33,8 @@ behavior in its application. Name ordinary ecosystem concerns by purpose: React 
 explicitly selected Zod without
 claiming Zod is required by React. Give a framework its own selectable namespace when its execution model,
 lifecycle or substantial API practices warrant one, such as `efcore:specification` or `tauri:commands`.
-Disambiguate cross-ecosystem library names: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
+Name a library's namespace after the library alone (`efcore`, `seaorm`); add a language prefix only when
+the bare name is ambiguous across ecosystems: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
 
 A requested `plugin:skill` name is literal: create that plugin when it does not exist, in the named
 repository, and never fold the skill into another plugin. A namespace need not have its own repository. The repository name identifies the main plugin; separately
