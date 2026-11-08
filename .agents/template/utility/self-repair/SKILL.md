@@ -28,10 +28,11 @@ of these conditions:
 - Both the originating task and the source repository have explicitly adopted personal scope, and the
   repair remains within the user's existing limits.
 
-An organization name, publisher account or checkout location does not establish these conditions.
-`tj-agents/company` is employer tooling and remains outside automatic repair. An employer task does
-not grant automatic repair authority even when the proposed destination is personal tooling. Explain
-the defect and propose a separate source repair within the employer's evidence boundaries.
+An organization name, publisher account or checkout location does not establish these conditions. A profile's
+intended consumers do not classify its `tj-agents` source repository: read that source's explicit adoption and
+the user's authority separately from its consumers. An employer task does not grant automatic repair authority
+even when the proposed destination is personal tooling. Explain the defect and propose a separate source repair
+within the employer's evidence boundaries.
 
 Standards owned outside tj-agents, such as Concertable's, and product defects are outside this skill;
 they use their owner's bugfix, feature or plan workflow with that owner's authorization.
@@ -43,7 +44,8 @@ hook, work item or blocker to satisfy this workflow.
 ```text
 Personal task exposes a reproducible Core handoff defect; Core is explicitly adopted personal tooling:
 establish eligible source authority, then apply Workflow's active-goal decision before repair.
-source repair; no employer tracker item or cross-repository repair follows automatically.
+An actual employer task exposes the same defect: correct the active task where authorized and propose a
+separate source repair; it does not classify the source or carry cross-repository repair authority.
 Agent skipped a clear testing instruction: run the required checks and correct the task; an adequate
 instruction needs no source edit.
 ```
