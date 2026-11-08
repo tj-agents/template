@@ -17,6 +17,19 @@ Request: add a small naming rule to an existing review skill.
 Decision: extend review; the same review task already loads it.
 ```
 
+## Context-free plugins
+
+A plugin skill must work in any repository that selects it. Its mandatory behavior and dependencies are
+the minimum its concern needs; an optional vendor, service or backend is a separately selectable plugin
+named for it that plugs into the core only when chosen. Owner, organization and project data belong to the
+adopting repository, never to a plugin repository.
+
+```text
+Request: declare GitHub settings, with secret values from Infisical and state on HCP Terraform.
+Resolve: github:configuration needs only GitHub and any Terraform backend; infisical:github-sync and the
+HCP backend are separate opt-in plugins; tj-agents' declarations live in its own configuration repository.
+```
+
 ## Identity and discovery
 
 Choose a lowercase hyphenated name for the subject a reader is looking for. Before publishing it, check

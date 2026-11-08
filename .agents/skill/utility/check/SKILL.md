@@ -31,9 +31,14 @@ Template repository: also run its generator and template:check.
 Check that the name, description and supported metadata match the canonical source and each host's
 discovery entry. Apply the format, kind and required sections selected by the host and project.
 Template-layout repositories use `template:check`'s standard for their additional metadata and sections.
+Reject a skill that requires an optional vendor, service or backend its concern does not need, or that
+carries owner, organization or project data; apply the context-free rule in
+[skill selection](../new/references/selection.md).
 Every convention or contract opens with `Owns …` after its title. Each added or updated skill includes
-a meaningful fenced code, invocation, configuration or input/output example of its actual behavior.
-Follow `engineering:docs` for one rule per owner and concrete examples; a teaching example may stay inline.
+a meaningful fenced example of its deterministic behavior: code, an invocation, configuration, script
+input/output or a routing decision. Never give an example of open-ended output such as prose, a message or a
+design; the agent copies its shape, so state the requirements instead.
+Follow `engineering:docs` for one rule per owner; a teaching example may stay inline.
 
 ## Executable skill assets
 
