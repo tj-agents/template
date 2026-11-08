@@ -19,5 +19,6 @@
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": "Update an existing skill and remove its superseded names."
-  }
+  },
+  "version": "aece2a2a5a63"
 }
