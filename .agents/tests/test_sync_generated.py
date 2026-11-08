@@ -1417,6 +1417,20 @@ def test_tier_rules(demo_root: Path) -> None:
     assert_rejected(demo_root, "owner_repository must name owner/demo")
 
 
+def test_codex_manifest_carries_a_content_label(demo_root: Path) -> None:
+    def label(output: dict[str, bytes]) -> str:
+        return cast(
+            str, json.loads(output["plugins/demo/.codex-plugin/plugin.json"])["version"]
+        )
+
+    first = build(demo_root)
+    assert "version" not in json.loads(first["plugins/demo/.claude-plugin/plugin.json"])
+    assert label(first) == label(build(demo_root))
+    skill = demo_root / ".agents/demo/utility/tool/SKILL.md"
+    write(skill, skill.read_text() + "\nChanged.\n")
+    assert label(build(demo_root)) != label(first)
+
+
 def test_manifests_must_agree(demo_root: Path) -> None:
     path = demo_root / ".agents/plugins/manifests/claude/demo.json"
     write_json(path, {**json.loads(path.read_text()), "description": "Drifted."})
