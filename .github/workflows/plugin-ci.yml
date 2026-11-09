@@ -68,8 +68,8 @@ jobs:
           token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: '3.12'
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+          python-version: '3.15'
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tj-agents/cli
@@ -178,8 +178,8 @@ jobs:
           token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: '3.12'
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+          python-version: '3.15'
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: regenerate generated files from authored sources
         if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
@@ -259,7 +259,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
-          python-version: '3.12'
+          python-version: '3.15'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
         with:
@@ -268,7 +268,7 @@ jobs:
           path: .template
           token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
           persist-credentials: false
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
       - name: regenerate generated files from authored sources
         if: env.UPDATE_APP_KEY_PRESENT == 'true'
