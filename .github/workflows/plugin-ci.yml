@@ -221,10 +221,6 @@ jobs:
 
   default-branch:
     if: github.event_name == 'pull_request'
-    permissions:
-      actions: read
-      contents: read
-      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: the default branch's latest completed run is green, or this PR repairs it
