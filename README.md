@@ -1,7 +1,20 @@
 # Template
 
+TJ Agents is Tommy's agentic engineering standards and tooling for Claude Code and Codex, with harness
+parity: every capability works the same from both hosts. It's a thin deterministic layer — CLI scripts
+plus thin trigger skills — where judgement skills hold the conventions and the hosts' native features do
+the mechanics. Every other repository in the organization is a plugin repository built in Template's one
+layout; Template is the meta-scaffolder that creates that layout, generates each repository's host
+projections, and validates structural conformance.
+
 Template owns plugin repository layout, scaffolding, generated host projections and structural validation.
 Its sibling Skill plugin owns skill authoring and the shared content and executable asset contract.
+
+A plugin repository vendors a handful of Template files (the generator, `sync-generated.ps1`,
+`.gitattributes`, `.gitignore`, `CLAUDE.md`, the CI caller) rather than pinning a released version, and
+`template:update` re-vendors them from Template's `main`. That vendored copy sits outside Renovate's reach
+today — the decided fix (enabling Template in the shared Renovate preset, or shipping it as a pinned tool
+instead) has not landed yet, so a repository can still silently drift until someone runs `template:update`.
 
 ## Install
 
