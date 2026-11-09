@@ -65,7 +65,10 @@ with the updater App (`UPDATE_APP_CLIENT_ID` variable and `UPDATE_APP_PRIVATE_KE
 default-branch-only `update-pins` environment). GitHub Actions' `publish-update` owner setup bootstraps protected
 enrollment once for the organization. The caller passes the named secret to the reusable workflow; its
 publication job selects the protected environment. A regeneration commit is checked as committed and never regenerated
-again. Missing updater configuration fails publication instead of reporting a successful sync. The
+again. Missing updater configuration fails publication instead of reporting a successful sync. On a pull request,
+`default-branch` fails while the caller workflow's latest completed push run on the default branch is not green, so
+a red main cannot go on silently publishing nothing; the PR that repairs it carries the `fixes-main` label and re-runs
+that job. Require `verify / default-branch` with the other `verify / …` checks. The
 published commit includes the vendored generator, hooks, Git attributes and CI caller as well as generated
 packages. Native host acceptance installs a baseline and upgrades to the candidate in isolated homes on
 Windows and Linux, verifying the resulting package bytes.
