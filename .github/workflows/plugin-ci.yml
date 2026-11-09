@@ -199,7 +199,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
+          node-version: '26'
       - name: install the pinned host CLIs
         run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
       - name: Claude Code and Codex accept the marketplace and plugins
