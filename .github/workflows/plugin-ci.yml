@@ -219,6 +219,35 @@ jobs:
           HOST_RESULT: ${{ needs.host-platforms.result }}
         run: test "$HOST_RESULT" = success
 
+  default-branch:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: the default branch's latest completed run is green, or this PR repairs it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          workflow="${WORKFLOW_REF%@*}"
+          workflow="${workflow##*/}"
+          latest=$(gh run list --repo "$REPOSITORY" --workflow "$workflow" --branch "$DEFAULT_BRANCH" \
+            --event push --status completed --limit 1 --json conclusion,url \
+            --jq '.[0] // {} | "\(.conclusion // "none") \(.url // "")"')
+          conclusion="${latest%% *}"
+          url="${latest#* }"
+          if [ "$conclusion" = success ] || [ "$conclusion" = none ]; then
+            exit 0
+          fi
+          if gh pr view "$PULL_REQUEST" --repo "$REPOSITORY" --json labels --jq '.labels[].name' | grep -qx fixes-main; then
+            echo "::notice title=$DEFAULT_BRANCH is red::$url concluded $conclusion; fixes-main lets this PR merge."
+            exit 0
+          fi
+          echo "::error title=$DEFAULT_BRANCH is red::$url concluded $conclusion, so nothing it builds is published. Only the PR that repairs it merges: add the fixes-main label and re-run this job."
+          exit 1
+
   regeneration-unconfigured:
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main'
