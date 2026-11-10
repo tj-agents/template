@@ -129,6 +129,37 @@ def test_composite_action_bash_is_checked(tmp_path: Path) -> None:
     assert "bash-strict" in result.stderr
 
 
+@pytest.mark.parametrize(
+    "runner",
+    [
+        "windows-latest",
+        "[windows-latest]",
+        "[self-hosted, Windows, X64]",
+        "${{ matrix.os }}\n    strategy:\n      matrix:\n        os: [windows-latest]",
+    ],
+)
+def test_implicit_windows_powershell_passes(tmp_path: Path, runner: str) -> None:
+    content = VALID.replace("ubuntu-latest", runner).replace(
+        "          set -euo pipefail\n", ""
+    )
+    write(tmp_path, content)
+    result = check(tmp_path)
+    assert result.returncode == 0, result.stderr
+
+
+def test_unknown_runner_requires_shell_for_multiline_run(tmp_path: Path) -> None:
+    content = VALID.replace("ubuntu-latest", "${{ inputs.runner }}")
+    write(tmp_path, content)
+    result = check(tmp_path)
+    assert result.returncode == 1
+    assert "shell-resolution" in result.stderr
+    write(
+        tmp_path,
+        content.replace("        run: |", "        shell: bash\n        run: |"),
+    )
+    assert check(tmp_path).returncode == 0
+
+
 def test_exact_baseline_does_not_hide_new_violations_and_rejects_stale_entries(
     tmp_path: Path,
 ) -> None:

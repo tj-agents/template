@@ -36,6 +36,25 @@ def scalar(node: Node | None) -> str:
     return node.value if isinstance(node, ScalarNode) else ""
 
 
+def implicit_shell(job: Node) -> str:
+    if member(job, "container") is not None:
+        return "sh"
+    runner = member(job, "runs-on")
+    expression = re.fullmatch(r"\$\{\{\s*matrix\.([\w-]+)\s*\}\}", scalar(runner))
+    if expression:
+        matrix = member(member(job, "strategy"), "matrix")
+        runner = member(matrix, expression[1])
+    labels = runner.value if isinstance(runner, SequenceNode) else [runner]
+    shells = set()
+    for label in labels:
+        value = scalar(label).lower()
+        if value == "windows" or value.startswith("windows-"):
+            shells.add("pwsh")
+        elif value == "linux" or value.startswith(("ubuntu-", "macos-")):
+            shells.add("bash")
+    return next(iter(shells)) if len(shells) == 1 else ""
+
+
 def check_file(path: Path) -> list[Finding]:
     found: list[Finding] = []
     root = yaml.compose(path.read_text(encoding="utf-8"), Loader=yaml.SafeLoader)
@@ -90,6 +109,12 @@ def check_file(path: Path) -> list[Finding]:
             environment(member(step, "env"), step=True)
             shell = scalar(member(step, "shell")) or default_shell
             script = scalar(run).strip()
+            if "\n" in script and not shell:
+                report(
+                    run,
+                    "shell-resolution",
+                    "multi-line run on an unresolved runner needs an explicit shell",
+                )
             if (
                 shell.split()[:1] == ["bash"]
                 and "\n" in script
@@ -119,9 +144,7 @@ def check_file(path: Path) -> list[Finding]:
         environment(member(job, "env"))
         names(member(job, "outputs"), r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", "output")
         job_defaults = scalar(member(member(member(job, "defaults"), "run"), "shell"))
-        runner = scalar(member(job, "runs-on"))
-        implicit_shell = "pwsh" if runner.startswith("windows-") else "bash"
-        steps(member(job, "steps"), job_defaults or defaults or implicit_shell)
+        steps(member(job, "steps"), job_defaults or defaults or implicit_shell(job))
     runs = member(root, "runs")
     if scalar(member(runs, "using")) == "composite":
         steps(member(runs, "steps"), "")

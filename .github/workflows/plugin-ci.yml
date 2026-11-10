@@ -225,7 +225,7 @@ jobs:
         shell: pwsh
         working-directory: .template/.github/host-clis
         run: |
-          npm ci --ignore-scripts
+          npm ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           (Resolve-Path node_modules/.bin).Path >> $env:GITHUB_PATH
       - name: Claude Code and Codex accept the marketplace and plugins
