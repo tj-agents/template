@@ -245,13 +245,14 @@ jobs:
     name: hosts
     permissions: {}
     if: always()
-    needs: host-platforms
+    needs: [host-platforms, python-standards]
     runs-on: ubuntu-latest
     steps:
       - name: Require both native host platforms
         env:
           HOST_RESULT: ${{ needs.host-platforms.result }}
-        run: test "$HOST_RESULT" = success
+          STANDARDS_RESULT: ${{ needs.python-standards.result }}
+        run: test "$HOST_RESULT" = success && test "$STANDARDS_RESULT" = success
 
   python-standards:
     name: Check Python standards
