@@ -253,6 +253,9 @@ jobs:
           HOST_RESULT: ${{ needs.host-platforms.result }}
         run: test "$HOST_RESULT" = success
 
+  python-standards:
+    uses: ./.github/workflows/python-standards.yml
+
   default-branch:
     name: default-branch
     if: github.event_name == 'pull_request'
@@ -304,7 +307,7 @@ jobs:
       github.event_name == 'push' && github.ref == 'refs/heads/main'
       && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
       && vars.UPDATE_APP_CLIENT_ID != ''
-    needs: [resolve-template, verify, hosts]
+    needs: [resolve-template, verify, hosts, python-standards]
     environment: update-pins
     runs-on: windows-latest
     concurrency:
