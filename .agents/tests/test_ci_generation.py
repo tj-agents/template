@@ -110,6 +110,29 @@ def test_plugin_ci_runs_the_shared_python_standards_gate(plugin_ci: str) -> None
     assert "needs: [resolve-template, verify, hosts, python-standards]" in regenerate
 
 
+def test_workflow_pin_guard_is_independent_and_shared_verification_enforces_it(
+    plugin_ci: str,
+) -> None:
+    caller = (ROOT / ".github/workflows/workflow-pins.yml").read_text(encoding="utf-8")
+    guard = (ROOT / ".github/workflows/workflow-pin-guard.yml").read_text(
+        encoding="utf-8"
+    )
+    vendor = STUB.with_name("workflow-pins.yml.in").read_text(encoding="utf-8")
+    assert "  pull_request:" in caller
+    assert "uses: ./.github/workflows/workflow-pin-guard.yml" in caller
+    assert "ci.yml" not in caller
+    assert "needs:" not in caller
+    assert "workflow-pin-guard.yml@main" in vendor
+    assert "workflow-pin-guard.yml@main" not in caller
+    assert "contents: read" in guard
+    assert "persist-credentials: false" in guard
+    assert "GH_TOKEN: ${{ github.token }}" in guard
+    assert "check_workflow_pins.py" in guard
+    assert "check_workflow_pins.py --root ." in step(
+        job("verify", plugin_ci, "host-platforms"), "Workflow standards"
+    )
+
+
 def test_generation_is_not_an_opt_in_and_the_updater_key_is_optional(
     plugin_ci: str,
 ) -> None:
@@ -377,6 +400,7 @@ def test_staging_includes_exact_vendored_files_and_generated_roots(
         "CLAUDE.md",
         ".agents/sync_generated.py",
         ".github/workflows/ci.yml",
+        ".github/workflows/workflow-pins.yml",
         ".gitattributes",
         ".codex/hooks/snapshot.py",
         ".codex/skills",

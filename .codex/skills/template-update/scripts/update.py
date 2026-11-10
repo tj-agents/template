@@ -48,7 +48,10 @@ def update(root: Path, dry_run: bool) -> list[str]:
     ).is_dir()
     changed: list[str] = []
     for relative, expected in new_plugin.vendored_files(config["repository"]).items():
-        if relative == ".github/workflows/ci.yml" and owns_templates:
+        if owns_templates and relative in {
+            ".github/workflows/ci.yml",
+            ".github/workflows/workflow-pins.yml",
+        }:
             continue
         path = root / relative
         current = (
