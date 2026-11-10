@@ -1,4 +1,4 @@
-name: python-standards
+name: Python Standards
 
 on:
   workflow_call:
@@ -36,7 +36,7 @@ jobs:
           path: .python-standards
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
-      - name: run Python standards
+      - name: Run Python standards
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
