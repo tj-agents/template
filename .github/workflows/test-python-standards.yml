@@ -1,0 +1,16 @@
+name: test Python standards workflow
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/python-standards.yml'
+      - '.github/workflows/test-python-standards.yml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+
+permissions:
+  contents: read
+
+jobs:
+  standards:
+    uses: ./.github/workflows/python-standards.yml

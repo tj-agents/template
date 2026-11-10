@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: tj-agents/python
-          ref: 5d08b953b41c37d1a4a1383ba1f32883a8e71698
+          ref: f2e721062987d3b8916436d887d3a4ae90ca00c3
           path: .python-standards
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
