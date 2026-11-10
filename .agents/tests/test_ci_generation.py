@@ -7,6 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_CI = ROOT / ".github/workflows/plugin-ci.yml"
+PYTHON_STANDARDS = ROOT / ".github/workflows/python-standards.yml"
 CI = ROOT / ".github/workflows/ci.yml"
 STUB = (
     ROOT
@@ -59,6 +60,54 @@ def plugin_ci() -> str:
 @pytest.fixture
 def ci() -> str:
     return CI.read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def python_standards() -> str:
+    return PYTHON_STANDARDS.read_text(encoding="utf-8")
+
+
+def test_python_standards_pins_the_checker_and_runs_the_gate(
+    python_standards: str,
+) -> None:
+    checker_ref = "ebab5b47888f41a793c17fb25e9b22a4d54df951"
+    assert "    inputs:" not in python_standards
+    assert "name: Python standards (${{ matrix.os }})" in python_standards
+    assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in python_standards
+    assert "permissions:\n  contents: read" in python_standards
+    assert (
+        "concurrency:\n"
+        "  group: ${{ github.workflow }}-"
+        "${{ github.event.pull_request.number || github.ref }}" in python_standards
+    )
+    assert "cancel-in-progress: true" in python_standards
+    assert "timeout-minutes: 15" in python_standards
+    assert (
+        "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+        in python_standards
+    )
+    assert "repository: tj-agents/python" in python_standards
+    assert python_standards.count(checker_ref) == 1
+    assert "path: .python-standards" in python_standards
+    assert "persist-credentials: false" in python_standards
+    assert "uv sync --locked" in python_standards
+    assert "uv run ruff format --check" in python_standards
+    assert "uv run ruff check" in python_standards
+    assert (
+        "python -B .python-standards/.agents/python/utility/check/scripts/"
+        "run_checks.py --root . --mypy-only" in python_standards
+    )
+    assert (
+        "python -B .python-standards/.agents/python/utility/check/scripts/"
+        "check_python.py --root ." in python_standards
+    )
+
+
+def test_plugin_ci_runs_the_shared_python_standards_gate(plugin_ci: str) -> None:
+    standards = job("python-standards", plugin_ci, "default-branch")
+    assert "uses: ./.github/workflows/python-standards.yml" in standards
+    regenerate = job("regenerate", plugin_ci)
+    assert "needs: [resolve-template, verify, hosts, python-standards]" in regenerate
 
 
 def test_generation_is_not_an_opt_in_and_the_updater_key_is_optional(
@@ -160,8 +209,12 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in hosts
     stable_gate = job("hosts", plugin_ci, "regeneration-unconfigured")
     assert "if: always()" in stable_gate
-    assert "needs: host-platforms" in stable_gate
-    assert 'test "$HOST_RESULT" = success' in stable_gate
+    assert "needs: [host-platforms, python-standards]" in stable_gate
+    assert (
+        'test "$HOST_RESULT" = success && test "$STANDARDS_RESULT" = success'
+        in stable_gate
+    )
+    assert "STANDARDS_RESULT: ${{ needs.python-standards.result }}" in stable_gate
     assert '--baseline "$env:UPGRADE_BASE"' in hosts
     assert "uv run --project .template --locked --no-dev python -B" in hosts
     assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
@@ -259,7 +312,7 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "github.event_name == 'push' && github.ref == 'refs/heads/main'" in condition
     assert REGENERATION_COMMIT in condition
     assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
-    assert "needs: [resolve-template, verify, hosts]" in regenerate
+    assert "needs: [resolve-template, verify, hosts, python-standards]" in regenerate
     assert "    environment: update-pins\n" in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate

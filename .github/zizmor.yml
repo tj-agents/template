@@ -2,3 +2,4 @@ rules:
   self-repository:
     ignore:
       - ci.yml:18
+      - plugin-ci.yml:259
