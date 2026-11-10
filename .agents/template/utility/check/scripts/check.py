@@ -337,15 +337,12 @@ def check_standard(
     return problems
 
 
-def check_names(plugins: Plugins, aliases: dict[str, JSONObject]) -> list[str]:
+def check_names(plugins: Plugins) -> list[str]:
     problems = []
     for plugin, skills in plugins.items():
-        exempt = set(aliases.get(plugin, {}))
         flat: dict[tuple[str, str], set[str]] = {}
         families: set[tuple[str, str]] = set()
         for skill in skills.values():
-            if skill["name"] in exempt:
-                continue
             parts = skill["directory"].split("/")[3:]
             if parts[0] == plugin or parts[0].startswith(f"{plugin}-"):
                 problems.append(
@@ -556,19 +553,7 @@ def check(
         AttributeError,
     ) as error:
         return [*problems, str(error)]
-    payloads_path = root / ".agents/plugins/payloads.json"
-    try:
-        aliases = (
-            json.loads(text(payloads_path)).get("compatibilitySkillAliases", {})
-            if payloads_path.is_file()
-            else {}
-        )
-    except (json.JSONDecodeError, AttributeError) as error:
-        return [
-            *problems,
-            f".agents/plugins/payloads.json: not a JSON object ({error})",
-        ]
-    problems += check_names(plugins, aliases)
+    problems += check_names(plugins)
     problems += check_effective_dependency_projection(root, config, generated)
     try:
         problems += check_skill_examples(root, plugins, base, head, merge_base)

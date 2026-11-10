@@ -471,20 +471,16 @@ def test_generator_validation_reports_invalid_payload_manifest_tier_and_referenc
     assert_problem(zig_repo, "scripts/missing.py does not resolve")
 
 
-def test_generator_validation_rejects_malformed_compatibility_aliases(
-    zig_repo: Path,
+@pytest.mark.parametrize("aliases", [{}, [], {"zig": []}])
+def test_generator_validation_rejects_compatibility_alias_key(
+    zig_repo: Path, aliases: object
 ) -> None:
     path = zig_repo / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text(encoding="utf-8"))
     path.write_text(
-        json.dumps({**payloads, "compatibilitySkillAliases": []}), encoding="utf-8"
+        json.dumps({**payloads, "compatibilitySkillAliases": aliases}), encoding="utf-8"
     )
-    assert_problem(zig_repo, "compatibilitySkillAliases must be an object")
-    path.write_text(
-        json.dumps({**payloads, "compatibilitySkillAliases": {"zig": []}}),
-        encoding="utf-8",
-    )
-    assert_problem(zig_repo, "invalid compatibility aliases for zig")
+    assert_problem(zig_repo, "unknown fields ['compatibilitySkillAliases']")
 
 
 def test_continuation_runtime_is_allowed(zig_repo: Path) -> None:
@@ -964,15 +960,15 @@ def test_malformed_payloads_is_reported(zig_repo: Path) -> None:
     assert_problem(zig_repo, ".agents/plugins/payloads.json: invalid JSON")
 
 
-def test_a_compatibility_alias_keeps_its_old_name(zig_repo: Path) -> None:
-    add_contract(zig_repo, "zig-style", "zig-style")
+def test_a_compatibility_alias_is_rejected(zig_repo: Path) -> None:
+    add_contract(zig_repo, "old-style", "old-style")
     path = zig_repo / ".agents/plugins/payloads.json"
     payloads = json.loads(path.read_text())
     payloads["compatibilitySkillAliases"] = {
-        "zig": {"zig-style": {"replacedBy": "zig:style", "removeAfter": "2027-03-31"}}
+        "zig": {"old-style": {"replacedBy": "zig:style", "removeAfter": "2027-03-31"}}
     }
     path.write_text(json.dumps(payloads), encoding="utf-8")
-    assert check.check(zig_repo) == []
+    assert_problem(zig_repo, "unknown fields ['compatibilitySkillAliases']")
 
 
 def test_template_conforms_to_itself() -> None:

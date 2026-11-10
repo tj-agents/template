@@ -26,7 +26,7 @@ Every plugin repository, Template included, has the same layout. The repository 
     <plugin>/<kind>/<family>/<member>/SKILL.md   a family groups related skills; <family>/SKILL.md is optional
     tiers/<plugin>.json
     plugins/template.json               repository and type
-    plugins/payloads.json               published plugins, dependencies, compatibility aliases, mapped resources and host adapters
+    plugins/payloads.json               published plugins, dependencies, mapped resources and host adapters
     plugins/adapters/<host>/<plugin>/<skill>.md  optional host-only discovery extension body
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
@@ -64,8 +64,6 @@ and `server-state/`. A skill's published name is its folder path below the kind 
 `.agents/react/convention/state/client/SKILL.md` publishes `react:state-client`, and `result/carriers/` keeps the name
 `result-carriers`. A family folder can hold its own `SKILL.md` as the family's shared rules; inside a skill
 folder, only a folder with its own `SKILL.md` is a member, and anything else ships as that skill's files.
-In projects without a selected policy that forbids compatibility aliases, renaming a published skill keeps
-its old name until its `removeAfter` date. Apply the consuming project's explicit policy and published commitments.
 
 ## Skill content
 
@@ -110,17 +108,18 @@ structural subset listed below; authoring and review apply the remaining skill r
   skills are not retrofitted. Follow `engineering:docs` for the authoring decision this validation enforces.
 - Skill names are foldered: no flat names in one kind folder that share a hyphen-separated first or last word,
   nor a flat name sharing a family folder's word; no member repeating its family (`state/client-state/`); no
-  name repeating its namespace (`dotnet-stack` under `dotnet`). Declared compatibility aliases are exempt.
+  name repeating its namespace (`dotnet-stack` under `dotnet`).
 
-The generator separately rejects malformed frontmatter, unresolved skill references and files that would not
-ship. Extra skills beyond the required set are allowed.
+The generator separately rejects published names starting with `<plugin>-`, the
+`compatibilitySkillAliases` payload key, malformed frontmatter, unresolved skill references and files
+that would not ship. Extra skills beyond the required set are allowed.
 
 ## Corpus skill references
 
 Run `python <skill-directory>/scripts/check_skill_references.py --root <repository> --source-root <repository> --marketplace tj-agents/marketplace`.
 `--marketplace` reads the marketplace's plugin list and fetches only the repositories that publish a plugin the
 source references, into a temporary directory; set `SKILL_REFERENCES_TOKEN` for private repositories.
-Each root inventories actual shipped `plugins/*/skills/*/SKILL.md`, including compatibility aliases.
+Each root inventories actual shipped `plugins/*/skills/*/SKILL.md`.
 The checker scans active authored skills and root AGENTS.md, CLAUDE.md and README.md, including descriptions.
 It excludes historical plans, generated adapters, test fixtures and vendored templates.
 
