@@ -305,7 +305,7 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "github.event_name == 'push' && github.ref == 'refs/heads/main'" in condition
     assert REGENERATION_COMMIT in condition
     assert "vars.UPDATE_APP_CLIENT_ID != ''" in condition
-    assert "needs: [resolve-template, verify, hosts]" in regenerate
+    assert "needs: [resolve-template, verify, hosts, python-standards]" in regenerate
     assert "    environment: update-pins\n" in regenerate
     assert "group: regenerate-main" in regenerate
     assert "cancel-in-progress: false" in regenerate
