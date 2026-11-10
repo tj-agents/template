@@ -70,7 +70,7 @@ def python_standards() -> str:
 def test_python_standards_pins_the_checker_and_runs_the_gate(
     python_standards: str,
 ) -> None:
-    checker_ref = "f2e721062987d3b8916436d887d3a4ae90ca00c3"
+    checker_ref = "ebab5b47888f41a793c17fb25e9b22a4d54df951"
     assert "    inputs:" not in python_standards
     assert "name: Python standards (${{ matrix.os }})" in python_standards
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in python_standards
@@ -93,7 +93,10 @@ def test_python_standards_pins_the_checker_and_runs_the_gate(
     assert "uv sync --locked" in python_standards
     assert "uv run ruff format --check" in python_standards
     assert "uv run ruff check" in python_standards
-    assert "uv run mypy" in python_standards
+    assert (
+        "python -B .python-standards/.agents/python/utility/check/scripts/"
+        "run_checks.py --root . --mypy-only" in python_standards
+    )
     assert (
         "python -B .python-standards/.agents/python/utility/check/scripts/"
         "check_python.py --root ." in python_standards

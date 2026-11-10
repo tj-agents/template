@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: tj-agents/python
-          ref: f2e721062987d3b8916436d887d3a4ae90ca00c3
+          ref: ebab5b47888f41a793c17fb25e9b22a4d54df951
           path: .python-standards
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: false
@@ -44,5 +44,5 @@ jobs:
           uv sync --locked
           uv run ruff format --check
           uv run ruff check
-          uv run mypy
+          python -B .python-standards/.agents/python/utility/check/scripts/run_checks.py --root . --mypy-only
           python -B .python-standards/.agents/python/utility/check/scripts/check_python.py --root .
