@@ -1,0 +1,8 @@
+{
+  "name": "plugin-host-validation",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.282",
+    "@openai/codex": "0.159.2"
+  }
+}
