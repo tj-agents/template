@@ -31,8 +31,8 @@ def step(job_body: str, name: str) -> str:
 
 
 def assert_generation_precedes(job_body: str, following: str) -> None:
-    generate = step(job_body, "regenerate generated files from authored sources")
-    current = step(job_body, "generated files are current")
+    generate = step(job_body, "Regenerate generated files from authored sources")
+    current = step(job_body, "Generated files are current")
     assert job_body.index(generate) < job_body.index(current)
     assert job_body.index(current) < job_body.index(following)
     assert f"if: github.event_name != 'push' || {REGENERATION_COMMIT}" in generate
@@ -106,7 +106,7 @@ def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None
     steps = plugin_ci.split("      - ")[1:]
     for checkout in (value for value in steps if "uses: actions/checkout@" in value):
         assert "persist-credentials: false" in checkout
-    publication = step(job("regenerate", plugin_ci), "publish generated files")
+    publication = step(job("regenerate", plugin_ci), "Publish generated files")
     assert "token: ${{ steps.app-token.outputs.token }}" in publication
     assert (
         "uses: tj-agents/github-actions/.github/actions/publish-generated@"
@@ -142,7 +142,7 @@ def test_self_checkout_uses_its_repository_token(plugin_ci: str) -> None:
 def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
-    provision = step(verify, "build the pinned tj_hook candidate")
+    provision = step(verify, "Build the pinned tj_hook candidate")
     assert "default: 92e29a7589a5dcf462af36d960684e49146d9d3b" in inputs
     assert "repository: tj-agents/cli" in verify
     assert "ref: ${{ inputs.cli_ref }}" in verify
@@ -150,7 +150,7 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     assert "persist-credentials: false" in verify
     assert "cargo build --locked --release --bin tj_hook" in provision
     assert "$binaryDirectory >> $env:GITHUB_PATH" in provision
-    assert verify.index(provision) < verify.index("- name: repository tests")
+    assert verify.index(provision) < verify.index("- name: Repository tests")
 
 
 def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
@@ -165,9 +165,9 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert '--baseline "$env:UPGRADE_BASE"' in hosts
     assert "uv run --project .template --locked --no-dev python -B" in hosts
     assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
-    assert_generation_precedes(verify, "- name: repository tests")
-    assert verify.index("- name: generated files are current") < verify.index(
-        "- name: the repository conforms"
+    assert_generation_precedes(verify, "- name: Repository tests")
+    assert verify.index("- name: Generated files are current") < verify.index(
+        "- name: The repository conforms"
     )
     assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
     assert "ref: ${{ needs.resolve-template.outputs.sha }}" in hosts
@@ -178,7 +178,7 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     )
     assert setup_uv in hosts
     assert hosts.index(setup_uv) < hosts.index(
-        "- name: regenerate generated files from authored sources"
+        "- name: Regenerate generated files from authored sources"
     )
 
 
@@ -188,14 +188,14 @@ def test_verify_checks_changed_authored_guidance_against_the_event_base(
     verify = job("verify", plugin_ci, "hosts")
     assert "ref: ${{ github.event.pull_request.head.sha || github.sha }}" in verify
     assert "fetch-depth: 0" in verify
-    comparison = step(verify, "resolve the authored-guidance comparison range")
+    comparison = step(verify, "Resolve the authored-guidance comparison range")
     assert "github.event.pull_request.base.sha" in comparison
     assert "github.event.before" in comparison
     assert "GUIDANCE_EXAMPLES_BASE=$base" in comparison
     assert "GUIDANCE_EXAMPLES_HEAD=$head" in comparison
     assert "$mergeBase = '--merge-base'" in comparison
     assert "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" in comparison
-    conformance = step(verify, "the repository conforms to the current Template source")
+    conformance = step(verify, "The repository conforms to the current Template source")
     assert ".template/.agents/template/utility/check/scripts/check.py" in conformance
     assert "'--base', $env:GUIDANCE_EXAMPLES_BASE" in conformance
     assert "'--head', $env:GUIDANCE_EXAMPLES_HEAD" in conformance
@@ -213,7 +213,7 @@ def test_conformance_step_passes_only_present_native_arguments(
 ) -> None:
     conformance = step(
         job("verify", plugin_ci, "hosts"),
-        "the repository conforms to the current Template source",
+        "The repository conforms to the current Template source",
     )
     body = conformance.split("        run: |\n", 1)[1]
     command = "\n".join(line.removeprefix("          ") for line in body.splitlines())
@@ -271,10 +271,10 @@ def test_regeneration_publishes_only_unregenerated_main_pushes_after_verificatio
     assert "permission-workflows: write" in regenerate
     assert "contents: write" not in plugin_ci.replace("permission-contents: write", "")
     order = [
-        "- name: regenerate generated files from authored sources",
-        "- name: generated files are current",
-        "- name: mint the updater token",
-        "- name: publish generated files",
+        "- name: Regenerate generated files from authored sources",
+        "- name: Generated files are current",
+        "- name: Mint the updater token",
+        "- name: Publish generated files",
     ]
     positions = [regenerate.index(name) for name in order]
     assert positions == sorted(positions)
@@ -291,14 +291,14 @@ def test_unconfigured_regeneration_fails_explicitly(plugin_ci: str) -> None:
         "UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}"
         in regenerate
     )
-    missing = step(regenerate, "require automatic publication credentials")
-    assert "if: env.UPDATE_APP_KEY_PRESENT != 'true'" in missing
+    missing = step(regenerate, "Require automatic publication credentials")
+    assert "if ($env:UPDATE_APP_KEY_PRESENT -ne 'true')" in missing
     assert "Write-Error" in missing
     assert "exit 1" in missing
     steps = regenerate[regenerate.index("    steps:\n") :].split("      - ")[1:]
     assert len(steps) > 1
     for later in steps[1:]:
-        assert "if: env.UPDATE_APP_KEY_PRESENT == 'true'" in later
+        assert "if: steps.credentials.outputs.present == 'true'" in later
 
 
 def test_callers_pass_the_updater_key_and_template_has_no_second_publisher(
@@ -318,7 +318,7 @@ def test_staging_includes_exact_vendored_files_and_generated_roots(
     plugin_ci: str,
 ) -> None:
     regenerate = job("regenerate", plugin_ci)
-    published = step(regenerate, "publish generated files")
+    published = step(regenerate, "Publish generated files")
     paths = published.split("          paths: |\n", 1)[1]
     assert {line.strip() for line in paths.splitlines() if line.strip()} == {
         "CLAUDE.md",
