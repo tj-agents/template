@@ -658,6 +658,8 @@ def test_several_plugins_prefix_their_adapter_entries(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("plugin", "directory", "name"),
     [
+        ("demo", "demo", "demo"),
+        ("extra", "extra", "extra"),
         ("demo", "demo-handoff", "demo-handoff"),
         ("extra", "extra-handoff", "extra-handoff"),
         ("demo", "demo/handoff", "demo-handoff"),
@@ -693,13 +695,16 @@ def test_normal_published_skill_names_allow_prefixed_local_projections(
         assert f"plugins/{plugin}/skills/handoff/SKILL.md" in output
 
 
-def test_published_skill_name_rejects_a_publication_prefix(demo_root: Path) -> None:
+@pytest.mark.parametrize("name", ["extra", "extra-handoff"])
+def test_published_skill_name_rejects_a_publication_prefix(
+    demo_root: Path, name: str
+) -> None:
     write(
-        demo_root / ".agents/demo/utility/extra-handoff/SKILL.md",
-        skill_text("extra-handoff", "utility"),
+        demo_root / f".agents/demo/utility/{name}/SKILL.md",
+        skill_text(name, "utility"),
     )
     add_publication(demo_root, "extra", "demo")
-    assert_rejected(demo_root, "extra:extra-handoff: a skill name does not repeat")
+    assert_rejected(demo_root, f"extra:{name}: a skill name does not repeat")
 
 
 def test_a_family_member_publishes_its_folder_path_joined_by_hyphens(

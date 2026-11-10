@@ -110,9 +110,9 @@ structural subset listed below; authoring and review apply the remaining skill r
   nor a flat name sharing a family folder's word; no member repeating its family (`state/client-state/`); no
   name repeating its namespace (`dotnet-stack` under `dotnet`).
 
-The generator separately rejects published names starting with `<plugin>-`, the
-`compatibilitySkillAliases` payload key, malformed frontmatter, unresolved skill references and files
-that would not ship. Extra skills beyond the required set are allowed.
+The generator separately rejects published names equal to `<plugin>` or starting with `<plugin>-`,
+malformed frontmatter, unresolved skill references and files that would not ship. Extra skills beyond
+the required set are allowed.
 
 ## Corpus skill references
 
