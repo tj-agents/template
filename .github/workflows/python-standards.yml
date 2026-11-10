@@ -1,0 +1,48 @@
+name: Python Standards
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-standards:
+    name: Python standards (${{ matrix.os }})
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: tj-agents/python
+          ref: ebab5b47888f41a793c17fb25e9b22a4d54df951
+          path: .python-standards
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - name: Run Python standards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          uv sync --locked
+          uv run ruff format --check
+          uv run ruff check
+          python -B .python-standards/.agents/python/utility/check/scripts/run_checks.py --root . --mypy-only
+          python -B .python-standards/.agents/python/utility/check/scripts/check_python.py --root .

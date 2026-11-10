@@ -35,5 +35,5 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
       - name: Resolve distribution resources with Ubuntu's system Python
         run: >-
-          uv run --no-project --python /usr/bin/python3 --with pytest
+          uv run --no-project --python /usr/bin/python3 --with pytest --with pytest-socket
           pytest .agents/tests/test_sync_generated.py -k real_locked -q
