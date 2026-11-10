@@ -77,10 +77,13 @@ def test_python_standards_pins_the_checker_and_runs_the_gate(
     assert "permissions:\n  contents: read" in python_standards
     assert (
         "concurrency:\n"
-        "  group: ${{ github.workflow }}-"
+        "  group: python-standards-${{ github.repository }}-"
         "${{ github.event.pull_request.number || github.ref }}" in python_standards
     )
-    assert "cancel-in-progress: true" in python_standards
+    assert (
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' }}"
+        in python_standards
+    )
     assert "timeout-minutes: 15" in python_standards
     assert (
         "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
@@ -101,6 +104,15 @@ def test_python_standards_pins_the_checker_and_runs_the_gate(
         "python -B .python-standards/.agents/python/utility/check/scripts/"
         "check_python.py --root ." in python_standards
     )
+
+
+def test_the_called_standards_workflow_never_shares_its_callers_concurrency_group(
+    python_standards: str, ci: str
+) -> None:
+    caller = ci[ci.index("concurrency:") :].splitlines()[1]
+    called = python_standards[python_standards.index("concurrency:") :].splitlines()[1]
+    assert "${{ github.workflow }}" in caller
+    assert "${{ github.workflow }}" not in called
 
 
 def test_plugin_ci_runs_the_shared_python_standards_gate(plugin_ci: str) -> None:
