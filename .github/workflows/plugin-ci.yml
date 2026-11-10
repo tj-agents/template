@@ -147,6 +147,7 @@ jobs:
           if [ ! -f "$baseline" ]; then baseline=.template/.agents/template/utility/check/scripts/workflow-baseline.json; fi
           uv run --project .template --locked zizmor --offline --pedantic --config "$config" .github
           uv run --project .template --locked python -B .template/.agents/template/utility/check/scripts/check_workflows.py --root . --baseline "$baseline"
+          uv run --project .template --locked python -B .template/.agents/template/utility/check/scripts/check_workflow_pins.py --root .
           if [ "$GITHUB_REPOSITORY" = tj-agents/template ]; then
             gh api repos/tj-agents/github/contents/configuration/tj-agents/github-configuration.json --jq .content |
               base64 --decode > "$RUNNER_TEMP/github-configuration.json"
@@ -389,6 +390,7 @@ jobs:
             .gitignore
             CLAUDE.md
             .github/workflows/ci.yml
+            .github/workflows/workflow-pins.yml
             .codex/skills
             .claude/skills
             .agents/INDEX.md

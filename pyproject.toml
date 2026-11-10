@@ -64,6 +64,7 @@ files = [".agents", ".github/scripts"]
 
 [tool.pytest]
 strict = true
+pythonpath = [".agents/template/utility/check/scripts"]
 testpaths = [".agents/tests"]
 addopts = ["--import-mode=importlib", "--disable-socket", "-ra"]
 filterwarnings = ["error"]

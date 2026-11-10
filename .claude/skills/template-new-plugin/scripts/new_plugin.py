@@ -27,6 +27,7 @@ VENDORED = (
     ".gitignore",
     "CLAUDE.md",
     ".github/workflows/ci.yml",
+    ".github/workflows/workflow-pins.yml",
 )
 SKILL_SETS = {
     "stack": ("common", "stack"),

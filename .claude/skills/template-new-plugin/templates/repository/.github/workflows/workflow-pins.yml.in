@@ -1,0 +1,14 @@
+name: Workflow Pins
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-pins:
+    name: Workflow pins
+    uses: {{owner}}/template/.github/workflows/workflow-pin-guard.yml@main

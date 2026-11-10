@@ -178,7 +178,10 @@ def owns_templates(root: Path) -> bool:
 def check_vendored(root: Path, repository: str) -> list[str]:
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
-        if relative == ".github/workflows/ci.yml" and owns_templates(root):
+        if relative in {
+            ".github/workflows/ci.yml",
+            ".github/workflows/workflow-pins.yml",
+        } and owns_templates(root):
             continue
         path = root / relative
         if not path.is_file():

@@ -73,6 +73,12 @@ published commit includes the vendored generator, hooks, Git attributes and CI c
 packages. Native host acceptance installs a baseline and upgrades to the candidate in isolated homes on
 Windows and Linux, verifying the resulting package bytes.
 
+Reusable workflow references must resolve within their producer's default-branch history. Shared verification
+checks that ancestry through GitHub, and the vendored `Workflow Pins` workflow checks independently of CI's
+workflow graph. It reports the source location and replacement when a pin is unmerged or abandoned by a
+rebase, and fails when GitHub cannot establish ancestry. Refresh with `template:update` after this guard
+lands to install its independent caller in existing repositories.
+
 ## Authoring and verification
 
 The vendored `.gitattributes` prevents Git from inserting conflict markers into live Codex, Claude and
