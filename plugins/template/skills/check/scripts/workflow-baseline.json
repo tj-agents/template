@@ -40,5 +40,11 @@
     "rule": "naming",
     "message": "job 'hosts' name 'hosts' must start with an uppercase letter",
     "reason": "Preserves the check contexts required by existing consumer rulesets."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "job 'default-branch' name 'default-branch' must start with an uppercase letter",
+    "reason": "Preserves the verify / default-branch context required by consumer rulesets."
   }
 ]

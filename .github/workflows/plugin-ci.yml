@@ -136,6 +136,8 @@ jobs:
       - name: Workflow standards
         if: matrix.os == 'ubuntu-latest'
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.read_token || github.token }}
         run: |
           set -euo pipefail
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
@@ -145,6 +147,11 @@ jobs:
           if [ ! -f "$baseline" ]; then baseline=.template/.agents/template/utility/check/scripts/workflow-baseline.json; fi
           uv run --project .template --locked zizmor --offline --pedantic --config "$config" .github
           uv run --project .template --locked python -B .template/.agents/template/utility/check/scripts/check_workflows.py --root . --baseline "$baseline"
+          if [ "$GITHUB_REPOSITORY" = tj-agents/template ]; then
+            gh api repos/tj-agents/github/contents/configuration/tj-agents/github-configuration.json --jq .content |
+              base64 --decode > "$RUNNER_TEMP/github-configuration.json"
+            uv run --project .template --locked python -B .template/.github/scripts/check_required_contexts.py --root .template --configuration "$RUNNER_TEMP/github-configuration.json"
+          fi
       - name: Repository tests
         shell: pwsh
         run: |
@@ -247,7 +254,7 @@ jobs:
         run: test "$HOST_RESULT" = success
 
   default-branch:
-    name: Require a healthy default branch
+    name: default-branch
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
