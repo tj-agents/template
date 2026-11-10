@@ -254,6 +254,7 @@ jobs:
         run: test "$HOST_RESULT" = success
 
   python-standards:
+    name: Check Python standards
     uses: ./.github/workflows/python-standards.yml
 
   default-branch:

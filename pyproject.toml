@@ -152,3 +152,8 @@ reason = "Collects installed plugin paths from each enabled identity and version
 path = ".github/scripts/validate_hosts.py"
 rule = "PY016"
 reason = "Upgrade validation invokes each host with temporary configuration homes."
+
+[[tool.python-standards.exceptions]]
+path = ".github/scripts/check_required_contexts.py"
+rule = "PY001"
+reason = "Unchanged main 3d330ca enumerates each caller prefix and resolved matrix suffix when collecting required contexts."
