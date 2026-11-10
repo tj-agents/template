@@ -70,7 +70,7 @@ def python_standards() -> str:
 def test_python_standards_pins_the_checker_and_runs_the_gate(
     python_standards: str,
 ) -> None:
-    checker_ref = "5d08b953b41c37d1a4a1383ba1f32883a8e71698"
+    checker_ref = "f2e721062987d3b8916436d887d3a4ae90ca00c3"
     assert "    inputs:" not in python_standards
     assert "name: Python standards (${{ matrix.os }})" in python_standards
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in python_standards
