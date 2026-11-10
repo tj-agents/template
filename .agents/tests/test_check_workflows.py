@@ -160,6 +160,19 @@ def test_unknown_runner_requires_shell_for_multiline_run(tmp_path: Path) -> None
     assert check(tmp_path).returncode == 0
 
 
+def test_matrix_include_requires_explicit_shell(tmp_path: Path) -> None:
+    content = VALID.replace(
+        "ubuntu-latest",
+        "${{ matrix.os }}\n    strategy:\n      matrix:\n"
+        "        os: [windows-latest]\n        include:\n"
+        "          - os: ubuntu-latest",
+    ).replace("          set -euo pipefail\n", "")
+    write(tmp_path, content)
+    result = check(tmp_path)
+    assert result.returncode == 1
+    assert "shell-resolution" in result.stderr
+
+
 def test_exact_baseline_does_not_hide_new_violations_and_rejects_stale_entries(
     tmp_path: Path,
 ) -> None:

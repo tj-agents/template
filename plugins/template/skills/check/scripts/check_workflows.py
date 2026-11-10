@@ -43,6 +43,8 @@ def implicit_shell(job: Node) -> str:
     expression = re.fullmatch(r"\$\{\{\s*matrix\.([\w-]+)\s*\}\}", scalar(runner))
     if expression:
         matrix = member(member(job, "strategy"), "matrix")
+        if member(matrix, "include") is not None:
+            return ""
         runner = member(matrix, expression[1])
     labels = runner.value if isinstance(runner, SequenceNode) else [runner]
     shells = set()
