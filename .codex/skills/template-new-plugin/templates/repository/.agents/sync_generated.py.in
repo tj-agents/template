@@ -409,7 +409,7 @@ def validate_payloads(payloads: JSONObject, plugins: Plugins) -> dict[str, str]:
             )
         publications[package] = owners[0]
         for name in plugins[owners[0]]:
-            if name.startswith(f"{package}-"):
+            if name == package or name.startswith(f"{package}-"):
                 raise ValueError(
                     f"{package}:{name}: a skill name does not repeat its namespace "
                     f"{package}"

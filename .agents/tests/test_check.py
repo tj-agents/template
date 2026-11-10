@@ -471,7 +471,19 @@ def test_generator_validation_reports_invalid_payload_manifest_tier_and_referenc
     assert_problem(zig_repo, "scripts/missing.py does not resolve")
 
 
-@pytest.mark.parametrize("aliases", [{}, [], {"zig": []}])
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        {},
+        [],
+        {"zig": []},
+        {
+            "zig": {
+                "old-style": {"replacedBy": "zig:style", "removeAfter": "2027-03-31"}
+            }
+        },
+    ],
+)
 def test_generator_validation_rejects_compatibility_alias_key(
     zig_repo: Path, aliases: object
 ) -> None:
@@ -958,17 +970,6 @@ def test_malformed_payloads_is_reported(zig_repo: Path) -> None:
         "<<<<<<< ours\n", encoding="utf-8"
     )
     assert_problem(zig_repo, ".agents/plugins/payloads.json: invalid JSON")
-
-
-def test_a_compatibility_alias_is_rejected(zig_repo: Path) -> None:
-    add_contract(zig_repo, "old-style", "old-style")
-    path = zig_repo / ".agents/plugins/payloads.json"
-    payloads = json.loads(path.read_text())
-    payloads["compatibilitySkillAliases"] = {
-        "zig": {"old-style": {"replacedBy": "zig:style", "removeAfter": "2027-03-31"}}
-    }
-    path.write_text(json.dumps(payloads), encoding="utf-8")
-    assert_problem(zig_repo, "unknown fields ['compatibilitySkillAliases']")
 
 
 def test_template_conforms_to_itself() -> None:
