@@ -75,12 +75,7 @@ def test_python_standards_pins_the_checker_and_runs_the_gate(
     assert "name: Python standards (${{ matrix.os }})" in python_standards
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in python_standards
     assert "permissions:\n  contents: read" in python_standards
-    assert (
-        "concurrency:\n"
-        "  group: ${{ github.workflow }}-"
-        "${{ github.event.pull_request.number || github.ref }}" in python_standards
-    )
-    assert "cancel-in-progress: true" in python_standards
+    assert "concurrency:" not in python_standards
     assert "timeout-minutes: 15" in python_standards
     assert (
         "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
