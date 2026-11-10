@@ -137,7 +137,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.read_token || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
