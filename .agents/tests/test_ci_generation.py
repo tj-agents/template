@@ -209,8 +209,12 @@ def test_verify_and_hosts_regenerate_before_acceptance(plugin_ci: str) -> None:
     assert "matrix:\n        os: [ubuntu-latest, windows-latest]" in hosts
     stable_gate = job("hosts", plugin_ci, "regeneration-unconfigured")
     assert "if: always()" in stable_gate
-    assert "needs: host-platforms" in stable_gate
-    assert 'test "$HOST_RESULT" = success' in stable_gate
+    assert "needs: [host-platforms, python-standards]" in stable_gate
+    assert (
+        'test "$HOST_RESULT" = success && test "$STANDARDS_RESULT" = success'
+        in stable_gate
+    )
+    assert "STANDARDS_RESULT: ${{ needs.python-standards.result }}" in stable_gate
     assert '--baseline "$env:UPGRADE_BASE"' in hosts
     assert "uv run --project .template --locked --no-dev python -B" in hosts
     assert "ref: ${{ needs.resolve-template.outputs.sha }}" in verify
