@@ -53,8 +53,10 @@ def check_file(path: Path) -> list[Finding]:
     def environment(node: Node | None, step: bool = False) -> None:
         names(node, r"[A-Z_][A-Z0-9_]*", "environment variable")
         if not step:
+            if re.search(r"\$\{\{[\s\S]*?\bsecrets\b", scalar(node)):
+                report(node, "secret-env", "secret environment belongs in step env")
             for name, value in members(node):
-                if re.search(r"\$\{\{[\s\S]*?\bsecrets(?:\.|\[)", scalar(value)):
+                if re.search(r"\$\{\{[\s\S]*?\bsecrets\b", scalar(value)):
                     report(value, "secret-env", f"secret {name!r} belongs in step env")
 
     def declarations(node: Node | None) -> None:
@@ -171,6 +173,11 @@ def apply_baseline(root: Path, found: list[Finding], path: Path) -> list[Finding
             None,
         )
         if match is None:
+            if (
+                path.resolve()
+                == Path(__file__).with_name("workflow-baseline.json").resolve()
+            ):
+                continue
             raise ValueError(f"{path}: stale baseline entry: {entry['message']}")
         remaining.remove(match)
         print(f"Baselined {match}: {entry['reason']}")
@@ -192,7 +199,9 @@ def main() -> int:
     try:
         local = arguments.root / ".github/workflow-baseline.json"
         baseline = arguments.baseline or (
-            local if local.is_file() else Path(__file__).with_name("workflow-baseline.json")
+            local
+            if local.is_file()
+            else Path(__file__).with_name("workflow-baseline.json")
         )
         found = apply_baseline(arguments.root, found, baseline)
     except ValueError as error:
