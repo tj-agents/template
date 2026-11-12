@@ -1,8 +1,10 @@
 """Find targeted writes to protected global host configuration."""
 
+import argparse
 import ast
 import json
 import re
+import sys
 from collections.abc import Iterable, Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
@@ -42,6 +44,8 @@ PERSISTENT_COMMAND = re.compile(
     r"(?:activate|deactivate|enable|disable|install|uninstall))\b",
     re.IGNORECASE,
 )
+CLAUDE_PLUGIN_COMMAND = re.compile(r"\bclaude\s+plugin\s+\w+\b", re.IGNORECASE)
+CODEX_PLUGIN_COMMAND = re.compile(r"\bcodex\s+plugin\s+\w+\b", re.IGNORECASE)
 POWER_SHELL_ENVIRONMENT = re.compile(
     r"\[environment\]::setenvironmentvariable\s*\(", re.IGNORECASE
 )
@@ -53,6 +57,9 @@ NATIVE_MUTATION_API = re.compile(
 ASSIGNMENT = re.compile(
     r"^\s*(?:\$|set\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$",
     re.IGNORECASE,
+)
+CODEX_HOME_ASSIGNMENT = re.compile(
+    r"^\s*(?:\$env:|export\s+|set\s+)codex_home\s*=\s*(.+)$", re.IGNORECASE
 )
 
 
@@ -70,19 +77,22 @@ def check(
     payloads: Mapping[str, Any],
     publications: Mapping[str, str],
     generated: Mapping[str, bytes],
+    generated_paths: Mapping[str, Path] | None = None,
 ) -> list[Finding]:
     """Check known global-write sinks in authored and generated payload scripts.
 
     This is targeted sink and target analysis. It does not prove dynamic code safe.
     """
-    approved = approved_installers(root, payloads, publications, generated)
+    approved = approved_installers(
+        root, payloads, publications, generated, generated_paths
+    )
     findings: list[Finding] = []
     for path in authored_scripts(root):
         findings.extend(
             scan(
                 path.read_text(encoding="utf-8"),
                 path.relative_to(root).as_posix(),
-                path == root / "install.ps1",
+                path == root / "install.ps1" and regular_unlinked_file(path),
             )
         )
     for virtual, content in generated.items():
@@ -104,9 +114,10 @@ def approved_installers(
     payloads: Mapping[str, Any],
     publications: Mapping[str, str],
     generated: Mapping[str, bytes],
+    generated_paths: Mapping[str, Path] | None,
 ) -> set[str]:
     source = root / "install.ps1"
-    if not source.is_file():
+    if not regular_unlinked_file(source):
         return set()
     installer = source.read_bytes()
     approved: set[str] = set()
@@ -127,14 +138,17 @@ def approved_installers(
         if destination != expected:
             continue
         virtual = f"plugins/{package}/{expected}"
-        if generated.get(virtual) == installer:
+        if verified_installer(virtual, installer, generated, generated_paths):
             approved.add(virtual)
-    approved.update(sources_installers(root, installer, generated))
+    approved.update(sources_installers(root, installer, generated, generated_paths))
     return approved
 
 
 def sources_installers(
-    root: Path, installer: bytes, generated: Mapping[str, bytes]
+    root: Path,
+    installer: bytes,
+    generated: Mapping[str, bytes],
+    generated_paths: Mapping[str, Path] | None,
 ) -> set[str]:
     manifest = root / ".agents/plugins/sources.json"
     if not manifest.is_file():
@@ -168,7 +182,7 @@ def sources_installers(
         if destination != expected or not owns_root_installer(root, plugin):
             continue
         virtual = f"plugins/{plugin}/{expected}"
-        if generated.get(virtual) == installer:
+        if verified_installer(virtual, installer, generated, generated_paths):
             approved.add(virtual)
     return approved
 
@@ -193,8 +207,33 @@ def owns_root_installer(root: Path, plugin: str) -> bool:
     )
 
 
+def verified_installer(
+    virtual: str,
+    installer: bytes,
+    generated: Mapping[str, bytes],
+    generated_paths: Mapping[str, Path] | None,
+) -> bool:
+    if generated.get(virtual) != installer:
+        return False
+    return generated_paths is None or regular_unlinked_file(
+        generated_paths.get(virtual)
+    )
+
+
+def regular_unlinked_file(path: Path | None) -> bool:
+    if path is None or not path.is_file() or path.is_symlink():
+        return False
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None and is_junction():
+        return False
+    try:
+        return path.stat().st_nlink == 1
+    except OSError:
+        return False
+
+
 def authored_scripts(root: Path) -> Iterable[Path]:
-    for directory in (".agents", ".claude", ".codex", ".github"):
+    for directory in (".agents", ".claude", ".codex", ".github", "scripts"):
         base = root / directory
         if base.is_dir():
             for path in base.rglob("*"):
@@ -205,9 +244,9 @@ def authored_scripts(root: Path) -> Iterable[Path]:
                     and not ignored_authored_path(relative)
                 ):
                     yield path
-    installer = root / "install.ps1"
-    if installer.is_file():
-        yield installer
+    for installer in root.glob("install.*"):
+        if installer.is_file() and installer.suffix.lower() in EXECUTABLE_SUFFIXES:
+            yield installer
 
 
 def ignored_authored_path(path: Path) -> bool:
@@ -243,6 +282,8 @@ def scan_python(source: str, path: str) -> list[Finding]:
         tree = ast.parse(source)
     except SyntaxError:
         return []
+    functions = function_definitions(tree)
+    isolated_functions = temporary_environment_functions(functions)
     aliases: dict[str, str] = {}
     findings: list[Finding] = []
     for node in ast.walk(tree):
@@ -289,7 +330,139 @@ def scan_python(source: str, path: str) -> list[Finding]:
                 findings.append(
                     Finding(path, node.lineno, "protected global configuration")
                 )
+        elif name.endswith(".setvalueex") and "environment" in arguments.lower():
+            findings.append(Finding(path, node.lineno, "persistent user environment"))
+        elif (
+            name.rsplit(".", 1)[-1] == "request"
+            and node.args
+            and expression_text(node.args[0], aliases).lower() == "config/batchwrite"
+            and containing_function(node, functions) not in isolated_functions
+        ):
+            findings.append(
+                Finding(path, node.lineno, "native configuration mutation API")
+            )
     return findings
+
+
+def function_definitions(tree: ast.Module) -> dict[str, ast.FunctionDef]:
+    return {
+        node.name: node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+    }
+
+
+def temporary_environment_functions(
+    functions: Mapping[str, ast.FunctionDef],
+) -> set[str]:
+    temporary_parameters: dict[str, set[str]] = {name: set() for name in functions}
+    changed = True
+    while changed:
+        changed = False
+        for name, function in functions.items():
+            values = temporary_values(function, temporary_parameters[name])
+            for call in ast.walk(function):
+                if not isinstance(call, ast.Call):
+                    continue
+                target = functions.get(call_name(call.func).rsplit(".", 1)[-1])
+                if target is None:
+                    continue
+                parameter_names = function_parameters(target)
+                for index, argument in enumerate(call.args):
+                    if (
+                        index < len(parameter_names)
+                        and parameter_names[index] == "environment"
+                        and temporary_expression(argument, values)
+                        and "environment" not in temporary_parameters[target.name]
+                    ):
+                        temporary_parameters[target.name].add("environment")
+                        changed = True
+                for keyword in call.keywords:
+                    if (
+                        keyword.arg == "environment"
+                        and temporary_expression(keyword.value, values)
+                        and "environment" not in temporary_parameters[target.name]
+                    ):
+                        temporary_parameters[target.name].add("environment")
+                        changed = True
+    return {
+        name
+        for name, parameters in temporary_parameters.items()
+        if "environment" in parameters
+    }
+
+
+def temporary_values(function: ast.FunctionDef, parameters: set[str]) -> set[str]:
+    values = set(parameters)
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(function):
+            if isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    if (
+                        isinstance(item.context_expr, ast.Call)
+                        and call_name(item.context_expr.func).endswith(
+                            "temporarydirectory"
+                        )
+                        and isinstance(item.optional_vars, ast.Name)
+                        and item.optional_vars.id not in values
+                    ):
+                        values.add(item.optional_vars.id)
+                        changed = True
+            if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                target, value = assignment_parts(node)
+                if (
+                    isinstance(target, ast.Name)
+                    and value is not None
+                    and temporary_expression(value, values)
+                    and target.id not in values
+                ):
+                    values.add(target.id)
+                    changed = True
+    return values
+
+
+def temporary_expression(node: ast.expr, values: set[str]) -> bool:
+    if isinstance(node, ast.Name):
+        return node.id in values
+    if isinstance(node, ast.BinOp):
+        return temporary_expression(node.left, values) or temporary_expression(
+            node.right, values
+        )
+    if isinstance(node, ast.Call):
+        name = call_name(node.func)
+        return (
+            name.endswith("isolated_environment")
+            or name in {"path", "pathlib.path"}
+            or isinstance(node.func, ast.Attribute)
+        ) and any(temporary_expression(argument, values) for argument in node.args)
+    return False
+
+
+def function_parameters(function: ast.FunctionDef) -> list[str]:
+    return [
+        argument.arg
+        for argument in [
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
+        ]
+    ]
+
+
+def containing_function(
+    node: ast.Call, functions: Mapping[str, ast.FunctionDef]
+) -> str | None:
+    candidates = [
+        function
+        for function in functions.values()
+        if function.lineno <= node.lineno <= (function.end_lineno or function.lineno)
+    ]
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda function: (function.end_lineno or function.lineno) - function.lineno,
+    ).name
 
 
 def assignment_value(node: ast.expr, aliases: Mapping[str, str]) -> str:
@@ -352,14 +525,20 @@ def write_mode(node: ast.Call) -> bool:
 def scan_shell(source: str, path: str) -> list[Finding]:
     aliases: dict[str, str] = {}
     findings: list[Finding] = []
+    temporary_codex_home = False
     for number, line in enumerate(source.splitlines(), start=1):
         match = ASSIGNMENT.match(line)
         if match:
             aliases[match.group(1).lower()] = substitute(match.group(2), aliases)
+        codex_home = CODEX_HOME_ASSIGNMENT.match(line)
+        if codex_home:
+            temporary_codex_home = temporary_location(
+                substitute(codex_home.group(1), aliases)
+            )
         expanded = substitute(line, aliases)
-        if PERSISTENT_COMMAND.search(expanded) or POWER_SHELL_ENVIRONMENT.search(
-            expanded
-        ):
+        if persistent_command(
+            expanded, temporary_codex_home
+        ) or POWER_SHELL_ENVIRONMENT.search(expanded):
             findings.append(Finding(path, number, "persistent configuration command"))
         elif SHELL_WRITERS.search(expanded) and protected_target(expanded):
             findings.append(Finding(path, number, "protected global configuration"))
@@ -382,8 +561,27 @@ def replace_name(match: re.Match[str], aliases: Mapping[str, str]) -> str:
     return aliases.get(name.lower(), match.group(0))
 
 
-def persistent_command(value: str) -> bool:
-    return bool(PERSISTENT_COMMAND.search(value))
+def persistent_command(value: str, temporary_codex_home: bool = False) -> bool:
+    if not PERSISTENT_COMMAND.search(value):
+        return False
+    if CLAUDE_PLUGIN_COMMAND.search(value) and re.search(
+        r"--scope\s+local\b", value, re.IGNORECASE
+    ):
+        return False
+    return not (
+        CODEX_PLUGIN_COMMAND.search(value)
+        and (temporary_codex_home or temporary_codex_environment(value))
+    )
+
+
+def temporary_codex_environment(value: str) -> bool:
+    match = re.search(r"codex_home\s*=\s*([^\s;]+)", value, re.IGNORECASE)
+    return match is not None and temporary_location(match.group(1))
+
+
+def temporary_location(value: str) -> bool:
+    normalized = value.replace("\\", "/").lower()
+    return any(marker in normalized for marker in ("temp", "tmp", "mktemp"))
 
 
 def protected_target(value: str) -> bool:
@@ -414,3 +612,60 @@ def protected_target(value: str) -> bool:
         )
     )
     return protected_name and (global_home or "$profile" in normalized)
+
+
+def current_generated(root: Path) -> tuple[dict[str, bytes], dict[str, Path]]:
+    generated: dict[str, bytes] = {}
+    paths: dict[str, Path] = {}
+    directory = root / "plugins"
+    if not directory.is_dir():
+        return generated, paths
+    for path in directory.rglob("*"):
+        if path.is_file():
+            relative = path.relative_to(root).as_posix()
+            generated[relative] = path.read_bytes()
+            paths[relative] = path
+    return generated, paths
+
+
+def payload_context(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
+    path = root / ".agents/plugins/payloads.json"
+    if not path.is_file():
+        return {}, {}
+    try:
+        payloads = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}, {}
+    if not isinstance(payloads, dict):
+        return {}, {}
+    declared = payloads.get("payloads", {})
+    publications = (
+        {
+            package: owners[0]
+            for package, owners in declared.items()
+            if isinstance(package, str)
+            and isinstance(owners, list)
+            and len(owners) == 1
+            and isinstance(owners[0], str)
+        }
+        if isinstance(declared, dict)
+        else {}
+    )
+    return payloads, publications
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    arguments = parser.parse_args()
+    root = arguments.root.resolve()
+    payloads, publications = payload_context(root)
+    generated, generated_paths = current_generated(root)
+    findings = check(root, payloads, publications, generated, generated_paths)
+    for finding in findings:
+        print(finding, file=sys.stderr)
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
