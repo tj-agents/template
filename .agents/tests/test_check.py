@@ -404,6 +404,27 @@ def test_check_accepts_an_explicitly_mapped_plugin_runtime(zig_repo: Path) -> No
     assert check.check(zig_repo) == []
 
 
+def test_check_accepts_an_installer_resource_for_its_declared_owner(
+    zig_repo: Path,
+) -> None:
+    (zig_repo / "install.ps1").write_bytes(b"installer\r\n")
+    payloads = json.loads(
+        (zig_repo / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["resources"] = [
+        {
+            "plugin": "zig",
+            "source": "install.ps1",
+            "destination": ".agents/zig/resources/installer/install.ps1",
+        }
+    ]
+    (zig_repo / ".agents/plugins/payloads.json").write_text(
+        json.dumps(payloads, indent=2) + "\n", encoding="utf-8"
+    )
+
+    assert check.check(zig_repo) == []
+
+
 def test_stack_generated_dependency_projection_must_match(zig_repo: Path) -> None:
     path = zig_repo / "plugins/zig/selection.json"
     selection = json.loads(path.read_text(encoding="utf-8"))

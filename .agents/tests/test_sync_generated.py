@@ -1021,6 +1021,107 @@ def test_resources_ignore_python_caches_and_remain_fresh(demo_root: Path) -> Non
     assert synchronize(demo_root, check=True)[0] == 0
 
 
+def test_installer_resource_ships_the_root_file_to_its_declared_owner(
+    demo_root: Path,
+) -> None:
+    installer = demo_root / "install.ps1"
+    installer.write_bytes(b"$ErrorActionPreference = 'Stop'\r\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": "install.ps1",
+                    "destination": ".agents/demo/resources/installer/install.ps1",
+                }
+            ],
+        },
+    )
+
+    output = build(demo_root)
+
+    assert (
+        output["plugins/demo/.agents/demo/resources/installer/install.ps1"]
+        == installer.read_bytes()
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "destination", "message"),
+    [
+        (
+            "install.ps1",
+            ".agents/demo/resources/installer/other.ps1",
+            "installer resource must map",
+        ),
+        (
+            "install.ps1",
+            ".agents/other/resources/installer/install.ps1",
+            "installer resource must map",
+        ),
+        (
+            "./install.ps1",
+            ".agents/demo/resources/installer/install.ps1",
+            "unsafe resource source",
+        ),
+        (
+            "scripts/install.ps1",
+            ".agents/demo/resources/installer/install.ps1",
+            "unsafe resource source",
+        ),
+    ],
+)
+def test_installer_resource_rejects_other_root_mappings(
+    demo_root: Path, source: str, destination: str, message: str
+) -> None:
+    (demo_root / "install.ps1").write_bytes(b"installer\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": source,
+                    "destination": destination,
+                }
+            ],
+        },
+    )
+
+    assert_rejected(demo_root, message)
+
+
+def test_installer_resource_rejects_a_linked_source(
+    demo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installer = demo_root / "install.ps1"
+    write(installer, "installer\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": "install.ps1",
+                    "destination": ".agents/demo/resources/installer/install.ps1",
+                }
+            ],
+        },
+    )
+    original = sync_generated.is_link_or_junction
+    monkeypatch.setattr(
+        sync_generated,
+        "is_link_or_junction",
+        lambda path: path == installer or original(path),
+    )
+
+    assert_rejected(demo_root, "contains a link or junction")
+
+
 def test_resources_reject_prefix_collisions_before_generated_output_mutation(
     demo_root: Path,
 ) -> None:

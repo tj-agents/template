@@ -59,6 +59,8 @@ BOOTSTRAP_STATEMENTS = (ast.Import, ast.ImportFrom, ast.Assign, ast.Expr)
 COMMAND_UNSAFE = frozenset('"$`\\\n\r')
 HOST_ROOTS = (".claude", ".codex")
 RESOURCE_ROOTS = (".agents", *HOST_ROOTS)
+INSTALLER_RESOURCE_SOURCE = "install.ps1"
+INSTALLER_RESOURCE_SUFFIX = ("resources", "installer", "install.ps1")
 CODEX_HOOK_MANIFEST = "hooks/codex.json"
 CLAUDE_HOOK_MANIFEST = "hooks/claude.json"
 CODEX_HOOK_PACKAGE_LOADER = "hooks/codex/snapshot.py"
@@ -319,6 +321,11 @@ def mapped_resource_directories(payloads: Any) -> set[tuple[str, str]]:
             "distribution",
             "destination",
         }:
+            continue
+        if (
+            isinstance(resource, dict)
+            and resource.get("source") == INSTALLER_RESOURCE_SOURCE
+        ):
             continue
         if not isinstance(resource, dict) or not isinstance(
             resource.get("source"), str
@@ -768,25 +775,43 @@ def validate_resources(
             source = resource["source"]
             if not isinstance(source, str):
                 raise ValueError("A file resource requires a string source")
-            owner, directory = resource_source_parts(source)
-            if owner is not None and owner not in plugins:
-                raise ValueError(
-                    ".agents/plugins/payloads.json: resource source must name a "
-                    "declared canonical plugin"
-                )
-            source_path = checked_resource_path(root, source)
-            files = resource_files(root, source)
-            if owner is not None and directory not in PLUGIN_RESOURCE_DIRS:
-                validate_skill_asset_source(root, source, files, plugins[owner])
-            selected = [
-                (
-                    file,
-                    ()
-                    if source_path.is_file()
-                    else file.relative_to(source_path).parts,
-                )
-                for file in files
-            ]
+            if source == INSTALLER_RESOURCE_SOURCE:
+                canonical_owner = publications[package]
+                expected = PurePosixPath(
+                    ".agents", canonical_owner, *INSTALLER_RESOURCE_SUFFIX
+                ).as_posix()
+                if destination != expected:
+                    raise ValueError(
+                        ".agents/plugins/payloads.json: installer resource must map "
+                        f"{INSTALLER_RESOURCE_SOURCE} to {expected}"
+                    )
+                source_path = checked_resource_path(root, source)
+                if not source_path.is_file():
+                    raise ValueError(
+                        ".agents/plugins/payloads.json: installer resource source "
+                        "must be a file"
+                    )
+                selected = [(source_path, ())]
+            else:
+                owner, directory = resource_source_parts(source)
+                if owner is not None and owner not in plugins:
+                    raise ValueError(
+                        ".agents/plugins/payloads.json: resource source must name a "
+                        "declared canonical plugin"
+                    )
+                source_path = checked_resource_path(root, source)
+                files = resource_files(root, source)
+                if owner is not None and directory not in PLUGIN_RESOURCE_DIRS:
+                    validate_skill_asset_source(root, source, files, plugins[owner])
+                selected = [
+                    (
+                        file,
+                        ()
+                        if source_path.is_file()
+                        else file.relative_to(source_path).parts,
+                    )
+                    for file in files
+                ]
         for file, suffix in selected:
             generated = PurePosixPath(
                 "plugins", package, *target.parts, *suffix
