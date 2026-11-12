@@ -113,6 +113,11 @@ structural subset listed below; authoring and review apply the remaining skill r
   `.agents/plugins/adapters/<host>/<plugin>/<skill>.md` path to that host's generated discovery
   entry and installed target-host skill entry; shared instruction remains only in the canonical `SKILL.md`.
   Packages with extensions retain `skills/` for Claude and generate `codex-skills/` with a matching Codex manifest.
+- Targeted static sink and target analysis rejects writes to protected global host configuration, shell profiles,
+  persistent user environment and global Git configuration unless they are the root `install.ps1` or the exact,
+  byte-identical installer copy declared for its canonical owner. It scans authored executable sources and shipped
+  payload closure while excluding test fixtures. This detects known sinks and targets; it does not prove arbitrary
+  dynamic code safe.
 - Every skill of kind `contract` or `convention` opens with an `Owns …` line after its title.
 - Every added or updated canonical `SKILL.md` contains a meaningful fenced code, command, configuration, or
   input/output example. `check_examples.py` is the standalone form for an explicit `--base`/`--head` range or

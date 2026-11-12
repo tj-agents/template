@@ -1210,6 +1210,24 @@ def validate_file_references(
         )
 
 
+def declares_installer_resource(root: Path, package: str) -> bool:
+    try:
+        payloads = load(root / ".agents/plugins/payloads.json")
+    except (OSError, UnicodeError, ValueError):
+        return False
+    if not isinstance(payloads, dict):
+        return False
+    resources = payloads.get("resources", [])
+    expected = PurePosixPath(".agents", package, *INSTALLER_RESOURCE_SUFFIX).as_posix()
+    return isinstance(resources, list) and any(
+        isinstance(resource, dict)
+        and resource.get("plugin") == package
+        and resource.get("source") == INSTALLER_RESOURCE_SOURCE
+        and resource.get("destination") == expected
+        for resource in resources
+    )
+
+
 def harness_body(
     root: Path,
     package: str,
@@ -1246,6 +1264,24 @@ def harness_body(
     if len(roots) != len(set(roots)):
         raise ValueError(f"{relative}: source_roots must be unique")
     for value in roots:
+        if value == INSTALLER_RESOURCE_SOURCE:
+            target = PurePosixPath(
+                "plugins",
+                package,
+                ".agents",
+                package,
+                *INSTALLER_RESOURCE_SUFFIX,
+            ).as_posix()
+            installer = root / INSTALLER_RESOURCE_SOURCE
+            if (
+                not declares_installer_resource(root, package)
+                or not installer.is_file()
+                or output.get(target) != installer.read_bytes()
+            ):
+                raise ValueError(
+                    f"{relative}: source root {value!r} is not shipped in {package}"
+                )
+            continue
         source = PurePosixPath(value)
         if (
             "\\" in value

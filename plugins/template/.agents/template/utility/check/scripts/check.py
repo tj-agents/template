@@ -62,6 +62,9 @@ generator = load_module("template_generator", new_plugin.GENERATOR_TEMPLATE)
 examples = load_module(
     "template_check_examples", SKILL_DIRECTORY / "scripts/check_examples.py"
 )
+global_writes = load_module(
+    "template_check_global_writes", SKILL_DIRECTORY / "scripts/check_global_writes.py"
+)
 
 
 def text(path: Path) -> str:
@@ -555,6 +558,14 @@ def check(
         TypeError,
         AttributeError,
     ) as error:
+        return [*problems, str(error)]
+    try:
+        publications = generator.validate_payloads(payloads, plugins)
+        problems += [
+            str(finding)
+            for finding in global_writes.check(root, payloads, publications, generated)
+        ]
+    except (AttributeError, OSError, TypeError, ValueError) as error:
         return [*problems, str(error)]
     payloads_path = root / ".agents/plugins/payloads.json"
     try:

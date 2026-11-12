@@ -524,6 +524,66 @@ def test_optional_harness_is_shipped_without_requiring_migration(
     ]
 
 
+def test_harness_allows_a_verified_root_installer_resource(demo_root: Path) -> None:
+    installer = demo_root / "install.ps1"
+    installer.write_bytes(b"installer\r\n")
+    write_json(
+        demo_root / ".agents/plugins/payloads.json",
+        {
+            "payloads": {"demo": ["demo"]},
+            "resources": [
+                {
+                    "plugin": "demo",
+                    "source": "install.ps1",
+                    "destination": ".agents/demo/resources/installer/install.ps1",
+                }
+            ],
+        },
+    )
+    write_json(
+        demo_root / ".agents/plugins/manifests/harness/demo.json",
+        {
+            "schema_version": 1,
+            "plugin": "tj-agents/demo",
+            "source_roots": ["install.ps1"],
+            "requires": {},
+        },
+    )
+
+    output = build(demo_root)
+
+    assert output["plugins/demo/.agents/demo/resources/installer/install.ps1"] == (
+        installer.read_bytes()
+    )
+
+
+def test_harness_rejects_an_unverified_root_installer_source(demo_root: Path) -> None:
+    installer = demo_root / "install.ps1"
+    installer.write_bytes(b"installer\r\n")
+    write_json(
+        demo_root / ".agents/plugins/manifests/harness/demo.json",
+        {
+            "schema_version": 1,
+            "plugin": "tj-agents/demo",
+            "source_roots": ["install.ps1"],
+            "requires": {},
+        },
+    )
+
+    with pytest.raises(ValueError, match=r"source root 'install\.ps1' is not shipped"):
+        sync_generated.harness_body(
+            demo_root,
+            "demo",
+            {
+                "plugins/demo/.agents/demo/resources/installer/install.ps1": (
+                    installer.read_bytes()
+                )
+            },
+            [],
+            False,
+        )
+
+
 def test_ships_skill_local_files_beside_the_package_and_adapter_entries(
     tmp_path: Path,
 ) -> None:

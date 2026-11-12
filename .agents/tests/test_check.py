@@ -425,6 +425,33 @@ def test_check_accepts_an_installer_resource_for_its_declared_owner(
     assert check.check(zig_repo) == []
 
 
+def test_check_rejects_a_runtime_global_host_configuration_write(
+    zig_repo: Path,
+) -> None:
+    runtime = zig_repo / ".agents/zig/runtime/runner.py"
+    runtime.parent.mkdir()
+    runtime.write_text(
+        "from pathlib import Path\n"
+        'Path.home().joinpath(".codex", "config.toml").write_text("value")\n',
+        encoding="utf-8",
+    )
+    payloads = json.loads(
+        (zig_repo / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+    )
+    payloads["resources"] = [
+        {
+            "plugin": "zig",
+            "source": ".agents/zig/runtime",
+            "destination": "runtime",
+        }
+    ]
+    (zig_repo / ".agents/plugins/payloads.json").write_text(
+        json.dumps(payloads, indent=2) + "\n", encoding="utf-8"
+    )
+
+    assert_problem(zig_repo, "runtime/runner.py:2: protected-global-write")
+
+
 def test_stack_generated_dependency_projection_must_match(zig_repo: Path) -> None:
     path = zig_repo / "plugins/zig/selection.json"
     selection = json.loads(path.read_text(encoding="utf-8"))
