@@ -1,0 +1,5 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        tj-agents/template/.github/workflows/plugin-ci.yml: ref-pin

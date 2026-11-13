@@ -1,12 +1,20 @@
-name: ci
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
   verify:
+    name: verify
     uses: ./.github/workflows/plugin-ci.yml
     with:
       template_ref: ${{ github.sha }}
@@ -16,13 +24,16 @@ jobs:
       UPDATE_APP_PRIVATE_KEY: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
 
   system-python-resources:
-    runs-on: ubuntu-26.04
+    name: Verify system Python resources
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@v10.3.0
-      - name: resolve distribution resources with Ubuntu's system Python
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+      - name: Resolve distribution resources with Ubuntu's system Python
         run: >-
-          uv run --no-project --python /usr/bin/python3 --with pytest
+          uv run --no-project --python /usr/bin/python3 --with pytest --with pytest-socket
           pytest .agents/tests/test_sync_generated.py -k real_locked -q
