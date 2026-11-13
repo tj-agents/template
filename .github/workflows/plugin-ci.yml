@@ -1,8 +1,13 @@
-name: plugin-ci
+name: Plugin CI
 
 on:
   workflow_call:
     inputs:
+      cli_ref:
+        description: CLI source ref used to build tj_hook for hook execution tests.
+        required: false
+        default: 92e29a7589a5dcf462af36d960684e49146d9d3b
+        type: string
       template_ref:
         description: Template source ref; defaults to main and may be overridden for candidate checks.
         required: false
@@ -13,69 +18,141 @@ on:
         required: false
         default: tj-agents/template
         type: string
-      generate_before_verify:
-        required: false
-        default: false
-        type: boolean
     secrets:
       read_token:
         description: A token that can read the organization's Template and core repositories.
         required: false
+      UPDATE_APP_PRIVATE_KEY:
+        description: Updater App key from the caller's default-branch-only update-pins environment.
+        required: false
+
+permissions:
+  contents: read
 
 jobs:
+  resolve-template:
+    name: Resolve Template source
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.template.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ inputs.template_ref }}
+          path: .template
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - id: template
+        shell: bash
+        run: echo "sha=$(git -C .template rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   verify:
+    name: verify
+    needs: resolve-template
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-      - uses: astral-sh/setup-uv@v10.3.0
-      - name: resolve the authored-guidance comparison range
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tj-agents/cli
+          ref: ${{ inputs.cli_ref }}
+          path: .tj-cli
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - name: Build the pinned tj_hook candidate
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          if ('${{ github.event_name }}' -eq 'pull_request') {
-            $base = '${{ github.event.pull_request.base.sha }}'
-            $head = '${{ github.event.pull_request.head.sha }}'
+          $PSNativeCommandUseErrorActionPreference = $true
+          Push-Location .tj-cli
+          cargo build --locked --release --bin tj_hook
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          $binaryDirectory = (Resolve-Path .tj-cli/target/release).Path
+          $binaryName = if ($IsWindows) { 'tj_hook.exe' } else { 'tj_hook' }
+          if (-not (Test-Path (Join-Path $binaryDirectory $binaryName))) {
+            throw "Missing built $binaryName"
+          }
+          $binaryDirectory >> $env:GITHUB_PATH
+      - name: Resolve the authored-guidance comparison range
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:EVENT_NAME -eq 'pull_request') {
+            $base = $env:PR_BASE
+            $head = $env:PR_HEAD
             $mergeBase = '--merge-base'
           } else {
-            $base = '${{ github.event.before }}'
-            $head = '${{ github.sha }}'
+            $base = $env:PUSH_BASE
+            $head = $env:COMMIT_SHA
             $mergeBase = ''
           }
           "GUIDANCE_EXAMPLES_BASE=$base" >> $env:GITHUB_ENV
           "GUIDANCE_EXAMPLES_HEAD=$head" >> $env:GITHUB_ENV
           "GUIDANCE_EXAMPLES_MERGE_BASE=$mergeBase" >> $env:GITHUB_ENV
-      - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+      - name: Regenerate generated files from authored sources
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: generated files are current
+      - name: Generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           ./.agents/sync-generated.ps1 -Check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: repository tests
+      - name: Workflow standards
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          config=.github/zizmor.yml
+          baseline=.github/workflow-baseline.json
+          if [ ! -f "$config" ]; then config=.template/.agents/template/utility/check/scripts/zizmor.yml; fi
+          if [ ! -f "$baseline" ]; then baseline=.template/.agents/template/utility/check/scripts/workflow-baseline.json; fi
+          uv run --project .template --locked zizmor --offline --pedantic --config "$config" .github
+          uv run --project .template --locked python -B .template/.agents/template/utility/check/scripts/check_workflows.py --root . --baseline "$baseline"
+          if [ "$GITHUB_REPOSITORY" = tj-agents/template ]; then
+            gh api repos/tj-agents/github/contents/configuration/tj-agents/github-configuration.json --jq .content |
+              base64 --decode > "$RUNNER_TEMP/github-configuration.json"
+            uv run --project .template --locked python -B .template/.github/scripts/check_required_contexts.py --root .template --configuration "$RUNNER_TEMP/github-configuration.json"
+          fi
+      - name: Repository tests
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -92,7 +169,7 @@ jobs:
             python -B -m unittest discover -s .agents/tests -p "test_*.py"
             exit $LASTEXITCODE
           }
-      - name: the repository conforms to the current Template source
+      - name: The repository conforms to the current Template source
         shell: pwsh
         run: |
           $checkArguments = @('--root', '.', '--base', $env:GUIDANCE_EXAMPLES_BASE, '--head', $env:GUIDANCE_EXAMPLES_HEAD)
@@ -100,44 +177,221 @@ jobs:
             $checkArguments += $env:GUIDANCE_EXAMPLES_MERGE_BASE
           }
           python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
-      - name: authored skill references resolve in the public corpus
+      - name: Authored skill references resolve in the public corpus
         shell: pwsh
         env:
-          SKILL_REFERENCES_TOKEN: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+          SKILL_REFERENCES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -B .template/.agents/template/utility/check/scripts/check_skill_references.py --root . --source-root . --marketplace tj-agents/marketplace
 
-  hosts:
-    runs-on: ubuntu-latest
+  host-platforms:
+    name: Verify native host platforms
+    needs: resolve-template
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
           repository: ${{ inputs.template_repository }}
-          ref: ${{ inputs.template_ref }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
           path: .template
-          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-      - name: regenerate generated files from authored sources
-        if: inputs.generate_before_verify
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Regenerate generated files from authored sources
+        if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./.agents/sync-generated.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: generated files are current
+      - name: Generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           ./.agents/sync-generated.ps1 -Check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
-      - name: install the pinned host CLIs
-        run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
+          node-version: '26'
+      - name: Install the pinned host CLIs
+        shell: pwsh
+        working-directory: .template/.github/host-clis
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          (Resolve-Path node_modules/.bin).Path >> $env:GITHUB_PATH
       - name: Claude Code and Codex accept the marketplace and plugins
-        run: python -B .template/.github/scripts/validate_hosts.py --root .
+        shell: pwsh
+        env:
+          UPGRADE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: uv run --project .template --locked --no-dev python -B .template/.github/scripts/validate_hosts.py --root . --baseline "$env:UPGRADE_BASE"
+
+  hosts:
+    name: hosts
+    permissions: {}
+    if: always()
+    needs: [host-platforms, python-standards]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both native host platforms
+        env:
+          HOST_RESULT: ${{ needs.host-platforms.result }}
+          STANDARDS_RESULT: ${{ needs.python-standards.result }}
+        run: test "$HOST_RESULT" = success && test "$STANDARDS_RESULT" = success
+
+  python-standards:
+    name: Check Python standards
+    uses: ./.github/workflows/python-standards.yml
+
+  default-branch:
+    name: default-branch
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: The default branch's latest completed run is green, or this PR repairs it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          workflow="${WORKFLOW_REF%@*}"
+          workflow="${workflow##*/}"
+          latest=$(gh run list --repo "$REPOSITORY" --workflow "$workflow" --branch "$DEFAULT_BRANCH" \
+            --event push --status completed --limit 1 --json conclusion,url \
+            --jq '.[0] // {} | "\(.conclusion // "none") \(.url // "")"')
+          conclusion="${latest%% *}"
+          url="${latest#* }"
+          if [ "$conclusion" = success ] || [ "$conclusion" = none ]; then
+            exit 0
+          fi
+          if gh pr view "$PULL_REQUEST" --repo "$REPOSITORY" --json labels --jq '.labels[].name' | grep -qx fixes-main; then
+            echo "::notice title=$DEFAULT_BRANCH is red::$url concluded $conclusion; fixes-main lets this PR merge."
+            exit 0
+          fi
+          echo "::error title=$DEFAULT_BRANCH is red::$url concluded $conclusion, so nothing it builds is published. Only the PR that repairs it merges: add the fixes-main label and re-run this job."
+          exit 1
+
+  regeneration-unconfigured:
+    name: Require publication configuration
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require automatic publication configuration
+        run: |
+          set -euo pipefail
+          echo "::error title=Regeneration not configured::UPDATE_APP_CLIENT_ID is required; run github-actions publish-update owner_setup.py once for the organization."
+          exit 1
+
+  regenerate:
+    name: Publish generated files
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !startsWith(github.event.head_commit.message, 'Regenerate packages for ')
+      && vars.UPDATE_APP_CLIENT_ID != ''
+    needs: [resolve-template, verify, hosts, python-standards]
+    environment: update-pins
+    runs-on: windows-latest
+    concurrency:
+      group: regenerate-main
+      cancel-in-progress: false
+    steps:
+      - name: Require automatic publication credentials
+        id: credentials
+        env:
+          UPDATE_APP_KEY_PRESENT: ${{ secrets.UPDATE_APP_PRIVATE_KEY != '' }}
+        shell: pwsh
+        run: |
+          if ($env:UPDATE_APP_KEY_PRESENT -ne 'true') {
+            Write-Error "UPDATE_APP_PRIVATE_KEY is required to publish the synchronized files."
+            exit 1
+          }
+          'present=true' >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.credentials.outputs.present == 'true'
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.credentials.outputs.present == 'true'
+        with:
+          python-version: '3.12'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.credentials.outputs.present == 'true'
+        with:
+          repository: ${{ inputs.template_repository }}
+          ref: ${{ needs.resolve-template.outputs.sha }}
+          path: .template
+          token: ${{ (inputs.template_repository == github.repository || inputs.template_repository == 'tj-agents/template') && secrets.GITHUB_TOKEN || secrets.read_token || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: steps.credentials.outputs.present == 'true'
+      - name: Regenerate generated files from authored sources
+        if: steps.credentials.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          python -B .template/.agents/template/utility/update/scripts/update.py --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generated files are current
+        if: steps.credentials.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Mint the updater token
+        if: steps.credentials.outputs.present == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: Publish generated files
+        if: steps.credentials.outputs.present == 'true'
+        uses: tj-agents/github-actions/.github/actions/publish-generated@1a8099ab95aaf609704f892087081c35d15b331a
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          source-sha: ${{ github.sha }}
+          branch: ${{ github.event.repository.default_branch }}
+          paths: |
+            .agents/sync_generated.py
+            .agents/sync-generated.ps1
+            .codex/hooks/snapshot.py
+            .codex/hooks/bootstrap.py
+            .gitattributes
+            .gitignore
+            CLAUDE.md
+            .github/workflows/ci.yml
+            .codex/skills
+            .claude/skills
+            .agents/INDEX.md
+            .agents/plugins/marketplace.json
+            .claude-plugin/marketplace.json
+            plugins

@@ -29,15 +29,18 @@ Finish: Template generation/checks, evidence routes, then fresh Claude and Codex
 Resolve the intended outcome and implementation boundary using
 [native skill authoring](references/native-authoring.md) before choosing the skill edit.
 
-Load `engineering:skill-authoring` for the shared existence, sizing, naming and collision rules.
-Inspect the capability index, existing skills, repository instructions and selected policy. Extend the
-existing concern owner when it already covers the behavior. Keep product behavior in its application.
-Name ordinary ecosystem concerns by purpose: React validation can use explicitly selected Zod without
+Read [skill selection](references/selection.md) for the shared existence, sizing, naming and discovery
+rules.
+Inspect the capability index, existing skills, repository instructions and selected policy. Keep product
+behavior in its application. Name ordinary ecosystem concerns by purpose: React validation can use
+explicitly selected Zod without
 claiming Zod is required by React. Give a framework its own selectable namespace when its execution model,
 lifecycle or substantial API practices warrant one, such as `efcore:specification` or `tauri:commands`.
-Disambiguate cross-ecosystem library names: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
+Name a library's namespace after the library alone (`efcore`, `seaorm`); add a language prefix only when
+the bare name is ambiguous across ecosystems: Rust SQLx and Go sqlx are unrelated, so use `rust-sqlx`.
 
-A namespace need not have its own repository. The repository name identifies the main plugin; separately
+A requested `plugin:skill` name is literal: create that plugin when it does not exist, in the named
+repository, and never fold the skill into another plugin. A namespace need not have its own repository. The repository name identifies the main plugin; separately
 named siblings may share that source repository, as dotnet/efcore do. Use existing payload, manifest and
 tier contracts when registering a necessary sibling. Create no empty placeholder skill families.
 

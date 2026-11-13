@@ -2,31 +2,158 @@
 name = "template"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pyyaml>=6.0.3",
+    "tj-cli",
+]
 
 [dependency-groups]
 dev = [
-    "mypy>=2.4.0",
+    "mypy>=2.4.1",
     "pytest>=9.1.1",
-    "ruff>=0.17.1",
+    "pytest-socket>=0.7.0",
+    "ruff>=0.17.4",
+    "types-pyyaml>=6.0.12.20261103",
+    "zizmor==1.32.0",
 ]
 
 [tool.uv]
 package = false
 
+[tool.uv.sources]
+tj-cli = { git = "https://github.com/tj-agents/cli.git", rev = "9cb34d371bfdf29829cb6e2c7ddfde4c36943fec", subdirectory = "packages/tj-cli" }
+
 [tool.ruff]
 include = [".agents/**/*.py", ".github/**/*.py"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "PIE", "RET", "RUF"]
+preview = true
+explicit-preview-rules = true
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "A", "BLE", "C4", "SIM", "PTH", "PIE", "RET", "RUF",
+    "PGH004", "ANN401", "G004", "PLW1514", "LOG002", "LOG015", "PLC2701", "ICN001",
+    "TID251", "TRY300", "PT009", "PT011", "PT006", "PLR6301",
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sys.path" = { msg = "Install the declared dependency; do not modify the import search path." }
+"importlib.util.spec_from_file_location" = { msg = "Import the installed public API; do not load another checkout by path." }
+"unittest.TestCase" = { msg = "Use plain pytest functions and bare assertions." }
+
+[tool.ruff.lint.flake8-pytest-style]
+raises-require-match-for = ["*"]
+
+[tool.ruff.lint.per-file-ignores]
+".agents/sync_generated.py" = ["ANN401"]
+".agents/template/utility/check/scripts/check.py" = ["ANN401"]
+".agents/template/utility/update/scripts/update.py" = ["ANN401"]
+".agents/tests/test_check_examples.py" = ["PT009", "TID251"]
+".agents/tests/test_check.py" = ["ANN401", "PT006"]
+".agents/tests/test_new_plugin.py" = ["PT006"]
+".agents/tests/test_skill_authoring_hook.py" = ["PT009", "TID251"]
+".agents/tests/test_skill_references.py" = ["ANN401", "TID251"]
+".agents/tests/test_sync_generated.py" = ["ANN401", "PLC2701", "PT006", "PT011", "TID251"]
+".agents/tests/test_validate_hosts.py" = ["TID251"]
+".github/scripts/validate_hosts.py" = ["ANN401"]
 
 [tool.mypy]
 strict = true
 warn_unreachable = true
+enable_error_code = ["ignore-without-code", "exhaustive-match"]
 files = [".agents", ".github/scripts"]
 
 [tool.pytest]
 strict = true
 testpaths = [".agents/tests"]
-addopts = ["--import-mode=importlib", "-ra"]
+addopts = ["--import-mode=importlib", "--disable-socket", "-ra"]
 filterwarnings = ["error"]
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check.py"
+rule = "PY001"
+reason = "Collects skill records from the nested plugin map."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check.py"
+rule = "PY001"
+reason = "Flattens each candidate's validation diagnostics after evaluating every candidate."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check.py"
+rule = "PY001"
+reason = "Collects identity files for every required glob pattern."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check_skill_references.py"
+rule = "PY001"
+reason = "Inventories skills across every supplied repository root."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check_skill_references.py"
+rule = "PY001"
+reason = "Collects explicit skill names from each marked list fragment."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check_skill_references.py"
+rule = "PY016"
+reason = "Reads the optional corpus token only when cloning a requested repository."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/template/utility/check/scripts/check_skill_references.py"
+rule = "PY001"
+reason = "Collects qualified namespaces from every authored document in every root."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_ci_generation.py"
+rule = "PY016"
+reason = "The fake checker process inherits the test environment while receiving fixed range inputs."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_configuration_merge.py"
+rule = "PY016"
+reason = "Git merge fixtures isolate inherited process configuration for deterministic results."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_sync_generated.py"
+rule = "PY016"
+reason = "Hook fixtures preserve the current process path while injecting isolated plugin inputs."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_sync_generated.py"
+rule = "PY016"
+reason = "Subprocess fixtures supply only their isolated plugin data over the inherited environment."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_sync_generated.py"
+rule = "PY016"
+reason = "Hook command fixtures clear inherited plugin state before running their generated command."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_sync_generated.py"
+rule = "PY016"
+reason = "Snapshot fixtures remove inherited hook state before exercising an isolated snapshot directory."
+
+[[tool.python-standards.exceptions]]
+path = ".agents/tests/test_validate_hosts.py"
+rule = "PY016"
+reason = "Host upgrade fixtures remove inherited Git configuration before creating isolated homes."
+
+[[tool.python-standards.exceptions]]
+path = ".github/scripts/validate_hosts.py"
+rule = "PY016"
+reason = "Native host validation invokes each CLI with a temporary Codex home."
+
+[[tool.python-standards.exceptions]]
+path = ".github/scripts/validate_hosts.py"
+rule = "PY001"
+reason = "Collects installed plugin paths from each enabled identity and version."
+
+[[tool.python-standards.exceptions]]
+path = ".github/scripts/validate_hosts.py"
+rule = "PY016"
+reason = "Upgrade validation invokes each host with temporary configuration homes."
+
+[[tool.python-standards.exceptions]]
+path = ".github/scripts/check_required_contexts.py"
+rule = "PY001"
+reason = "Unchanged main 3d330ca enumerates each caller prefix and resolved matrix suffix when collecting required contexts."
