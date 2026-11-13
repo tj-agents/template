@@ -1,6 +1,6 @@
 ---
 name: new-hook
-description: Add a Claude Code or Codex hook to a plugin repository so it can never block a prompt or tool call, fails open, stays fast and behaves the same on both hosts. Use before writing or changing any hook.
+description: Add a Claude Code or Codex hook to a plugin repository so it never blocks a prompt, denies a tool call only for a proven violation, fails open, stays fast and behaves the same on both hosts. Use before writing or changing any hook.
 kind: utility
 domain: template
 profile: core
@@ -23,9 +23,11 @@ every session on the machine. Use a hook only when nothing else can do the job:
 
 ## Rules
 
-1. **Never block.** Never emit `"decision": "block"` or `"permissionDecision": "deny"`, and never exit 2.
-   Tell the user with `systemMessage`, which both hosts show. Tell the model with
-   `hookSpecificOutput.additionalContext`.
+1. **Deny only a proven violation.** A `PreToolUse` hook may return `"permissionDecision": "deny"` for one
+   tool call when a cheap, exact check proves the call breaks an invariant, with a reason that says what
+   to change. It never blocks a prompt, never emits `"decision": "block"`, never exits 2, and never denies
+   because of an error or an uncertain result. Tell the user with `systemMessage`, which both hosts show.
+   Tell the model with `hookSpecificOutput.additionalContext`.
 2. **Fail open.** On any error, exit 0 with no output. A failed update or check is a warning at most.
 3. **Stay fast.** Target under 1 second. A hook never touches the network, installs, or spawns `claude` or
    `codex`. Long work starts detached, and a later event reports how it went.
@@ -58,5 +60,5 @@ if __name__ == "__main__":
 ```
 
 Declare the script under `requires.hooks` in the repository's harness manifest, then regenerate. Add a test
-that feeds each event the hook handles and asserts that the exit code is 0 and that the output never contains
-`decision` or `permissionDecision`.
+that feeds each event the hook handles and asserts that the exit code is 0, that the output never contains
+`decision`, and that `permissionDecision` appears only for the violating input.

@@ -1,6 +1,6 @@
 ---
 name: new-hook
-description: Add a Claude Code or Codex hook to a plugin repository so it can never block a prompt or tool call, fails open, stays fast and behaves the same on both hosts. Use before writing or changing any hook.
+description: Add a Claude Code or Codex hook to a plugin repository so it never blocks a prompt, denies a tool call only for a proven violation, fails open, stays fast and behaves the same on both hosts. Use before writing or changing any hook.
 kind: utility
 domain: template
 profile: core
