@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -332,6 +333,28 @@ def test_vendored_files_match_template_and_ci_follows_main(tmp_path: Path) -> No
         )
     )
     assert "version" not in manifest
+
+
+def test_generated_repository_matches_template_python_standards(
+    tmp_path: Path,
+) -> None:
+    assert create(tmp_path, "helix", "tool").returncode == 0
+    generated = tomllib.loads((tmp_path / "helix/pyproject.toml").read_text())
+    template = tomllib.loads((ROOT / "pyproject.toml").read_text())
+
+    assert generated["dependency-groups"]["dev"] == [
+        "mypy>=2.4.1",
+        "pytest>=9.1.1",
+        "pytest-socket>=0.7.0",
+        "ruff>=0.17.4",
+    ]
+    root_lint = dict(template["tool"]["ruff"]["lint"])
+    del root_lint["per-file-ignores"]
+    assert generated["tool"]["ruff"]["lint"] == root_lint
+    root_mypy = dict(template["tool"]["mypy"])
+    del root_mypy["files"]
+    assert generated["tool"]["mypy"] == root_mypy | {"files": [".agents"]}
+    assert generated["tool"]["pytest"] == template["tool"]["pytest"]
 
 
 def test_refuses_an_existing_repository_and_a_stack_without_markers(

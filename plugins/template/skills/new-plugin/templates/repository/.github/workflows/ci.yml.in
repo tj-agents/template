@@ -1,14 +1,23 @@
-name: ci
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
   verify:
+    name: verify
     uses: {{owner}}/template/.github/workflows/plugin-ci.yml@main
     with:
       template_ref: main
     secrets:
       read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
+      UPDATE_APP_PRIVATE_KEY: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}

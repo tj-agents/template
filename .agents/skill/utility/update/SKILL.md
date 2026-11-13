@@ -24,12 +24,12 @@ Verify: fresh Claude/Codex discovery exposes only workflow:continue; the retired
 ```
 
 Resolve the existing canonical definition, both host entries, its source repository and current callers.
+Read [skill selection](../new/references/selection.md) for concern, naming, sizing and discovery rules.
 Read [native skill authoring](../new/references/native-authoring.md) to resolve the intended outcome and
-implementation boundary before choosing the edit. Load `engineering:skill-authoring` for concern,
-naming and sizing rules. Delegate this update to the current host's discovered native skill creator
-with the resolved brief, existing files, scope and acceptance checks. Do this for edits as well as
-renames; do not substitute hand-written authoring steps for the host's native creator. Do not initialize
-an existing skill again.
+implementation boundary before choosing the edit, then delegate this update to the current host's
+discovered native skill creator with the resolved brief, existing files, scope and acceptance checks.
+Do this for edits as well as renames; do not substitute hand-written authoring steps for the host's
+native creator. Do not initialize an existing skill again.
 
 Load `skill:check`, include its content and executable asset requirements in the brief, and apply
 its checks to the completed update.

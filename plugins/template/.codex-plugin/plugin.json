@@ -20,5 +20,6 @@
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": "Create a new plugin repository for a stack."
-  }
+  },
+  "version": "5070b9948b10"
 }

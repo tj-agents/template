@@ -7,8 +7,10 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "python",
+            "command": "tj_hook",
             "args": [
+              "--",
+              "python",
               "-B",
               "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
             ],
@@ -22,8 +24,10 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "python",
+            "command": "tj_hook",
             "args": [
+              "--",
+              "python",
               "-B",
               "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
             ],
@@ -37,8 +41,10 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "python",
+            "command": "tj_hook",
             "args": [
+              "--",
+              "python",
               "-B",
               "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse/claude/skill_authoring.py"
             ],

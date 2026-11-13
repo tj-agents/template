@@ -1,7 +1,20 @@
 # Template
 
+TJ Agents is Tommy's agentic engineering standards and tooling for Claude Code and Codex, with harness
+parity: every capability works the same from both hosts. It's a thin deterministic layer — CLI scripts
+plus thin trigger skills — where judgement skills hold the conventions and the hosts' native features do
+the mechanics. Every other repository in the organization is a plugin repository built in Template's one
+layout; Template is the meta-scaffolder that creates that layout, generates each repository's host
+projections, and validates structural conformance.
+
 Template owns plugin repository layout, scaffolding, generated host projections and structural validation.
 Its sibling Skill plugin owns skill authoring and the shared content and executable asset contract.
+
+A plugin repository vendors a handful of Template files (the generator, `sync-generated.ps1`,
+`.gitattributes`, `.gitignore`, `CLAUDE.md`, the CI caller) rather than pinning a released version, and
+`template:update` re-vendors them from Template's `main`. That vendored copy sits outside Renovate's reach
+today — the decided fix (enabling Template in the shared Renovate preset, or shipping it as a pinned tool
+instead) has not landed yet, so a repository can still silently drift until someone runs `template:update`.
 
 ## Install
 
@@ -15,6 +28,7 @@ Install `template@tj-agents`; its authoring dependency is `skill@tj-agents`, pub
 - `template:new-plugin` creates a stack, tool, utility or profile plugin repository.
 - `template:check` checks a plugin repository against the layout and the standard its type requires.
 - `template:update` refreshes a plugin repository's vendored files from Template's main branch.
+- `template:self-repair` repairs a demonstrated defect in tj-agents' own skills, hooks, scripts and routes.
 
 ## Create a skill
 
@@ -40,13 +54,31 @@ an `always` tier makes a selected profile applicable, but does not itself load i
 ## Shared CI
 
 Plugin repositories call `.github/workflows/plugin-ci.yml` from Template's `main` branch. The reusable workflow accepts a candidate `template_ref` override.
-The workflow checks generated outputs, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
+The workflow refreshes the vendored Template files and regenerates outputs before checking them, runs the `python:build` gate when the repository has a `pyproject.toml` (otherwise
 its unittest suite), Template's skill-content and layout validation, core's tier payload check, and
 installs the marketplace with the real Claude Code and Codex CLIs. It reads Template, Core, React, .NET and Rust with
 `GITHUB_TOKEN`; a repository supplies the `TJ_AGENTS_READ_TOKEN` secret, a fine-grained token with read-only Contents
 access, only while one of them is private.
 
+On a push to `main`, the `regenerate` job commits regenerated output as `Regenerate packages for <sha>` and pushes it
+with the updater App (`UPDATE_APP_CLIENT_ID` variable and `UPDATE_APP_PRIVATE_KEY` in the caller's
+default-branch-only `update-pins` environment). GitHub Actions' `publish-update` owner setup bootstraps protected
+enrollment once for the organization. The caller passes the named secret to the reusable workflow; its
+publication job selects the protected environment. A regeneration commit is checked as committed and never regenerated
+again. Missing updater configuration fails publication instead of reporting a successful sync. On a pull request,
+`default-branch` fails while the caller workflow's latest completed push run on the default branch is not green, so
+a red main cannot go on silently publishing nothing; the PR that repairs it carries the `fixes-main` label and re-runs
+that job. Require `verify / default-branch` with the other `verify / …` checks. The
+published commit includes the vendored generator, hooks, Git attributes and CI caller as well as generated
+packages. Native host acceptance installs a baseline and upgrades to the candidate in isolated homes on
+Windows and Linux, verifying the resulting package bytes.
+
 ## Authoring and verification
+
+The vendored `.gitattributes` prevents Git from inserting conflict markers into live Codex, Claude and
+plugin-selection configuration. Conflicting merges, cherry-picks and stash applications keep the current
+complete file and leave an unresolved Git conflict. Resolve it by combining the configurations as valid
+TOML or JSON; Git retains the base and both changed versions in the index. One-sided updates still apply.
 
 Every added or updated skill must show its actual behaviour in a meaningful fenced code, command, configuration, or
 input/output example. `template:check` validates that contract for local edits and CI's exact committed range; it does

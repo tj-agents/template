@@ -3,6 +3,7 @@
   "plugin": "tj-agents/template",
   "source_roots": [
     ".agents/template/utility/check",
+    ".agents/template/utility/new/hook",
     ".agents/template/utility/new/plugin",
     ".agents/template/utility/update"
   ],

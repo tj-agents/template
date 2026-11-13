@@ -1,0 +1,50 @@
+[
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "inputs 'cli_ref' has the wrong case",
+    "reason": "Existing shared workflow API consumed by separately published repositories. This change does not rename that API."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "inputs 'template_ref' has the wrong case",
+    "reason": "Existing shared workflow API consumed by every generated plugin CI caller. This change does not rename that API."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "inputs 'template_repository' has the wrong case",
+    "reason": "Existing shared workflow API used by Template candidate checks. This change does not rename that API."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "secret 'read_token' has the wrong case",
+    "reason": "Existing shared workflow secret consumed by every generated plugin CI caller. This change does not rename that API."
+  },
+  {
+    "path": ".github/workflows/ci.yml",
+    "rule": "naming",
+    "message": "job 'verify' name 'verify' must start with an uppercase letter",
+    "reason": "Preserves the check contexts required by existing consumer rulesets."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "job 'verify' name 'verify' must start with an uppercase letter",
+    "reason": "Preserves the check contexts required by existing consumer rulesets."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "job 'hosts' name 'hosts' must start with an uppercase letter",
+    "reason": "Preserves the check contexts required by existing consumer rulesets."
+  },
+  {
+    "path": ".github/workflows/plugin-ci.yml",
+    "rule": "naming",
+    "message": "job 'default-branch' name 'default-branch' must start with an uppercase letter",
+    "reason": "Preserves the verify / default-branch context required by consumer rulesets."
+  }
+]
