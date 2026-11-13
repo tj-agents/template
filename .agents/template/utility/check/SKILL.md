@@ -45,6 +45,16 @@ CI supplies its exact `--base` and `--head` range. Locally, the checker consider
 skills against `HEAD`, plus commits since `origin/main` when that ref is available. A fresh or non-Git repository
 checks every skill. Run update to refresh vendored files when they differ.
 
+After workflow edits, run the workflow standards checker for immediate feedback. It checks naming,
+multi-line bash strict mode and secrets in workflow/job environment blocks. Enforced by
+`check_workflows.py`; shared `plugin-ci.yml` also runs actionlint and zizmor. The checker reads the
+repository's `.github/workflow-baseline.json` when present, otherwise its adjacent shipped baseline.
+Each entry identifies one existing violation and its reason; stale entries fail.
+
+```text
+uv run --python 3.12 --with pyyaml==6.0.3 python <skill-directory>/scripts/check_workflows.py --root <repository>
+```
+
 ## Template adoption
 
 New plugin scaffolds declare Template in `.agents/plugins.json`. Check existing coding repositories,

@@ -1,6 +1,7 @@
 {
   "requires_approval": true,
   "required_checks": [
+    "verify / default-branch",
     "verify / hosts",
     "verify / verify (ubuntu-latest)",
     "verify / verify (windows-latest)"
