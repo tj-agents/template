@@ -26,6 +26,9 @@ Finish: Template generation/checks, evidence routes, then fresh Claude and Codex
 
 ## Resolve the brief
 
+Resolve the intended outcome and implementation boundary using
+[native skill authoring](references/native-authoring.md) before choosing the skill edit.
+
 Read [skill selection](references/selection.md) for the shared existence, sizing, naming and discovery
 rules.
 Inspect the capability index, existing skills, repository instructions and selected policy. Keep product
