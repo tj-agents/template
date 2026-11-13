@@ -625,25 +625,27 @@ def test_publications_share_one_source_and_keep_one_local_adapter_set(
     ] == ["demo", "template"]
 
 
-def test_aliases_are_projected_for_each_publication(tmp_path: Path) -> None:
-    make_repository(tmp_path)
-    write(
-        tmp_path / ".agents/demo/contract/old-style/SKILL.md",
-        skill_text("old-style", "contract", "Use `demo:style`.\n"),
-    )
-    add_publication(tmp_path, "template", "demo")
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        {},
+        [],
+        {
+            "demo": {
+                "old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}
+            }
+        },
+    ],
+)
+def test_compatibility_skill_alias_key_is_rejected(
+    demo_root: Path, aliases: object
+) -> None:
     payloads = json.loads(
-        (tmp_path / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
+        (demo_root / ".agents/plugins/payloads.json").read_text(encoding="utf-8")
     )
-    payloads["compatibilitySkillAliases"] = {
-        "demo": {"old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}}
-    }
-    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
-    selection = json.loads(build(tmp_path)["plugins/template/selection.json"])
-    assert selection["compatibilitySkillAliases"] == {
-        "old-style": {"replacedBy": "template:style", "removeAfter": "2027-03-31"}
-    }
-    assert selection["profiles"] == {"core": ["style", "tool"]}
+    payloads["compatibilitySkillAliases"] = aliases
+    write_json(demo_root / ".agents/plugins/payloads.json", payloads)
+    assert_rejected(demo_root, "unknown fields.*compatibilitySkillAliases")
 
 
 def test_several_plugins_prefix_their_adapter_entries(tmp_path: Path) -> None:
@@ -653,26 +655,56 @@ def test_several_plugins_prefix_their_adapter_entries(tmp_path: Path) -> None:
     assert ".claude/skills/tool/SKILL.md" not in output
 
 
-def test_an_alias_forwards_within_its_plugin_and_stays_out_of_profiles(
+@pytest.mark.parametrize(
+    ("plugin", "directory", "name"),
+    [
+        ("demo", "demo", "demo"),
+        ("extra", "extra", "extra"),
+        ("demo", "demo-handoff", "demo-handoff"),
+        ("extra", "extra-handoff", "extra-handoff"),
+        ("demo", "demo/handoff", "demo-handoff"),
+    ],
+)
+def test_published_skill_name_rejects_its_plugin_prefix(
+    tmp_path: Path, plugin: str, directory: str, name: str
+) -> None:
+    make_repository(tmp_path, ("demo", "extra"))
+    write(
+        tmp_path / f".agents/{plugin}/utility/{directory}/SKILL.md",
+        skill_text(name, "utility"),
+    )
+    assert_rejected(tmp_path, f"a skill name does not repeat its namespace {plugin}")
+
+
+def test_normal_published_skill_names_allow_prefixed_local_projections(
     tmp_path: Path,
 ) -> None:
-    make_repository(tmp_path)
+    make_repository(tmp_path, ("demo", "extra"))
+    for plugin in ("demo", "extra"):
+        write(
+            tmp_path / f".agents/{plugin}/utility/handoff/SKILL.md",
+            skill_text("handoff", "utility"),
+        )
+    output = build(tmp_path)
+    for plugin in ("demo", "extra"):
+        selection = json.loads(output[f"plugins/{plugin}/selection.json"])
+        assert selection["profiles"] == {"core": ["handoff", "style", "tool"]}
+        assert "compatibilitySkillAliases" not in selection
+        for host in (".claude", ".codex"):
+            assert f"{host}/skills/{plugin}-handoff/SKILL.md" in output
+        assert f"plugins/{plugin}/skills/handoff/SKILL.md" in output
+
+
+@pytest.mark.parametrize("name", ["extra", "extra-handoff"])
+def test_published_skill_name_rejects_a_publication_prefix(
+    demo_root: Path, name: str
+) -> None:
     write(
-        tmp_path / ".agents/demo/contract/old-style/SKILL.md",
-        skill_text("old-style", "contract", "Use `demo:style`.\n"),
+        demo_root / f".agents/demo/utility/{name}/SKILL.md",
+        skill_text(name, "utility"),
     )
-    payloads = json.loads((tmp_path / ".agents/plugins/payloads.json").read_text())
-    payloads["compatibilitySkillAliases"] = {
-        "demo": {"old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}}
-    }
-    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
-    selection = json.loads(build(tmp_path)["plugins/demo/selection.json"])
-    assert selection["profiles"] == {"core": ["style", "tool"]}
-    payloads["compatibilitySkillAliases"]["demo"]["old-style"]["replacedBy"] = (
-        "demo:missing"
-    )
-    write_json(tmp_path / ".agents/plugins/payloads.json", payloads)
-    assert_rejected(tmp_path, "alias must forward")
+    add_publication(demo_root, "extra", "demo")
+    assert_rejected(demo_root, f"extra:{name}: a skill name does not repeat")
 
 
 def test_a_family_member_publishes_its_folder_path_joined_by_hyphens(

@@ -36,6 +36,10 @@ Choose a lowercase hyphenated name for the subject a reader is looking for. Befo
 both hosts for the same bare name and near misses such as plurals, reordered words or changed hyphenation.
 Use a qualified `plugin:name` when referring to a shared bare name.
 
+Use the same bare name for the same concept across plugins, for example hypothetical
+`tracker-a:create-work-item` and `tracker-b:create-work-item`. Never repeat the plugin prefix in a
+published name: `agent:handoff`, not `agent:agent-handoff`.
+
 Write a discriminating description that states what the skill owns and says `Use when …` for only its
 selection trigger. A broad description makes skills compete and obscures the right owner.
 

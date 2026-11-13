@@ -21,7 +21,6 @@ FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTA
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
-DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 BARE_SKILL_REFERENCE = re.compile(r"`([a-z][a-z0-9-]+)`\s+skill(?:'s)?")
 MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
@@ -75,7 +74,6 @@ TIER_MATCHERS = ("files", "globs", "content", "remote")
 PAYLOAD_FIELDS = {
     "payloads",
     "dependencies",
-    "compatibilitySkillAliases",
     "resources",
     "host_adapters",
 }
@@ -410,6 +408,12 @@ def validate_payloads(payloads: JSONObject, plugins: Plugins) -> dict[str, str]:
                 "one canonical source"
             )
         publications[package] = owners[0]
+        for name in plugins[owners[0]]:
+            if name == package or name.startswith(f"{package}-"):
+                raise ValueError(
+                    f"{package}:{name}: a skill name does not repeat its namespace "
+                    f"{package}"
+                )
     for source in plugins:
         if publications.get(source) != source:
             raise ValueError(
@@ -448,47 +452,6 @@ def validate_payloads(payloads: JSONObject, plugins: Plugins) -> dict[str, str]:
                     f"{TJ_AGENTS_MARKETPLACE}/<package>"
                 )
     validate_local_dependency_cycles(dependencies, plugins)
-    compatibility_aliases = payloads.get("compatibilitySkillAliases", {})
-    if not isinstance(compatibility_aliases, dict):
-        raise ValueError(
-            ".agents/plugins/payloads.json: compatibilitySkillAliases must be an object"
-        )
-    for plugin, aliases in compatibility_aliases.items():
-        if plugin not in plugins or not isinstance(aliases, dict):
-            raise ValueError(
-                ".agents/plugins/payloads.json: invalid compatibility aliases "
-                f"for {plugin}"
-            )
-        skills = plugins[plugin]
-        for alias, declaration in aliases.items():
-            if not isinstance(declaration, dict) or set(declaration) != {
-                "replacedBy",
-                "removeAfter",
-            }:
-                raise ValueError(
-                    f"{plugin}:{alias}: an alias declares exactly replacedBy "
-                    "and removeAfter"
-                )
-            target = str(declaration["replacedBy"]).removeprefix(f"{plugin}:")
-            if (
-                alias not in skills
-                or declaration["replacedBy"] != f"{plugin}:{target}"
-                or target not in skills
-                or target in aliases
-            ):
-                raise ValueError(
-                    f"{plugin}:{alias}: an alias must forward to another "
-                    "skill of the same plugin"
-                )
-            if not DATE.fullmatch(str(declaration["removeAfter"])):
-                raise ValueError(f"{plugin}:{alias}: removeAfter must be YYYY-MM-DD")
-            if (
-                skills[alias]["metadata"]["profile"]
-                != skills[target]["metadata"]["profile"]
-            ):
-                raise ValueError(
-                    f"{plugin}:{alias}: an alias keeps its replacement's profile"
-                )
     return publications
 
 
@@ -910,16 +873,6 @@ def validate_publication_dependencies(
                     f".agents/plugins/payloads.json: {source} cannot depend on "
                     f"{need}; name a package of this repository bare"
                 )
-
-
-def publication_aliases(package: str, aliases: JSONObject) -> JSONObject:
-    return {
-        name: {
-            "replacedBy": f"{package}:{declaration['replacedBy'].split(':', 1)[1]}",
-            "removeAfter": declaration["removeAfter"],
-        }
-        for name, declaration in aliases.items()
-    }
 
 
 def validate_tiers(root: Path, plugins: Plugins, repository: str) -> None:
@@ -1593,7 +1546,6 @@ def build(root: Path) -> dict[str, bytes]:
     validate_tiers(root, plugins, repository)
     manifests, templates = load_manifests(root, publications, repository)
     validate_skill_references(plugins)
-    aliases = payloads.get("compatibilitySkillAliases", {})
     dependencies = payloads.get("dependencies", {})
     validate_publication_dependencies(publications, dependencies)
     single_plugin = len(plugins) == 1
@@ -1656,7 +1608,6 @@ def build(root: Path) -> dict[str, bytes]:
         skills = plugins[source]
         effective = effective_dependencies(config, source, dependencies)
         ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
-        package_aliases = publication_aliases(package, aliases.get(source, {}))
         for skill in ordered:
             canonical_dir = f"plugins/{package}/{skill['directory']}"
             package_adapter_dir = f"plugins/{package}/skills/{skill['name']}"
@@ -1712,17 +1663,13 @@ def build(root: Path) -> dict[str, bytes]:
         )
         profiles: dict[str, list[str]] = {}
         for skill in ordered:
-            if skill["name"] not in package_aliases:
-                profiles.setdefault(skill["metadata"]["profile"], []).append(
-                    skill["name"]
-                )
+            profiles.setdefault(skill["metadata"]["profile"], []).append(skill["name"])
         selection = {
             "plugin": package,
             "dependencies": effective,
             "profiles": {
                 profile: sorted(names) for profile, names in sorted(profiles.items())
             },
-            "compatibilitySkillAliases": package_aliases,
             "skills": [
                 {
                     "name": skill["name"],
