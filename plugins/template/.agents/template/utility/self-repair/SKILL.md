@@ -29,11 +29,12 @@ of these conditions:
   repair remains within the user's existing limits.
 
 An organization name, publisher account or checkout location does not establish these conditions.
-`tj-agents/company` is employer tooling and remains outside automatic repair. An employer task does
-not grant automatic repair authority even when the proposed destination is personal tooling. Explain
+A specific profile's source repository is employer tooling and remains outside automatic repair; see
+[Generic and specific profiles](https://github.com/tj-agents/docs/blob/main/PLUGINS.md#generic-and-specific-profiles).
+An employer task does not grant automatic repair authority even when the proposed destination is personal tooling. Explain
 the defect and propose a separate source repair within the employer's evidence boundaries.
 
-Standards owned outside tj-agents, such as Concertable's, and product defects are outside this skill;
+Standards owned outside tj-agents, such as a product repository's own, and product defects are outside this skill;
 they use their owner's bugfix, feature or plan workflow with that owner's authorization.
 
 If the existing rule is adequate and the agent overlooked it, correct the task and explain the evidence.
@@ -56,6 +57,9 @@ same repair. Reconcile that owner and contribute the evidence without creating a
 Keep the original task's owner and writer lease.
 
 Record only through the repository's selected problem-record profile under Workflow's recording contract.
+When the active goal defers an eligible repair, record it with `tj item create` in the source repository.
+Never keep it in host memory: memory lives on one machine, so the defect repeats everywhere else, and
+Base refuses the write.
 Creating a record, fixing the active task and repairing a source are separate decisions. Preserve
 employer-owned facts within the authorized employer task; do not redirect them into a personal tracker.
 Missing recording consent does not require a substitute record or prevent unaffected authorized work.
