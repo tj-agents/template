@@ -37,6 +37,27 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          if (-not (Test-Path -LiteralPath pyproject.toml -PathType Leaf)) {
+            python -B .python-standards/.agents/python/utility/check/scripts/check_python.py --root .
+            @'
+          import runpy
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          checks = runpy.run_path(str(root / ".python-standards/.agents/python/utility/check/scripts/run_checks.py"))
+          inventory = checks["execute"](("git", "ls-files", "-co", "--exclude-standard", "-z"), root)
+          if inventory.code:
+              print(inventory.output, file=sys.stderr)
+              raise SystemExit(inventory.code)
+          for name in inventory.output.split("\0"):
+              path = (root / name).resolve()
+              if path.suffix in {".py", ".pyi"} and path.is_file() and checks["authored"](path, root):
+                  raise SystemExit(checks["main"](["--root", str(root), "--mypy-only"]))
+          print("Python source standards passed; no authored Python requires project tooling.")
+          '@ | python -B -
+            exit $LASTEXITCODE
+          }
           uv sync --locked
           uv run ruff format --check
           uv run ruff check
