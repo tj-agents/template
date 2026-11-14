@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -96,6 +97,179 @@ def test_python_standards_pins_the_checker_and_runs_the_gate(
         "python -B .python-standards/.agents/python/utility/check/scripts/"
         "check_python.py --root ." in python_standards
     )
+
+
+@pytest.fixture
+def python_consumer(tmp_path: Path) -> Path:
+    scripts = tmp_path / ".python-standards/.agents/python/utility/check/scripts"
+    scripts.mkdir(parents=True)
+    scripts.joinpath("run_checks.py").write_text(
+        "import os, subprocess, sys\n"
+        "from pathlib import Path\n"
+        "from types import SimpleNamespace\n"
+        "def authored(path, root):\n"
+        "    return not path.is_relative_to(root / '.python-standards') and "
+        "path.relative_to(root).as_posix() not in {'.agents/sync_generated.py', "
+        "'.codex/hooks/bootstrap.py', '.codex/hooks/snapshot.py'}\n"
+        "def execute(command, root):\n"
+        "    with (root / 'events.txt').open('a', encoding='utf-8') as stream:\n"
+        "        stream.write('inventory\\n')\n"
+        "    if os.environ.get('FAILURE') == 'inventory':\n"
+        "        return SimpleNamespace(code=17, output='inventory unavailable')\n"
+        "    result = subprocess.run(command, cwd=root, capture_output=True, "
+        "text=True, encoding='utf-8', check=False)\n"
+        "    return SimpleNamespace(code=result.returncode, "
+        "output=result.stdout + result.stderr)\n"
+        "def main(arguments=None):\n"
+        "    arguments = sys.argv[1:] if arguments is None else arguments\n"
+        "    with Path('events.txt').open('a', encoding='utf-8') as stream:\n"
+        "        stream.write('mypy ' + ' '.join(arguments) + '\\n')\n"
+        "    if not Path('pyproject.toml').is_file():\n"
+        "        print('Python standards require pyproject.toml')\n"
+        "        return 2\n"
+        "    return 19 if os.environ.get('FAILURE') == 'mypy' else 0\n"
+        "if __name__ == '__main__':\n"
+        "    raise SystemExit(main())\n",
+        encoding="utf-8",
+    )
+    scripts.joinpath("check_python.py").write_text(
+        "import os\n"
+        "from pathlib import Path\n"
+        "with Path('events.txt').open('a', encoding='utf-8') as stream:\n"
+        "    stream.write('source\\n')\n"
+        "raise SystemExit(13 if os.environ.get('FAILURE') == 'source' else 0)\n",
+        encoding="utf-8",
+    )
+    tmp_path.joinpath(".python-standards/uv.py").write_text(
+        "import os, sys\n"
+        "from pathlib import Path\n"
+        "command = 'uv ' + ' '.join(sys.argv[1:])\n"
+        "with Path('events.txt').open('a', encoding='utf-8') as stream:\n"
+        "    stream.write(command + '\\n')\n"
+        "raise SystemExit(23 if os.environ.get('FAILURE') == command else 0)\n",
+        encoding="utf-8",
+    )
+    subprocess.run(
+        ["git", "init", "--quiet", str(tmp_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return tmp_path
+
+
+def run_python_standards(
+    workflow: str, root: Path, failure: str = ""
+) -> subprocess.CompletedProcess[str]:
+    body = step(workflow, "Run Python standards").split("        run: |\n", 1)[1]
+    command = "\n".join(line.removeprefix("          ") for line in body.splitlines())
+    executable = sys.executable.replace("'", "''")
+    wrappers = (
+        "function python {\n"
+        f"  if ($MyInvocation.ExpectingInput) {{ $input | & '{executable}' @args }}\n"
+        f"  else {{ & '{executable}' @args }}\n"
+        "}\n"
+        f"function uv {{ & '{executable}' -B .python-standards/uv.py @args }}\n"
+    )
+    return subprocess.run(
+        ["pwsh", "-NoProfile", "-NonInteractive", "-Command", wrappers + command],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        env=os.environ | {"FAILURE": failure, "PYTHONDONTWRITEBYTECODE": "1"},
+    )
+
+
+def python_events(root: Path) -> list[str]:
+    return (root / "events.txt").read_text(encoding="utf-8").splitlines()
+
+
+def test_python_standards_checks_vendored_only_consumer_without_project_tools(
+    python_standards: str, python_consumer: Path
+) -> None:
+    for relative in (
+        ".agents/sync_generated.py",
+        ".codex/hooks/bootstrap.py",
+        ".codex/hooks/snapshot.py",
+    ):
+        path = python_consumer / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("vendored = True\n", encoding="utf-8")
+    result = run_python_standards(python_standards, python_consumer)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert python_events(python_consumer) == ["source", "inventory"]
+    assert not (python_consumer / "pyproject.toml").exists()
+
+
+@pytest.mark.parametrize("suffix", [".py", ".pyi"])
+def test_python_standards_rejects_authored_python_without_project_configuration(
+    python_standards: str, python_consumer: Path, suffix: str
+) -> None:
+    (python_consumer / f"authored{suffix}").write_text("value: int\n", encoding="utf-8")
+    result = run_python_standards(python_standards, python_consumer)
+    assert result.returncode != 0
+    assert "Python standards require pyproject.toml" in result.stdout + result.stderr
+    assert python_events(python_consumer) == [
+        "source",
+        "inventory",
+        f"mypy --root {python_consumer.resolve()} --mypy-only",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_events"),
+    [("source", ["source"]), ("inventory", ["source", "inventory"])],
+)
+def test_python_standards_propagates_nonproject_check_failures(
+    python_standards: str,
+    python_consumer: Path,
+    failure: str,
+    expected_events: list[str],
+) -> None:
+    result = run_python_standards(python_standards, python_consumer, failure)
+    assert result.returncode != 0
+    assert python_events(python_consumer) == expected_events
+    if failure == "inventory":
+        assert "inventory unavailable" in result.stdout + result.stderr
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "",
+        "uv sync --locked",
+        "uv run ruff format --check",
+        "uv run ruff check",
+        "mypy",
+        "source",
+    ],
+)
+def test_python_standards_preserves_configured_project_gate_and_failures(
+    python_standards: str, python_consumer: Path, failure: str
+) -> None:
+    (python_consumer / "pyproject.toml").write_text(
+        "[tool.uv]\npackage = false\n", encoding="utf-8"
+    )
+    result = run_python_standards(python_standards, python_consumer, failure)
+    expected = [
+        "uv sync --locked",
+        "uv run ruff format --check",
+        "uv run ruff check",
+        "mypy --root . --mypy-only",
+        "source",
+    ]
+    if failure:
+        failing_event = "mypy --root . --mypy-only" if failure == "mypy" else failure
+        assert result.returncode != 0
+        assert (
+            python_events(python_consumer)
+            == expected[: expected.index(failing_event) + 1]
+        )
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert python_events(python_consumer) == expected
 
 
 def test_plugin_ci_runs_the_shared_python_standards_gate(plugin_ci: str) -> None:
