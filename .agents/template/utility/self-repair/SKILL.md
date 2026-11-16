@@ -29,8 +29,8 @@ of these conditions:
   repair remains within the user's existing limits.
 
 An organization name, publisher account or checkout location does not establish these conditions.
-A specific profile's source repository is employer tooling and remains outside automatic repair; see
-[Generic and specific profiles](https://github.com/tj-agents/docs/blob/main/PLUGINS.md#generic-and-specific-profiles).
+An organization plugin's source repository is employer tooling and remains outside automatic repair; see
+[Plugin kinds](https://github.com/tj-agents/docs/blob/main/PLUGINS.md#plugin-kinds).
 An employer task does not grant automatic repair authority even when the proposed destination is personal tooling. Explain
 the defect and propose a separate source repair within the employer's evidence boundaries.
 
