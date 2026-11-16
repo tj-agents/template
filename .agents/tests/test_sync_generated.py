@@ -1771,7 +1771,12 @@ def install_hook_runner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
         assert shutil.which("tj_hook") is not None
         return
     runner = tmp_path / "tj_hook"
-    write(runner, '#!/bin/sh\n[ "$1" = "--" ] || exit 97\nshift\nexec "$@"\n')
+    write(
+        runner,
+        "#!/bin/sh\n"
+        '[ "$1" != "--preserve-descendants" ] || shift\n'
+        '[ "$1" = "--" ] || exit 97\nshift\nexec "$@"\n',
+    )
     runner.chmod(0o755)
     monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
 
@@ -1786,11 +1791,12 @@ def install_package(output: dict[str, bytes], destination: Path) -> None:
 
 
 def run_codex_hook(
-    command: str, package: Path, data: Path
+    command: str, package: Path, data: Path, *, preserve: bool = False
 ) -> subprocess.CompletedProcess[str]:
     arguments = shlex.split(command.replace("${PLUGIN_ROOT}", package.as_posix()))
-    assert arguments[:3] == ["tj_hook", "--", "python3"]
-    arguments[2] = sys.executable
+    prefix = ["tj_hook", *(["--preserve-descendants"] if preserve else []), "--"]
+    assert arguments[: len(prefix) + 1] == [*prefix, "python3"]
+    arguments[len(prefix)] = sys.executable
     return subprocess.run(
         arguments,
         capture_output=True,
@@ -1803,17 +1809,26 @@ def run_codex_hook(
 
 
 def run_windows_bootstrap(
-    command: str, package: Path
+    command: str, package: Path, *, preserve: bool = False
 ) -> subprocess.CompletedProcess[str]:
     prefix = "cmd.exe /d /s /v:off /c "
     assert command.startswith(prefix)
     arguments = shlex.split(command.removeprefix(prefix))
-    assert arguments[:6] == ["tj_hook", "--", "python", "-I", "-B", "-c"]
+    expected = [
+        "tj_hook",
+        *(["--preserve-descendants"] if preserve else []),
+        "--",
+        "python",
+        "-I",
+        "-B",
+        "-c",
+    ]
+    assert arguments[: len(expected)] == expected
     environment = {**os.environ, "PLUGIN_ROOT": str(package)}
     environment.pop("PLUGIN_DATA", None)
     environment.pop("TJ_AGENTS_STARTUP_SNAPSHOT_DIRECTORY", None)
     return subprocess.run(
-        [sys.executable, "-I", "-B", "-c", arguments[6]],
+        [sys.executable, "-I", "-B", "-c", arguments[len(expected)]],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -1851,6 +1866,136 @@ def test_codex_hooks_run_through_a_verified_package_snapshot(
     result = run_codex_hook(hook["command"], package, tmp_path / "fresh-data")
     assert result.returncode == 2
     assert "integrity check failed" in result.stderr
+
+
+def test_preserve_descendants_opt_in_wraps_outer_hook_and_keeps_snapshot_integrity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    add_claude_hook(tmp_path)
+    install_hook_runner(tmp_path, monkeypatch)
+    codex_path = tmp_path / ".agents/hooks/demo-codex.json"
+    claude_path = tmp_path / ".claude/hooks/demo.json"
+    codex = json.loads(codex_path.read_text(encoding="utf-8"))
+    claude = json.loads(claude_path.read_text(encoding="utf-8"))
+    codex["hooks"]["SessionStart"][0]["hooks"][0]["preserveDescendants"] = True
+    claude["hooks"]["PreToolUse"][0]["hooks"][0]["preserveDescendants"] = True
+    write_json(codex_path, codex)
+    write_json(claude_path, claude)
+
+    output = sync_generated.build(tmp_path)
+    codex_hook = json.loads(output["plugins/demo/hooks/codex.json"])["hooks"][
+        "SessionStart"
+    ][0]["hooks"][0]
+    claude_hook = json.loads(output["plugins/demo/hooks/claude.json"])["hooks"][
+        "PreToolUse"
+    ][0]["hooks"][0]
+    assert "preserveDescendants" not in codex_hook
+    assert "preserveDescendants" not in claude_hook
+    assert codex_hook["command"].startswith(
+        "tj_hook --preserve-descendants -- python3 "
+    )
+    assert codex_hook["commandWindows"].startswith(
+        "cmd.exe /d /s /v:off /c tj_hook --preserve-descendants -- python "
+    )
+    assert claude_hook["command"] == "tj_hook"
+    assert claude_hook["args"][:2] == ["--preserve-descendants", "--"]
+
+    package = tmp_path / "cache/demo/1.0.0"
+    install_package(output, package)
+    claude_args = [
+        argument.replace("${CLAUDE_PLUGIN_ROOT}", package.as_posix())
+        for argument in claude_hook["args"]
+    ]
+    result = subprocess.run(
+        [claude_hook["command"], *claude_args],
+        input="hook stdin\n",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+        timeout=30,
+    )
+    assert result.returncode == 17
+    assert result.stdout == "hook stdin\nhook stdout\n"
+    result = run_codex_hook(
+        codex_hook["command"], package, tmp_path / "data", preserve=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "probe ran\n"
+    result = run_windows_bootstrap(codex_hook["commandWindows"], package, preserve=True)
+    assert result.returncode == 0, result.stderr
+    if os.name == "nt":
+        result = subprocess.run(
+            codex_hook["commandWindows"],
+            shell=True,
+            env={**os.environ, "PLUGIN_ROOT": str(package)},
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == "probe ran\n"
+    (package / "hooks/probe.py").write_text("print('tampered')\n", encoding="utf-8")
+    result = run_codex_hook(
+        codex_hook["command"], package, tmp_path / "fresh", preserve=True
+    )
+    assert result.returncode == 2
+    assert "integrity check failed" in result.stderr
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+@pytest.mark.parametrize("value", [None, "true", 1, [], {}])
+def test_preserve_descendants_rejects_non_boolean_metadata(
+    tmp_path: Path, host: str, value: object
+) -> None:
+    make_repository(tmp_path)
+    if host == "codex":
+        add_codex_hook(tmp_path)
+        path = tmp_path / ".agents/hooks/demo-codex.json"
+        event = "SessionStart"
+    else:
+        add_claude_hook(tmp_path)
+        path = tmp_path / ".claude/hooks/demo.json"
+        event = "PreToolUse"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["hooks"][event][0]["hooks"][0]["preserveDescendants"] = value
+    write_json(path, payload)
+    with pytest.raises(ValueError, match="preserveDescendants must be a boolean"):
+        sync_generated.build(tmp_path)
+
+
+def test_async_does_not_implicitly_preserve_descendants(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_codex_hook(tmp_path)
+    path = tmp_path / ".agents/hooks/demo-codex.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    hook = payload["hooks"]["SessionStart"][0]["hooks"][0]
+    hook["async"] = True
+    hook["preserveDescendants"] = False
+    write_json(path, payload)
+    result = json.loads(sync_generated.build(tmp_path)["plugins/demo/hooks/codex.json"])
+    generated = result["hooks"]["SessionStart"][0]["hooks"][0]
+    assert generated["async"] is True
+    assert "preserveDescendants" not in generated
+    assert generated["command"].startswith("tj_hook -- python3 ")
+    assert generated["commandWindows"].startswith(
+        "cmd.exe /d /s /v:off /c tj_hook -- python "
+    )
+
+
+def test_preserve_descendants_is_only_valid_for_command_hooks(tmp_path: Path) -> None:
+    make_repository(tmp_path)
+    add_claude_hook(tmp_path)
+    path = tmp_path / ".claude/hooks/demo.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["hooks"]["PreToolUse"][0]["hooks"][1]["preserveDescendants"] = False
+    write_json(path, payload)
+    with pytest.raises(ValueError, match="preserveDescendants requires a command hook"):
+        sync_generated.build(tmp_path)
 
 
 def test_codex_windows_hook_bootstrap_uses_the_native_plugin_root(
