@@ -120,6 +120,11 @@ Resources mapped beneath `skills/<skill>/` also ship beside that skill's reposit
 Codex scripts, and beside a separate installed Codex entry when declared. This keeps all generated
 entry points able to import the same bundled library. Authored source runs in the project's uv environment.
 
+An authored command hook may set `"preserveDescendants": true` when it intentionally starts a
+long-lived, separately supervised child. The generator removes this metadata and configures the outer
+`tj_hook` launcher to preserve that child after the command exits normally. The default still terminates
+descendants; setting `async` does not change that default. Cancellation continues to stop the hook tree.
+
 ```json
 {"plugin": "demo", "distribution": "owner-library", "destination": ".agents/demo/runtime"}
 ```
