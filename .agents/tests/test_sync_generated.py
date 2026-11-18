@@ -1382,7 +1382,7 @@ def test_harness_rejects_unreadable_json(
 
     monkeypatch.setattr(sync_generated, "read", locked)
     with pytest.raises(ValueError, match="unreadable JSON"):
-        sync_generated.harness_body(demo_root, "demo", {}, [], False)
+        sync_generated.harness_body(demo_root, "demo", {}, [])
 
 
 def test_harness_cannot_claim_another_publication_source(demo_root: Path) -> None:
@@ -1473,11 +1473,15 @@ def test_every_marketplace_is_tj_agents_without_cross_marketplace_grants(
 
 
 @pytest.mark.parametrize("kind", ["stack", "tool", "utility", "profile"])
-def test_harness_drops_every_marketplace_but_tj_agents(
+def test_harness_drops_every_marketplace_and_ignores_authored_plugins(
     demo_root: Path, kind: str
 ) -> None:
     config = demo_root / ".agents/plugins/template.json"
     write_json(config, {**json.loads(config.read_text()), "type": kind})
+    payloads_path = demo_root / ".agents/plugins/payloads.json"
+    payloads = json.loads(payloads_path.read_text())
+    payloads["dependencies"] = {"demo": ["tj-agents/work"]}
+    write_json(payloads_path, payloads)
     write_json(
         demo_root / ".agents/plugins/manifests/harness/demo.json",
         {
@@ -1487,7 +1491,7 @@ def test_harness_drops_every_marketplace_but_tj_agents(
                     {"id": "demo-agents", "repository": "owner/demo"},
                     {"id": "base-agents", "repository": "tj-agents/core"},
                 ],
-                "plugins": ["tj-agents/demo", "tj-agents/work"],
+                "plugins": ["tj-agents/demo", "tj-agents/stale"],
             },
         },
     )
@@ -1500,21 +1504,60 @@ def test_harness_drops_every_marketplace_but_tj_agents(
         "stack": ["tj-agents/base", "tj-agents/engineering"],
         "profile": ["tj-agents/base"],
     }
-    assert harness["requires"]["plugins"] == (
-        ["tj-agents/demo", *inherited[kind]]
-        if kind in inherited
-        else ["tj-agents/demo", "tj-agents/work"]
-    )
+    assert harness["requires"]["plugins"] == [
+        "tj-agents/demo",
+        *inherited.get(kind, []),
+        "tj-agents/work",
+    ]
 
 
 @pytest.mark.parametrize("host", ["claude", "codex"])
-def test_manifest_dependencies_name_only_tj_agents(demo_root: Path, host: str) -> None:
+def test_manifest_dependencies_are_rejected_when_authored_directly(
+    demo_root: Path, host: str
+) -> None:
     path = demo_root / f".agents/plugins/manifests/{host}/demo.json"
     manifest = json.loads(path.read_text())
-    write_json(path, {**manifest, "dependencies": ["base@tj-agents", "extra"]})
-    build(demo_root)
-    write_json(path, {**manifest, "dependencies": ["base@base-agents"]})
-    assert_rejected(demo_root, f"the {host} manifest dependencies are bare packages")
+    write_json(path, {**manifest, "dependencies": ["base@tj-agents"]})
+    assert_rejected(
+        demo_root,
+        f"the {host} manifest must omit dependencies; declare them in "
+        r"\.agents/plugins/payloads\.json",
+    )
+
+
+@pytest.mark.parametrize("kind", ["tool", "utility"])
+def test_dependencies_project_into_the_manifest_and_harness_for_every_type(
+    demo_root: Path, kind: str
+) -> None:
+    make_repository(demo_root, ("demo", "extra"))
+    config = demo_root / ".agents/plugins/template.json"
+    write_json(config, {**json.loads(config.read_text()), "type": kind})
+    write_json(demo_root / ".agents/plugins/manifests/harness/demo.json", VALID_HARNESS)
+
+    output = build(demo_root)
+    claude = json.loads(output["plugins/demo/.claude-plugin/plugin.json"])
+    codex = json.loads(output["plugins/demo/.codex-plugin/plugin.json"])
+    assert "dependencies" not in claude
+    assert "dependencies" not in codex
+    assert json.loads(output["plugins/demo/harness.json"])["requires"]["plugins"] == [
+        "tj-agents/demo"
+    ]
+
+    path = demo_root / ".agents/plugins/payloads.json"
+    payloads = json.loads(path.read_text())
+    payloads["dependencies"] = {"demo": ["tj-agents/work", "extra"]}
+    write_json(path, payloads)
+
+    output = build(demo_root)
+    claude = json.loads(output["plugins/demo/.claude-plugin/plugin.json"])
+    codex = json.loads(output["plugins/demo/.codex-plugin/plugin.json"])
+    assert claude["dependencies"] == ["work@tj-agents", "extra@tj-agents"]
+    assert "dependencies" not in codex
+    assert json.loads(output["plugins/demo/harness.json"])["requires"]["plugins"] == [
+        "tj-agents/demo",
+        "tj-agents/work",
+        "tj-agents/extra",
+    ]
 
 
 def test_legacy_template_config_pin_is_rejected(demo_root: Path) -> None:
