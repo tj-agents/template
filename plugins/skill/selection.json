@@ -1,6 +1,7 @@
 {
   "plugin": "skill",
   "dependencies": [
+    "tj-agents/base",
     "tj-agents/engineering"
   ],
   "profiles": {
