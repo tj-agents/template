@@ -1,0 +1,66 @@
+diff --git a/.agents/tests/test_packaging.py b/.agents/tests/test_packaging.py
+index 991812f..98c0fa4 100644
+--- a/.agents/tests/test_packaging.py
++++ b/.agents/tests/test_packaging.py
+@@ -1,5 +1,6 @@
+ from pathlib import Path
+ import json
++import os
+ import re
+ import unittest
+ 
+@@ -17,6 +18,15 @@ def load(relative):
+ 
+ 
+ class PackagingTests(unittest.TestCase):
++    def canonical_bytes(self, path: Path, content: str | None = None) -> bytes:
++        content = content or path.read_text(encoding="utf-8")
++        target = re.search(r"canonical definition\]\(([^)]+)\)", content).group(1)
++        canonical = (path.parent / target).resolve()
++        if path.is_relative_to(ROOT / "plugins/work/skills"):
++            self.assertTrue(canonical.is_relative_to((ROOT / "plugins/work").resolve()), str(canonical))
++        self.assertTrue(canonical.is_file(), str(canonical))
++        return canonical.read_bytes()
++
+     def test_employer_detection_is_required(self):
+         tier = load("plugins/work/tier.json")
+         self.assertEqual(tier["schema_version"], 3)
+@@ -43,7 +53,7 @@ class PackagingTests(unittest.TestCase):
+         source = ROOT / ".agents/work/utility"
+         for path in source.rglob("SKILL.md"):
+             name = "-".join(path.parent.relative_to(source).parts)
+-            authored[name] = path.read_text(encoding="utf-8")
++            authored[name] = path.read_bytes()
+         self.assertEqual(set(authored), EXPECTED_SKILLS)
+         for output in ("plugins/work/skills", ".claude/skills", ".codex/skills"):
+             directory = ROOT / output
+@@ -52,11 +62,24 @@ class PackagingTests(unittest.TestCase):
+             for path in generated:
+                 content = path.read_text(encoding="utf-8")
+                 name = re.search(r"^name: (.+)$", content, re.MULTILINE).group(1)
+-                if output == "plugins/work/skills":
+-                    self.assertEqual(content, authored[name], str(path))
+-                else:
+-                    target = re.search(r"canonical definition\]\(([^)]+)\)", content).group(1)
+-                    self.assertEqual((path.parent / target).resolve().read_text(encoding="utf-8"), authored[name])
++                self.assertEqual(self.canonical_bytes(path, content), authored[name], str(path))
++
++    def test_package_thin_entry_requires_a_shipped_canonical_definition(self):
++        path = ROOT / "plugins/work/skills/ask/SKILL.md"
++        content = path.read_text(encoding="utf-8")
++        target = re.search(r"canonical definition\]\(([^)]+)\)", content).group(1)
++        missing = "../../.agents/work/utility/missing/SKILL.md"
++        with self.assertRaisesRegex(AssertionError, "missing"):
++            self.canonical_bytes(path, content.replace(target, missing))
++
++    def test_package_thin_entry_cannot_redirect_to_unshipped_authored_content(self):
++        path = ROOT / "plugins/work/skills/ask/SKILL.md"
++        content = path.read_text(encoding="utf-8")
++        target = re.search(r"canonical definition\]\(([^)]+)\)", content).group(1)
++        redirect = os.path.relpath(ROOT / ".agents/work/utility/ask/SKILL.md", path.parent).replace("\\", "/")
++        self.assertTrue((path.parent / redirect).resolve().is_file())
++        with self.assertRaises(AssertionError):
++            self.canonical_bytes(path, content.replace(target, redirect))
+ 
+     def test_payload_contains_no_employer_routes_or_provider_commands(self):
+         for path in (ROOT / "plugins/work").rglob("*"):

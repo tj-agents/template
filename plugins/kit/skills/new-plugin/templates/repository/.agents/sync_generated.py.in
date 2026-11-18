@@ -16,7 +16,7 @@ import shutil
 import stat
 
 
-KIT_VERSION = "1.2.2"
+KIT_VERSION = "1.3.0"
 FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
 NAME = re.compile(r"^[a-z][a-z0-9-]*$")
 KIND = re.compile(r"^[a-z]+$")
@@ -59,6 +59,8 @@ def load(path: Path):
         return json.loads(read(path))
     except FileNotFoundError:
         raise ValueError(f"Missing {path.as_posix()}") from None
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{path.as_posix()}: invalid JSON ({error.msg})") from None
 
 
 def dump(value) -> str:
@@ -86,6 +88,8 @@ def is_link_or_junction(path: Path) -> bool:
 
 def load_config(root: Path) -> dict:
     config = load(root / ".agents/plugins/kit.json")
+    if not isinstance(config, dict):
+        raise ValueError(".agents/plugins/kit.json: must be a JSON object")
     if config.get("schema_version") != 1:
         raise ValueError(".agents/plugins/kit.json: schema_version must be 1")
     if config.get("kit") != KIT_VERSION:
@@ -210,6 +214,8 @@ def discover(root: Path, namespace: str) -> dict[str, dict[str, dict]]:
 
 
 def validate_payloads(payloads: dict, plugins: dict[str, dict[str, dict]]) -> None:
+    if not isinstance(payloads, dict):
+        raise ValueError(".agents/plugins/payloads.json: must be a JSON object")
     unknown = set(payloads) - PAYLOAD_FIELDS
     if unknown:
         raise ValueError(f".agents/plugins/payloads.json: unknown fields {sorted(unknown)}")
@@ -218,13 +224,19 @@ def validate_payloads(payloads: dict, plugins: dict[str, dict[str, dict]]) -> No
             ".agents/plugins/payloads.json: payloads must map each plugin folder to itself: "
             + ", ".join(sorted(plugins))
         )
-    for plugin, needs in payloads.get("dependencies", {}).items():
+    dependencies = payloads.get("dependencies", {})
+    if not isinstance(dependencies, dict):
+        raise ValueError(".agents/plugins/payloads.json: dependencies must be an object")
+    for plugin, needs in dependencies.items():
         if plugin not in plugins or not isinstance(needs, list) or not all(isinstance(need, str) for need in needs) or len(needs) != len(set(needs)):
             raise ValueError(f".agents/plugins/payloads.json: invalid dependencies for {plugin}")
         for need in needs:
             if (need not in plugins and not re.fullmatch(r"[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*", need)) or need == plugin:
                 raise ValueError(f".agents/plugins/payloads.json: {plugin} cannot depend on {need}")
-    for plugin, aliases in payloads.get("compatibilitySkillAliases", {}).items():
+    compatibility_aliases = payloads.get("compatibilitySkillAliases", {})
+    if not isinstance(compatibility_aliases, dict):
+        raise ValueError(".agents/plugins/payloads.json: compatibilitySkillAliases must be an object")
+    for plugin, aliases in compatibility_aliases.items():
         if plugin not in plugins or not isinstance(aliases, dict):
             raise ValueError(f".agents/plugins/payloads.json: invalid compatibility aliases for {plugin}")
         skills = plugins[plugin]
@@ -254,6 +266,8 @@ def validate_tiers(root: Path, plugins: dict, repository: str) -> None:
     for plugin in plugins:
         source = f".agents/tiers/{plugin}.json"
         tier = load(root / source)
+        if not isinstance(tier, dict):
+            raise ValueError(f"{source}: must be a JSON object")
         if tier.get("schema_version") not in (1, 2, 3):
             raise ValueError(f"{source}: schema_version must be 1, 2 or 3")
         if tier.get("tier") != plugin:
@@ -290,6 +304,10 @@ def load_manifests(root: Path, plugins: dict, repository: str) -> tuple[dict, di
             raise ValueError(f"{MANIFEST_ROOT}/{host} must hold exactly {', '.join(expected)}")
         manifests[host] = {plugin: load(host_dir / f"{plugin}.json") for plugin in plugins}
         templates[host] = load(host_dir / "marketplace.json")
+        if not isinstance(templates[host], dict):
+            raise ValueError(f"{MANIFEST_ROOT}/{host}/marketplace.json: must be a JSON object")
+        if any(not isinstance(manifest, dict) for manifest in manifests[host].values()):
+            raise ValueError(f"{MANIFEST_ROOT}/{host}: each plugin manifest must be a JSON object")
         if set(templates[host]) != MARKETPLACE_FIELDS[host]:
             raise ValueError(
                 f"{MANIFEST_ROOT}/{host}/marketplace.json declares exactly {sorted(MARKETPLACE_FIELDS[host])}; "
@@ -324,8 +342,8 @@ def adapter_name(skill: dict, single_plugin: bool) -> str:
     return skill["name"] if single_plugin else f"{skill['plugin']}-{skill['name']}"
 
 
-def adapter_body(skill: dict, adapter_dir: str) -> str:
-    source = f"{skill['directory']}/SKILL.md"
+def adapter_body(skill: dict, adapter_dir: str, canonical_dir: str | None = None) -> str:
+    source = f"{canonical_dir or skill['directory']}/SKILL.md"
     relative = posixpath.relpath(f"/{source}", f"/{adapter_dir}")
     match = FRONTMATTER.match(skill["body"])
     title = next((line for line in match.group("body").splitlines() if line.startswith("# ")), f"# {skill['name']}")
@@ -361,20 +379,40 @@ def validate_skill_references(plugins: dict[str, dict[str, dict]]) -> None:
                     raise ValueError(f"{plugin}:{skill['name']}: unknown skill reference `{name}` skill")
 
 
-def validate_file_references(root: Path, plugins: dict, locations: dict[tuple[str, str], list[str]], output: dict) -> None:
+def validate_file_references(
+    root: Path,
+    plugins: dict,
+    canonical_locations: dict[tuple[str, str], str],
+    adapter_locations: list[tuple[dict, str, str, bool, bool]],
+    output: dict,
+) -> None:
     def present(path: str) -> bool:
         return path in output or any(key.startswith(path + "/") for key in output)
 
+    def validate(
+        plugin: str,
+        skill: dict,
+        body: str,
+        source_dir: str,
+        shipped_dir: str,
+        source_exists: bool,
+        generated_required: bool,
+    ) -> None:
+        for target in sorted(set(references(body))):
+            source = posixpath.normpath(posixpath.join(source_dir, target))
+            if source.startswith("../"):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            if source_exists and not (root / source).exists():
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            shipped = posixpath.normpath(posixpath.join(shipped_dir, target))
+            if generated_required and not present(shipped):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
+
     for plugin, skills in plugins.items():
         for skill in skills.values():
-            for target in sorted(set(references(skill["body"]))):
-                source = posixpath.normpath(posixpath.join(skill["directory"], target))
-                if source.startswith("../") or not (root / source).exists():
-                    raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {skill['directory']}")
-                for base in locations[(plugin, skill["name"])]:
-                    shipped = posixpath.normpath(posixpath.join(base, target))
-                    if not present(shipped):
-                        raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {base}")
+            validate(plugin, skill, skill["body"], skill["directory"], canonical_locations[(plugin, skill["name"])], True, True)
+    for skill, body, directory, source_exists, generated_required in adapter_locations:
+        validate(skill["plugin"], skill, body, directory, directory, source_exists, generated_required)
 
 
 def build(root: Path) -> dict[str, bytes]:
@@ -391,7 +429,8 @@ def build(root: Path) -> dict[str, bytes]:
     single_plugin = len(plugins) == 1
 
     output: dict[str, bytes] = {}
-    locations: dict[tuple[str, str], list[str]] = {}
+    canonical_locations: dict[tuple[str, str], str] = {}
+    adapter_locations: list[tuple[dict, str, str, bool, bool]] = []
 
     def emit(relative: str, data: str | bytes) -> None:
         key = PurePosixPath(relative).as_posix()
@@ -415,13 +454,18 @@ def build(root: Path) -> dict[str, bytes]:
         ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
         plugin_aliases = aliases.get(plugin, {})
         for skill in ordered:
-            package_dir = f"plugins/{plugin}/skills/{skill['name']}"
-            emit_skill(package_dir, skill, skill["body"])
-            locations[(plugin, skill["name"])] = [package_dir]
+            canonical_dir = f"plugins/{plugin}/{skill['directory']}"
+            package_adapter_dir = f"plugins/{plugin}/skills/{skill['name']}"
+            package_adapter = adapter_body(skill, package_adapter_dir, canonical_dir)
+            emit_skill(canonical_dir, skill, skill["body"])
+            emit_skill(package_adapter_dir, skill, package_adapter)
+            canonical_locations[(plugin, skill["name"])] = canonical_dir
+            adapter_locations.append((skill, package_adapter, package_adapter_dir, False, True))
             for adapter_root in ADAPTER_ROOTS.values():
                 adapter_dir = f"{adapter_root}/{adapter_name(skill, single_plugin)}"
-                emit_skill(adapter_dir, skill, adapter_body(skill, adapter_dir))
-                locations[(plugin, skill["name"])].append(adapter_dir)
+                host_adapter = adapter_body(skill, adapter_dir)
+                emit_skill(adapter_dir, skill, host_adapter)
+                adapter_locations.append((skill, host_adapter, adapter_dir, True, False))
 
         entries = [f"- `{skill['name']}` — {skill['kind']} — {skill['metadata']['profile']}" for skill in ordered]
         repository_index += [f"## {plugin}", ""]
@@ -483,7 +527,7 @@ def build(root: Path) -> dict[str, bytes]:
         )
     emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
     emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
-    validate_file_references(root, plugins, locations, output)
+    validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
     return output
 
 

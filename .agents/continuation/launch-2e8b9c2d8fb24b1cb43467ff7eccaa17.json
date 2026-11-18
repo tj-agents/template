@@ -1,0 +1,19 @@
+{
+  "child_path": "C:\\Users\\TommySeery\\source\\repos\\tj-agents\\kit\\.worktrees\\Refactor-TemplateStructureContract\\.agents\\continuation\\child-2e8b9c2d8fb24b1cb43467ff7eccaa17.json",
+  "command": [
+    "C:\\Users\\TommySeery\\.local\\share\\codex\\runtimes\\0.163.0-alpha.1\\bin\\codex.exe",
+    "exec",
+    "--model",
+    "gpt-5.6-terra",
+    "--config",
+    "model_reasoning_effort=\"high\"",
+    "--cd",
+    "C:\\Users\\TommySeery\\source\\repos\\tj-agents\\kit\\.worktrees\\Refactor-TemplateStructureContract",
+    "Continue this authorized goal in a fresh headless context. Read C:\\Users\\TommySeery\\source\\repos\\tj-agents\\kit\\.worktrees\\Refactor-TemplateStructureContract\\plans\\template-structure\\GOAL.md. Completion: Template naming and shared package structure corrected, reviewed, validated, merged and released with compatible consumers. Authority: plans/template-structure/GOAL.md Outcome and authorization; .agents/delivery-authorization.json. Authorized actions: [\"implement\", \"test\", \"commit\", \"push\", \"open-pr\", \"review\", \"merge\", \"release\"]. Owner: 0a16a38d0f59197f91e5e355; identity: {\"repo\": \"tj-agents/kit\", \"worktree\": \"C:\\\\Users\\\\TommySeery\\\\source\\\\repos\\\\tj-agents\\\\kit\\\\.worktrees\\\\Refactor-TemplateStructureContract\", \"branch\": \"Refactor/TemplateStructureContract\", \"head\": \"88c2c25fc763539a230561ed57b2c701e261e2f1\"}. Fresh delivery binding: null. Evidence: {\"kind\": \"actionable\", \"next_action\": \"Read canonical Goal Next Steps and execute: reconcile draft PR10/main a6 with released2d2b885 while preserving identity correction, verify/review/CI and deliver; then Markdown/common/consumer phases. Root is sole canonical goal owner; superseded PR8 binding is retired and receipts preserved.\"}. Next action: Read canonical Goal Next Steps and execute: reconcile draft PR10/main a6 with released2d2b885 while preserving identity correction, verify/review/CI and deliver; then Markdown/common/consumer phases. Root is sole canonical goal owner; superseded PR8 binding is retired and receipts preserved.. Use L4. Write a JSON checkpoint to C:\\Users\\TommySeery\\source\\repos\\tj-agents\\kit\\.worktrees\\Refactor-TemplateStructureContract\\.agents\\continuation\\result-2e8b9c2d8fb24b1cb43467ff7eccaa17.json with nonce=2e8b9c2d8fb24b1cb43467ff7eccaa17, owner_id=0a16a38d0f59197f91e5e355, state waiting|complete|blocked, reason, next_action (required unless complete). If repairing HEAD, include rebind.old and rebind.new exact repo/worktree/branch/head identities and refresh the delivery binding. If releasing that binding at a complete or blocked boundary after repair, include its refreshed full snapshot as released_binding before deletion, with the same PR and current repo/worktree/branch/head. A released snapshot cannot override an existing binding or authorize a waiting release. Successful process exit is not completion. For a PR, load persistent-delivery and honor its review/evidence/authority decisions. The supervisor already owns the writer and scheduler; do not recursively initialize, claim, register or wake this owner. Preserve user host safeguards. Do not claim same-chat continuation. Stop at an actual authority or human decision gate."
+  ],
+  "environment": {
+    "CONTINUATION_NONCE": "2e8b9c2d8fb24b1cb43467ff7eccaa17",
+    "CONTINUATION_OWNER_ID": "0a16a38d0f59197f91e5e355",
+    "CONTINUATION_RESULT_PATH": "C:\\Users\\TommySeery\\source\\repos\\tj-agents\\kit\\.worktrees\\Refactor-TemplateStructureContract\\.agents\\continuation\\result-2e8b9c2d8fb24b1cb43467ff7eccaa17.json"
+  }
+}

@@ -11,12 +11,5 @@ provenance: house
 
 # Update to this kit release
 
-```bash
-python <skill-directory>/scripts/update.py --root <repository> [--dry-run]
-```
-
-It overwrites each vendored file that differs from this release, pins `.agents/plugins/kit.json` to it, then runs
-the repository's generator. `--dry-run` lists what would change. A local edit to a vendored file is lost: make
-that change in kit instead.
-
-Afterwards run `kit:check`, review the diff and commit it as one change.
+Read and follow the [canonical definition](../../.agents/kit/utility/update/SKILL.md) in full.
+This discovery entry is generated; edit the referenced `.agents/` definition.

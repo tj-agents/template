@@ -1,0 +1,11 @@
+{"at": 1791837064.2741632, "event": "init", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "accepted", "state": "waiting"}
+{"at": 1791837065.1393893, "event": "claim", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "foreground-owned", "state": "working"}
+{"at": 1791837065.6691766, "event": "heartbeat", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "foreground-owned", "state": "working"}
+{"at": 1791837292.7391915, "event": "registration-preserved", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "foreground-owned", "state": "working"}
+{"at": 1791837304.4733696, "event": "wake", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "foreground-owned", "state": "working"}
+{"at": 1791837372.6500096, "event": "yield", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "Priority rename normally merged, verified main publication and v1.4.0 release complete; foreground hands remaining whole-goal phases to the approved continuation.", "state": "waiting"}
+{"at": 1791837593.95764, "event": "launch", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "headless-launch", "state": "working"}
+{"at": 1791838495.5814173, "event": "wake", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "host-launch-exited--1", "state": "waiting"}
+{"at": 1791838867.932073, "event": "claim", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "foreground-owned", "state": "working"}
+{"at": 1791838936.369869, "event": "yield", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "Foreground recovery checkpoint after native child timeout; rename already merged and released", "state": "waiting"}
+{"at": 1791840784.9480388, "event": "wake", "owner_id": "0a16a38d0f59197f91e5e355", "reason": "continuation-budget-exhausted", "state": "blocked"}

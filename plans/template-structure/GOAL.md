@@ -1,146 +1,107 @@
 # Template ownership and uniform tj-agents package structure
 
 Status: active; handoff accepted by native Codex session 01a12ccc-aaa2-7631-943f-7fe2947f05cd.
-Date: 2026-10-11
+Date: 2026-10-12
 Branch: Refactor/TemplateStructureContract
 Worktree: C:/Users/TommySeery/source/repos/tj-agents/kit/.worktrees/Refactor-TemplateStructureContract
-Base: origin/main at 28b5513
+Root HEAD: 88c2c25fc763539a230561ed57b2c701e261e2f1
 Originating session: 01a12c10-0de6-7152-a9f2-9e5f374021f8
-Lane: L3 for bounded naming/compatibility and structure reconciliation; re-route specified implementation to L4 and delivery to its appropriate lane.
+Lane: root L3 owns bounded design, scope, review synthesis and delivery; specified source implementation runs through L4 writers, security through L2 reviewers.
 
 ## Outcome and authorization
 
-Tommy explicitly requested this as the second of two handoffs: Kit supplies templates for all tj-agents packages, enforcing the same structure so those packages compose with Core. He proposed calling Kit template to make its purpose clear and said this needs fixing too. Deliver the naming and shared structure correction with meaningful verification, independent review, PR, normal merge under applicable recorded authority, required release/tag/publication consequences, and compatible consumer reference migration within this goal's scope.
+Tommy authorized this second handoff to make Kit/Template own common tj-agents package structure and enforce composition with Core. Deliver the naming, structural enforcement, meaningful tests, independent review, PRs, normal merges under recorded authority, releases/tags/publication and compatible consumer migration.
 
-Kit/template has NOTHING to do with the repository configuration object. Core owns configuration interpretation and the settings interface; do not add a settings/configuration scaffold feature, auto-merge preference interpreter or duplicated policy to this workstream. Its task is templates, common structure and structural enforcement across tj-agents packages.
+Core owns configuration interpretation, settings, runtime, hooks, lanes and catalogs. Kit owns templates, check/update standards, vendored roots and reusable CI. No settings/configuration scaffold or auto-merge preference logic belongs here. Keep one source owner and published Kit addresses working throughout migration; missing external authority gates only the affected action.
 
-Kit already owns new-plugin repository templates, check/update standards, vendored generator/root files and reusable plugin CI. Preserve that single ownership and improve the real remaining inconsistencies. Make template the clear public concept/name; assess the repository/plugin/skill naming surface and provide a compatible migration rather than a label-only README change. Reconcile actual consuming references and pins before a cutover. A rename must retain a working migration path for existing kit references, workflows and consumers; do not break published addresses by renaming first and hoping to fix callers later. Escalate genuinely missing external authority only after the concrete migration is reviewable.
 
-## Ownership and source context
+## Ownership and delivery map
 
-Read this checkout's AGENTS.md and README.md before edits. Canonical sources live in .agents/kit until a deliberate compatible source/naming migration is delivered. Templates are under .agents/kit/utility/new-plugin/templates/repository; check/update and standard.json own shared layout. Authored templates are canonical. Preserve byte equality of vendored copies and template tests. Generated plugins and host outputs remain uncommitted; existing release instructions require KIT_VERSION, plugin/manifest versions and a tag after merge.
+Root owns this exact goal/continuation. Inherited copies in successors are inactive; writers read this absolute goal and their local design reference. Generated host/plugin/index/marketplace files stay uncommitted; verified main publication precedes tags. Canonical .agents/kit templates own byte-identical vendored roots. git/gh authority.
 
-Open Kit PR #4, branch Refactor/KitTaxonomyVocabulary at b085210, already owns taxonomy changes. Its checkout is C:/Users/TommySeery/source/repos/tj-agents/kit/.worktrees/Refactor-KitTaxonomyVocabulary. Do not adopt or overwrite it. Coordinate or depend on that owner when structure or naming intersects. Fix-ContinuationSourceScan is another separate owner. Start from this goal's fetched main; preserve every other's changes.
+| Layer | Parent/location | Head, PR and gate |
+|---|---|---|
+| Taxonomy | preserved separate checkout | b085210 contained in main; PR4 closed; independent checkout preserved |
+| Canonical sources/source-first CI | current root | 88c2c25 contained in main; PR8 closed; root whole-goal owner retained |
+| Compatible Template publication | main; merged checkout retired | PR9 merged bc59073; CI38303086013 green; generated2d2b885/tag v1.4.0 released |
+| Portable output identities | sibling Fix-PortableOutputIdentities; PR10 -> main | Draft a6f73ff; preserve accepted identity fix; reconcile against released2d2b885 before review/CI1.4.1 |
+| Markdown reference safety | successor Fix/PackageMarkdownReferences -> identity slice | PR:not opened; local7e377ef3;134tests/219freshness; review interrupted for rename priority; intended1.4.2 |
+| Common structural validator | successor of qualified safety slice | PR:not opened; intended1.5.0; no source lease |
+| Consumer migration | disposable probes, scoped branches after actual release | CONSUMER_MIGRATION.md; no original consumer source/ref/publication writes |
 
-The independent Core correction is C:/Users/TommySeery/source/repos/tj-agents/core/.worktrees/Fix-RepositorySettingsContract/plans/repository-settings/GOAL.md. It is context only, not this writer's scope. Shared design documents in tj-agents/docs belong to the existing coordinator; do not edit its live checkout.
+PRs: https://github.com/tj-agents/kit/pull/4, https://github.com/tj-agents/kit/pull/8, https://github.com/tj-agents/kit/pull/9, https://github.com/tj-agents/kit/pull/10.
+
+October12 fetch: main28b5513, Markdown parenta6f73ff. No open generated-sync PR; unused branch/path and21.3GB free verified. Isolation preserves root continuation and parent bindings/evidence. PR9 consolidates the already integrated parents for the priority rename; later children follow their verified parent. Current review and combined-tree checks remain mandatory. Never merge into an unmerged feature parent or tag before main/green publication.
+
+Root8450ee9 retains main fixes. Reconcile descendants after consolidated publication lands. Preserve independent Fix-ContinuationSourceScan and taxonomy owners. Core settings goal C:/Users/TommySeery/source/repos/tj-agents/core/.worktrees/Fix-RepositorySettingsContract/plans/repository-settings/GOAL.md is read-only context: Core owns configuration/runtime/hooks/lanes/catalogs/extended adapters. Preserve coordinator-owned tj-agents/docs.
 
 ## Acceptance
 
-- Template purpose, package/repository vocabulary and skill naming have one clear owner, with a verified compatibility path for any actual rename.
-- New/check/update share one structural standard for tj-agents package types, and all package capabilities still compose with Core.
-- Meaningful checks catch inconsistent package structure rather than only testing a rename string.
-- Existing Core canonical layout and thin Claude/Codex adapters are respected. No duplicate runtime policy is added to package templates.
-- Both host packages and supported Windows/Linux execution are verified to the appropriate source and native acceptance levels; source tests are not reported as installed-host proof.
-- The independent taxonomy owner is coordinated and no competing writer alters its owned files.
-- Changes are reviewed, green and normally merged; required Kit release/tag and consumer pin consequences are completed or truthfully gated with exact ownership.
-- No repository configuration object or auto-merge interpretation is added to Kit/template.
+- Template is the clear public capability name with one authored owner and verified compatibility for Kit installations, pins and workflow addresses.
+- New/check/update share structural enforcement; common packages compose with Core without starter-only or stack-specific assumptions.
+- Meaningful negative and standalone fixtures catch broken structure, resources, identity, references and native acceptance.
+- Both Windows/Linux source checks and both native host packages pass at exact candidates. Source tests and CLI installation are not installed-agent procedure execution.
+- Every source slice has independent review, green checks and normal bottom-up landing; generated publication, required release/tag and compatible consumer references are completed or explicitly gated by their real owner.
+- No Kit settings/configuration scaffold, repository configuration interpreter or auto-merge preference logic is introduced.
+
+## Verification and reviews
+
+PR8 at88c2c25:105tests,145-file freshness/copied-package workflows and exact CI38182114392 Windows/Linux/pinned-native acceptance passed. HIGH TS-1 resolved: reusable CI generation is explicit/default-false, Kit opts in, freshness always runs. Publisher uses exact SHA, six generated roots and normal main push. reviews/Refactor-TemplateStructureContract.md approved/current security/host coverage.
+
+PR9 complete: expanded d0 review found TPM-1 publisher race and TPM-2 package escape;56b7cd98/e1ab648 fixed them (55/8focused tests). Native incremental and independent workflow/cumulative security approved exact e1; CI38299391183 green. Normal merge bc59073, causal main CI38303086013 and publication2d2b885 succeeded.219outputs verified; canonical/root parity and both public1.4.0 versions/resources match. v1.4.0 annotated tag peels to2d2b885; release published20:22UTC. Review preserved in C:/Users/TommySeery/.agents-state/merge-cleanup/set-aside/71da1fa1ab586cf6ba1bfa2a5881a5eb4879f849f581589096961483d624cd51-1791836364850; frozen descriptors/logs remain Git-private. No installed-agent procedure execution claimed.
+
+Do not re-poll terminal CI. Work orders retain frozen descriptors/logs; disposable reviews cleaned. Use canonical fresh review lenses.
+
+PR10 a6f73ff05627929181d2eb43cce68cfbbd3d5422 ready/pushed/approved: POI-1 resolved; exact qualified table/three ASTs and canonical/root equality. Focused64/7.922s, exact clean-source126/38.827s,219freshness/copied workflows passed. Native incremental7b6..a6 exit0/no findings/126tests54.238s; fresh Workflowv2 no claims/12focused tests. Work order approved/current source+security a6; original full judgment/finding immutable. CI38245559736 attempt1 Windows/Linux tests/conformance/pinned hosts succeeded, publisher skipped. Layer452substantive+194mirror,8authoredpaths. Disposable reviews cleaned, descriptor/logs/order retained; body/forge readiness passed.
+
+Live126 had two binding-layout failures; unchanged7b6/same binding reproduced both among119; prior CI38195004191 tests/conformance genuinely passed. No check/binding weakened or moved; allowance stays1.5. Generic preflight flags loose outputs/runtime; inline proof maps127dirty files to219outputs and8 to private runtime; authored clean/remote equal/parent behind0. Goal mandates publisher-owned uncommitted generated output. PR10 binding currenta6/pending[]/standing auto/auto_mergefalse.
+
+## Publication contract
+
+Sibling plans/template-structure/TEMPLATE_PUBLICATION.md records the resolved detail. Payloads kit->[kit], template->[kit]; one canonical source. Local adapters/tiers/dependencies/structured aliases remain source-owned; public native identity is projected. Preserve dates/profiles. No counterpart dependency/duplication/prose rewrite. Own source/alias dependency rejects; other publications allowed.
+
+Retain tj-agents/kit, kit-agents, plugins/kit, .agents/kit, kit.json, KIT_VERSION/kit_version and existing workflow/tag addresses. Both publications independently ship canonical resources and require own identity plus base-agents/base; no new hooks/permissions. Coupled source versions: canonical/root generator, kit.json and Codex kit/template manifests; Claude stays commit-versioned.
+
+## Shared contract and active findings
+
+PACKAGE_STRUCTURE.md owns the closed-file-map design used by generation and packages-only filesystem checks. Follow declared native roots, paired inventory/canonical identity, shipped resources, opaque declared extensions and safe explicit projections. Starter checks remain additional; packages-only bypasses Kit pin/retired layout/starter-required skills. No authored fallback or runtime/configuration interpretation.
+
+Core distinct skills/codex-skills roots and .agents/workflows->workflows/.agents/catalog->catalog are valid. Physical roots win; otherwise exactly one safe declared projection resolves in-package. Canonical adapter links require physical .agents files; placeholders resolve from each native directory. Extended wording/host fields/harness requires stay opaque. Local Core shape at1bb1c130b2d1762bce07b599bb0fbb7e311c6749 passed; no fresh remote/native acceptance inferred.
+
+Frozen common PACKAGE_STRUCTURE.md afd1bd0aea4a4902a2a7af11035a110a6740171586bf8ac1750e1d6af27a0833/117728bytes; L3 stopped. Fresh L2/L4 qualified the pinned identity table and all three current drivers; native table/filesystem and prewrite guards passed. Identity uses pinned UTF-16 keys without host Unicode data. Markdown title/newline/opaque-block qualification and Cpp aggregate/standalone probes are recorded in their frozen designs; production parser/native acceptance remain separate gates.
+
+POI-1 decision: inline134-row/973-mapping Windows reference table; UTF-16 byte keys for files/ancestors. Deterministic Windows/POSIX, no native production API/new vendor file/import/helper. Baseline26200.9448/ntdll-kernelbase26100.9278; hashes/provenance in proposal. Future drift requires review; all-version/volume guarantee excluded. Permanent Unicode distinction/alias/ancestor/content tests and native table/filesystem qualification required.
+
+Frozen proposal1776substantive/1143mirror requires1.4.1 identities ->1.4.2 references ->1.5.0 native/canonical/harness/extensions/snapshot/packages-only. Identity extraction195helper/123fixture lines before wiring; reference increment574helper plus~322fixture lines. Measure each actual candidate separately from mirror/docs/generated. At>=1000 keep atomic scanner/destination/closed-map/source-fallback with split assessment: parser-only dead API; scanner-only broadens unsafe I/O; guard-only misses syntax vectors. Preserve working intermediates and immediate-parent/cumulative gates.
+
+Opaque binding filename allowance belongs to the1.5.0 structural slice: .agents/persistent-workflow-binding.json currently fails starter check. Admit exact filename through standard.json/gitignore, ignore/nonship tests and reject adjacent unknown paths. No content/schema/configuration interpretation or check_skill_references.py changes.
+
+CPP_PACKAGE_COMPATIBILITY.md stays frozenc0e4556db207d4e09aaf6614dfdf20d40dbf1ca8ca6bcc858029b6b12b4d5cf4/40311bytes. Independent guarded-source security and nine-package aggregate/standalone compatibility passed against new common proposals; source119lines/probe251. Exact cpp38d3b060d42c32921580d49949b411395e7eb245:263->348files,85additions/419696bytes,149resource/profile files preserved. Preserve six independent PR owners, legacy generator/profiles/aliases and both native roots. No Cpp production writes before producer release/scoped consumer execution.
+
+## Consumers and problems
+
+CONSUMER_MIGRATION.md records exact October12 remote baselines. React/dotnet/rust/nvim/work pin Kit1.2.1/full entries; Cpp owns an unpinned generator; marketplace owns remote catalog. Migrate then-current consumer main after actual released producer. Retain Kit identity/reference compatibility; add Template at actual final tag. Core catalog revision remains separately owned.
+
+CONSUMER_MIGRATION.md owns exact independent PR heads/bases: preserve ReactPR5, dotnetPR10, WorkPR3/2, Cpp six PRs and marketplacePR3. Do not cherry-pick stale custom generators; their owners reconcile.
+
+All five consumer update/fresh/check/dry-run probes passed; React5/Dotnet16(2skips)/Rust10 tests0. Nvim has no authored suite; applicable structural checks0, zero-test discovery is not a pass. Work B001 remains open for actual migration; disposable canonical shipment/missing/escape repair patch has7tests0, stored .agents/continuation/consumer-probes/work-template-1.4.0-packaging-test.patch and result. Revalidate consumers against final released producer. MISTAKES.md records resolved execution errors; no new standards repair inferred where clear instructions already governed.
+
+## Continuation and real delivery gate
+
+Approved task AgentStandards-Continuation-07e4ac93dbb9e48829b7a4da9f48fc2d143d4ea9d03bd07afa13c6b03b3f9a74 is registered/receipt-verified for unbound root owner0a16a38d0f59197f91e5e355, pinned native Codex. Superseded PR8 runtime/binding retired; full receipts/logs archived at kit/.git/agent-workflow/continuation-archives/structure-pr8-20261012. Consumer probes copied back byte-preserving. Existing six-launch/three-failure/900s limits and October12 21:14UTC deadline retained; no silent budget increase. One canonical goal/writer.
+
+PR9 merged/released; binding ended and checkout/branch removed by cleanup proof. Root remains whole-goal owner with a fresh unbound runtime; PR8 binding retired. PR10 draft/main awaits reconciliation.
+
+Tommy October12 required the ready rename first. It was normally merged and released after two reproduced defects were fixed and current full/incremental/security checks passed. Frozen main-consolidation exception and measurements remain in the preserved review work order. Later structure does not delay this delivered boundary.
 
 ## Next Steps
 
-Scope: whole goal through all remaining implementation and terminal delivery.
-Current slice: canonical installed package structure, shared check validation, and source-first CI against the taxonomy parent.
-Remaining scope: compatible Template publication, consumer migration, and shared package checks for legacy/Core layouts.
-Done when: all accepted capabilities are reviewed, validated, normally merged and released, with compatible consumer migration verified.
+Scope: whole plan through all remaining phases and terminal delivery.
+Current slice: land reviewed Kit/Template publication1.4.0 first, per Tommy October12; merge only after required review/check gates.
+Remaining scope: references, common structure, consumer/catalog migrations and normal stack landing/publication/releases.
+Done when: accepted capabilities are reviewed, green, normally merged/released with compatible references verified.
 
-The first structural implementation is published in draft PR #8 against the taxonomy parent. Its full frozen review retained one reusable CI freshness finding; the serial fix is locally verified and requires a fresh incremental review and exact-head CI. Land bottom-up once the parent owner lands PR #4. Continue the compatible Template publication and consumer migration slices below. Do not merge the child into the taxonomy feature branch.
-
-## Pickup and investigation evidence
-
-- 2026-10-11: successor session 01a12ccc-aaa2-7631-943f-7fe2947f05cd read the handoff, this goal, AGENTS.md and README.md in the owning checkout. No transfer receipt was supplied by the predecessor.
-- Loaded canonical plan-execution, lanes, git-branching and handoff procedures. This repository has no installed Workflow v2 runtime; use the runtime-unavailable plan loop and this goal as the progress owner.
-- Fetched origin; HEAD d2695e79102d0d6f65e2ee181a98994368e28736 is current with origin/main 28b5513. Git tree was clean at pickup.
-- PR #4 remains OPEN at b085210d06e42c10d840cf7f969c7484b730f945, targeting main. It owns learning policy/convention taxonomy and its version 1.2.2 generator changes. Do not overwrite its checkout or publish a competing taxonomy migration.
-- Phase: compatibility and structural investigation; lane L3 because the migration alternatives remain unresolved. Applied through bounded lane_l3 reader structure_design; no implementation writes delegated yet.
-- Native gh access and Git fetch required sandbox escalation and succeeded. Continuation initialization/claim and scheduler capability are being resolved; no unattended continuation is claimed.
-
-## Delivery map and resolved design
-
-The structural mismatch is concrete: installed Kit packages contain full procedures directly in `skills/` and omit the canonical `.agents/` tree that Core packages carry. Also, check accepts a missing Codex manifest directory or an empty payload mapping. Baseline full suite passed 94 tests on Windows.
-
-1. Structural package/check slice (active): canonical packaged definitions plus thin entries and resource siblings; generator structural validation in check; negative fixtures and isolated packaged utility execution. Expected 300–600 substantive lines in about 10 authored files. Release target 1.3.0 after parent version 1.2.2. Validate cumulative parent and child with full unittest and sync checks, both OS CI jobs, both real host acceptance and isolated package execution.
-2. Compatible Template publication: expose a `template` plugin from the same canonical capability source while retaining `kit`, `kit-agents`, `tj-agents/kit`, `.agents/plugins/kit.json` and old workflow addresses. Generalize publication/source identity in a separate recorded successor slice; test Kit-only and Template-only installations. No second authored capability tree or premature repository rename.
-3. Compatible consumer migration: inventory actual remote pins, catalog and public references; update scoped consumers in isolated owned branches after released package acceptance. Retain the old facade until existing consumers and pins are verified.
-4. Wider shared structural coverage: reconcile legacy consumers and Core's richer canonical/runtime source layout with those owners. Core currently has no kit.json, and Kit retires SOURCE_LAYOUT.md/sources.json that Core owns. Do not apply utility-only or stack-specific scaffold assumptions to Core's runtime packages.
-
-The first slice depends on PR #4's taxonomy and overlaps its generator/check/version paths. PR #4 is still open and has a separate owner; immediate authorized execution must avoid an independent competing taxonomy patch. Therefore the current branch consumes verified parent b085210d06e42c10d840cf7f969c7484b730f945 as a stack child; PR base will be Refactor/KitTaxonomyVocabulary. Its merge into this checkout conflicts with main's subsequent release/continuation changes; L4 writer structure_implementation owns reconciliation and validation here only. No writes to the parent's checkout or branch are authorized by this dependency.
-
-Implementation phase: L4, specified/testable package and checker changes applied through lane_l4 writer. Root retains architecture, review, authorization and delivery decisions. Do not commit generated host/plugin outputs in the child implementation; retain only generated material required by the parent merge until post-merge regeneration policy is reconciled.
-
-## Continuation and gates
-
-Continuation owner initialized at .agents/continuation/owner.json (owner 0a16a38d0f59197f91e5e355) and claimed by native Codex PID 500. Scheduler dry-run verified the Windows ScheduledTasks proposal. Actual registration was rejected by automatic approval review: development-goal authority did not explicitly authorize an unattended scheduler that could later push, merge and release. Tommy explicitly approved scheduled continuation in this native session after the proposal and rejection were explained. Registration succeeded: AgentStandards-Continuation-07e4ac93dbb9e48829b7a4da9f48fc2d143d4ea9d03bd07afa13c6b03b3f9a74. An observed supported wake returned working while the foreground lease was held, and launches remained zero. Maintain that lease while foreground/subordinate writes continue; checkpoint and yield before unattended continuation. No duplicate writer launched. Foreground work continues.
-
-Taxonomy dependency: PR #4 owner resolves parent landing. Resume condition: parent merged normally with required review/checks and released version consequences reconciled; then retarget/reconcile this child's delta onto main, rerun affected checks and deliver normally. Child implementation/review/PR preparation can continue independently.
-
-First-slice integration adds source-first CI generation and main-only committed regeneration, because the current workflow cannot validate a source-only PR or publish its regenerated packages. This is atomic with the packaging change, under the same 1.3.0 release; L4 writer generation_ci owns only the two workflow files and a separate CI-generation test file. Expected additional size under 150 substantive lines. The regeneration job must wait for validation, have scoped contents permission, and stage only generated roots. The existing 94-test baseline is green. PR #4's remote Windows/Linux/hosts checks passed on October 5, 2026; those checks do not establish compatibility with main's later commits or a current-head independent review.
-
-```agent-host-coverage
-{
-  "schema_version": 1,
-  "shared_source": ".agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in and .agents/kit/utility/check/scripts/check.py",
-  "hosts": [
-    {
-      "host": "claude",
-      "behavior": "Installed skills load canonical shared procedures and retain sibling utility resources.",
-      "source": ".agents/kit/utility",
-      "mapping": ".claude/skills and plugins/kit/skills link to canonical .agents definitions; native manifest and marketplace stay supported.",
-      "verification": {
-        "level": "planned",
-        "result": "pending",
-        "evidence": "Full source suite, isolated package execution, and real claude native package acceptance in CI after generation."
-      }
-    },
-    {
-      "host": "codex",
-      "behavior": "Installed skills load canonical shared procedures and retain sibling utility resources.",
-      "source": ".agents/kit/utility",
-      "mapping": ".codex/skills and plugins/kit/skills link to canonical .agents definitions; native manifest and marketplace stay supported.",
-      "verification": {
-        "level": "planned",
-        "result": "pending",
-        "evidence": "Full source suite, isolated package execution, and real codex native package acceptance in CI after generation."
-      }
-    }
-  ]
-}
-```
-
-Remote consumer inventory on 2026-10-11: react, dotnet, rust, nvim and work all pin kit 1.2.1; cpp and marketplace have no kit.json. All seven repositories are active and default to main. This replaces stale local-pin observations; migration remains after compatible release.
-
-## Compatible Template publication contract
-
-Use payloads `{kit: [kit], template: [kit]}`: each published name selects exactly one existing canonical source, and every source retains its identity publication. Reject invalid/unknown names, aggregation, empty lists and missing identity publications. Keep repository/source discovery, type checks, local adapters and source tier files keyed by canonical source. Native manifests, marketplaces, package directories, package INDEX and selection.plugin use published names. Local adapters emit once; adding Template must not rename the existing check/new-plugin/update discovery entries.
-
-Both publications ship canonical `.agents/kit` definitions and thin entries from that same authored tree. Procedures use bare package-local skill references and relative canonical links. Do not regex-rewrite prose or compatibility addresses. Source dependencies and compatibility alias declarations remain source-owned; project structured alias replacement targets into the publication namespace while retaining dates and profiles. No implicit dependency on the counterpart Kit/Template package is allowed. Source tier remains unchanged; Core's checker and gate separately represent published plugin and tier label (verified fixture: Template plugin, Kit tier, template@kit-agents identity).
-
-Both native manifests preserve valid paired fields and repository URLs; Template display name is Template and Kit remains available. Both explicit harness manifests require their own kit-agents publication plus base-agents/base, resolve .agents/kit source roots, and declare no new hooks or permissions. Generator validates publication/source packaging facts; Core keeps the detailed harness and runtime interpretation owner.
-
-Verification must include invalid mappings/manifest rosters/targets; one set of local adapters; matching canonical bytes and safe thin links; source-owned dependency/alias projections; unchanged tiers; self-contained Kit-only and Template-only new-plugin/check/update execution from temporary copied packages; Core tier checker acceptance; and separate isolated native installation of each public plugin. Installing every entry together cannot prove standalone compatibility.
-
-After compatible publication releases, the aggregate marketplace adds Template from repository kit while retaining Kit. Its remote catalog currently advertises Kit at v1.2.0. Consumer pins migrate only after release acceptance. No settings objects, preference interpretation, Core catalog policy or machine-wide installation is added here.
-
-## Wider shared package boundary contract
-
-The shared check should follow native manifest skill roots (Core legitimately has distinct skills and codex-skills roots), validate inventories and identity pairs, require thin entries to resolve safe canonical .agents definitions with matching name/kind/domain, resolve required resources and harness source roots, and permit declared host-specific adapter extensions. Reuse one package validator from generation and filesystem checking. Starter-repository required skills/sections and retired layout assumptions stay an additional layer. A packages-only entry lets Core and legacy packages participate without pretending they have Kit's starter schema. Core continues to own lane resolution, hook integrity, workflows, catalogs, extended-adapter wording and runtime behavior.
-
-## Pending structural observation
-
-The runtime writes .agents/persistent-workflow-binding.json, but standard.json currently allows only its earlier runtime folder and delivery authorization file. The wider structural coverage slice must reconcile supported transient Core runtime artifacts with starter layout enforcement and vendored ignore rules. Resolution condition: a valid runtime binding can coexist with check, is excluded from delivery, and unknown source files remain rejected. This observation is within the existing shared structure outcome; no second repair writer is created.
-
-## Stack measurement
-
-Taxonomy parent b085210 predates main's later source-reference scanning, continuation/delivery allowances, scoped utility tiers and harness support. Reconciliation merge 8450ee9 retains those existing main changes. Against the parent, the reconciliation checkpoint spans 43 total files with 1097 added/92 removed lines, including repeated generated resources. These inherited main changes are part of cumulative validation and the child review; they are not new competing implementations. Re-measure authored vs generated totals after the first structural implementation and CI integration commit. Parent landing/rebase will remove the inherited-main difference before final merge eligibility.
-
-## Current structural milestone
-
-The L4 writer completed canonical packaged definitions/resources, thin installed entries, separate reference validation, full generator structural validation in check, Kit harness metadata and source version 1.3.0. CI generation is committed at 1199c22; the source implementation checkpoint was 876457b before this goal evidence was folded into the same substantive commit. All 105 discovered source tests passed on Windows (36.030 seconds); generated freshness passed for 145 files, and the copied package created a repository, detected vendored drift, repaired it through update, and passed canonical check. Native marketplace/package acceptance passed with Claude 2.1.282 and Codex 0.163.0-alpha.1. Exact-head CI run 38179984495 passed Windows, Linux and pinned Claude/Codex acceptance for a7a85858c28a5dcfff45faab4a1c458627839573. A later fix requires its own exact-head checks. Validation scratch artifacts were removed.
-
-Measured against taxonomy parent b085210, the candidate has 26 authored paths (1106 additions/94 deletions) and 20 inherited generated paths (518 additions/41 deletions), before this small evidence update. The oversized parent-relative count includes existing main changes retained by reconciliation; new source/CI work is the bounded atomic packaging slice. Splitting inherited main history would discard already-landed fixes or compete with the separate taxonomy owner. Review the full actual-parent delta and remeasure after parent landing; do not add unrelated behavior to this first slice. Main currently has no branch protection/rulesets, so the verified-main generation job can publish its narrowly staged bot commit with ordinary contents permission.
-
-The broader goal remains active. Once the first slice is frozen/reviewed and its draft PR owns the layer, compatible Template publication may be prepared as a recorded successor stack against that exact source artifact while parent landing gates delivery. Existing release and consumer compatibility gates remain in force.
-
-## First review and CI correction
-
-Draft PR #8 targets Refactor/KitTaxonomyVocabulary. The full frozen review at a7a85858c28a5dcfff45faab4a1c458627839573 completed with one HIGH finding (TS-1) in reviews/Refactor-TemplateStructureContract.md; the independent security layer found no defects. Native review identified that unconditional generation in the reusable workflow masks stale published artifacts for ordinary callers. The serial correction adds default-false generate_before_verify, opts only Kit in, and keeps both freshness checks unconditional. All four focused CI tests passed (0.030 seconds), and git diff --check passed. This substantive checkpoint needs incremental review before current approval.
-
-The delivery binding belongs to PR #8. Its standing-authorization hold reflects the inherited delivery-authorization.json difference against the old taxonomy parent; that file is unchanged against trunk. Preserve the hold and reconcile after parent landing rather than overriding it. Rebind the continuation owner to each stable pushed candidate using the supported checkpoint receipt before yielding unattended work.
+1. Rename complete: PR9 normally merged bc59073; causal main CI38303086013 attempt1 SUCCESS, generated2d2b885 verified219outputs/127generated-only paths/34identical canonical resources. Annotated v1.4.0 pushed and GitHub release published October12 at20:22UTC. PR4/8 closed after ancestor proof; primary current; PR9 checkout/branch removed. Root retains whole-goal continuation. Reconcile PR10 with actual published main before fresh incremental/cumulative review and exact-head CI.
+2. PR10 draft/main rebased locally to e0ace28c on published main; remote remains a6f73ff. Stash a2802735 retained; private binding restored but needs exact-head reconciliation. First wake timed out900s during clean-suite retry after WinError5 PowerShell denials; no success/receipt inferred. Preserve pinned identities/stash; focused identity and clean cumulative verification, current review/binding and one stable push/CI before1.4.1. No Windows/Linux per-edit loops. Binding allowance stays1.5.0.
+3. Markdown candidate7e377ef3 (parenta6) has134tests/94.132s,72focused/17.171s,219freshness, qualified helpers/parity,844substantive+623mirror across8paths. No source writer; frozen child/security descriptors recorded under package-markdown-references runs. Its review is interrupted, pending; regenerate immutable bundles before resuming after priority landing.
+4. Finish references review/CI, then1.5.0 common validator/packages-only/binding filename allowance, consumer/catalog migrations, WorkB001 and separate Cpp correction against actual released producer. Configuration stays opaque.
