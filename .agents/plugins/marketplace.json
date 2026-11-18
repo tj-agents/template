@@ -1,7 +1,7 @@
 {
   "name": "kit-agents",
   "interface": {
-    "displayName": "Kit"
+    "displayName": "Template"
   },
   "plugins": [
     {

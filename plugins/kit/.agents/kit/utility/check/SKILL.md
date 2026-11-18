@@ -11,13 +11,13 @@ provenance: house
 
 # Plugin repository check
 
-Every plugin repository, kit included, has the same layout. The repository name is the plugin namespace.
+Every plugin repository, Template included, has the same layout. The repository name is the plugin namespace.
 
 ```text
 <repo>/
   AGENTS.md  CLAUDE.md  README.md
   .gitattributes  .gitignore            vendored
-  .github/workflows/ci.yml              vendored; calls kit's plugin-ci.yml at the pinned tag
+  .github/workflows/ci.yml              vendored; calls Template's plugin-ci.yml at the pinned tag
   plans/                                optional
   .agents/
     <plugin>/<kind>/<name>/SKILL.md     one folder per plugin; the main plugin is named after the repository
@@ -25,7 +25,7 @@ Every plugin repository, kit included, has the same layout. The repository name 
     <plugin>/<kind>/<name>/templates/
     <plugin>/<kind>/<family>/<member>/SKILL.md   a family groups related skills; <family>/SKILL.md is optional
     tiers/<plugin>.json
-    plugins/kit.json                    repository, type and the pinned kit release
+    plugins/kit.json                    repository, type and the pinned Template release
     plugins/payloads.json               published plugins, dependencies, compatibility aliases
     plugins/manifests/{claude,codex}/<plugin>.json  marketplace.json
     hooks/  tests/                      optional
@@ -54,7 +54,7 @@ Renaming a published skill keeps its old name as a compatibility alias until its
 
 ## What it enforces
 
-- The vendored files equal this kit release, with `ci.yml` rendered for the repository's owner.
+- The vendored files equal this Template release, with `ci.yml` rendered for the repository's owner.
 - Only the layout's entries under `.agents/` and `.agents/plugins/`; `SOURCE_LAYOUT.md` and `sources.json` are retired.
 - The skills its type in `standard.json` requires, with their kind, profile and sections:
   - **stack**: `knowledge`, `direction` (kind `knowledge`); `learning` (kind `policy`); `style`, `structure`
