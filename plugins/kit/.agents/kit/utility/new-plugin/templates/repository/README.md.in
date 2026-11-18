@@ -1,0 +1,18 @@
+# {{namespace}}
+
+{{description}}
+
+Published as plugin `{{namespace}}` from this repository's `{{marketplace}}` marketplace.
+
+## Skills
+
+{{skill_list}}
+
+## Authoring and verification
+
+```powershell
+pwsh .agents/sync-generated.ps1
+pwsh .agents/sync-generated.ps1 -Check
+```
+
+The layout, the vendored generator and CI come from [kit](https://github.com/{{owner}}/kit).

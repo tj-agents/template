@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "plugin": "kit-agents/template",
+  "source_roots": [
+    ".agents/kit"
+  ],
+  "requires": {
+    "marketplaces": [
+      {
+        "id": "kit-agents",
+        "repository": "tj-agents/kit"
+      },
+      {
+        "id": "base-agents",
+        "repository": "tj-agents/core"
+      }
+    ],
+    "plugins": [
+      "kit-agents/template",
+      "base-agents/base"
+    ],
+    "hooks": [],
+    "permissions": {
+      "claude_allow": [],
+      "codex_prefix_rules": []
+    }
+  }
+}
