@@ -187,12 +187,6 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
                 "marketplaces": [
                     {"id": MARKETPLACE, "repository": MARKETPLACE_REPOSITORY}
                 ],
-                "plugins": [f"{MARKETPLACE}/{namespace}"]
-                + (
-                    []
-                    if arguments.type in ("stack", "profile")
-                    else [f"{MARKETPLACE}/base"]
-                ),
                 "hooks": [],
                 "permissions": {"claude_allow": [], "codex_prefix_rules": []},
             }
@@ -247,9 +241,10 @@ def plan(arguments: argparse.Namespace) -> dict[str, str]:
         )
         + "\n"
     )
-    files[".agents/plugins/payloads.json"] = (
-        json.dumps({"payloads": {namespace: [namespace]}}, indent=2) + "\n"
-    )
+    payloads: dict[str, Any] = {"payloads": {namespace: [namespace]}}
+    if arguments.type not in ("stack", "profile"):
+        payloads["dependencies"] = {namespace: [f"{MARKETPLACE}/base"]}
+    files[".agents/plugins/payloads.json"] = json.dumps(payloads, indent=2) + "\n"
     return files
 
 

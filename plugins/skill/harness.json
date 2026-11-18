@@ -11,11 +11,6 @@
         "repository": "tj-agents/marketplace"
       }
     ],
-    "plugins": [
-      "tj-agents/skill",
-      "tj-agents/base",
-      "tj-agents/engineering"
-    ],
     "hooks": [
       {
         "path": "hooks/pretooluse/claude/skill_authoring.py",
@@ -23,6 +18,11 @@
           "claude"
         ]
       }
+    ],
+    "plugins": [
+      "tj-agents/skill",
+      "tj-agents/base",
+      "tj-agents/engineering"
     ]
   }
 }

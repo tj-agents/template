@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "template": [
+      "tj-agents/base",
       "tj-agents/engineering",
       "skill"
     ],
     "skill": [
+      "tj-agents/base",
       "tj-agents/engineering"
     ]
   },
