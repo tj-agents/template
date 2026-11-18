@@ -11,8 +11,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-NEW_PLUGIN = ROOT / ".agents/kit/utility/new-plugin/scripts/new_plugin.py"
-UPDATE = ROOT / ".agents/kit/utility/update/scripts/update.py"
+NEW_PLUGIN = ROOT / ".agents/template/utility/new-plugin/scripts/new_plugin.py"
+UPDATE = ROOT / ".agents/template/utility/update/scripts/update.py"
 
 
 def load(name: str, path: Path):
@@ -22,7 +22,7 @@ def load(name: str, path: Path):
     return module
 
 
-check = load("kit_check", ROOT / ".agents/kit/utility/check/scripts/check.py")
+check = load("kit_check", ROOT / ".agents/template/utility/check/scripts/check.py")
 
 
 def run(*arguments: str) -> subprocess.CompletedProcess:
@@ -129,7 +129,7 @@ class StackCheckTests(RenderedRepositoryTestCase):
         path = self.root / ".agents/continuation/owner.json"
         path.parent.mkdir()
         path.write_text("{}\n", encoding="utf-8")
-        result = run(str(ROOT / ".agents/kit/utility/check/scripts/check.py"), "--root", str(self.root))
+        result = run(str(ROOT / ".agents/template/utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
     def test_delivery_authorization_is_allowed_but_unknown_json_is_rejected(self) -> None:
@@ -172,12 +172,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
 
     def test_drifted_vendored_file(self) -> None:
         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
-        self.assert_problem(".gitignore: differs from release 1.6.0")
+        self.assert_problem(".gitignore: differs from release 1.6.1")
 
     def test_other_pinned_release(self) -> None:
         path = self.root / ".agents/plugins/kit.json"
         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
-        self.assert_problem("pins Template 0.9.0; this check is 1.6.0: run update")
+        self.assert_problem("pins Template 0.9.0; this check is 1.6.1: run update")
 
     def test_retired_and_unknown_entries(self) -> None:
         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
@@ -192,12 +192,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
         self.assertIn(".agents/docs: a plugin folder needs at least one skill", problems)
 
     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
-        nested = self.root / ".kit/.agents/kit"
-        shutil.copytree(ROOT / ".agents/kit", nested)
-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.6.0", "kit_ref: v0.9.0")
+        nested = self.root / ".kit/.agents/template"
+        shutil.copytree(ROOT / ".agents/template", nested)
+        self.edit(".github/workflows/ci.yml", "kit_ref: v1.6.1", "kit_ref: v0.9.0")
         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
         self.assertEqual(1, result.returncode)
-        self.assertIn(".github/workflows/ci.yml: differs from release 1.6.0", result.stderr)
+        self.assertIn(".github/workflows/ci.yml: differs from release 1.6.1", result.stderr)
 
     def test_missing_tier_is_reported(self) -> None:
         (self.root / ".agents/tiers/zig.json").unlink()
@@ -337,8 +337,8 @@ class KitConformsTests(unittest.TestCase):
 
     def test_kit_conforms_when_checked_from_a_nested_copy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            nested = Path(directory) / ".agents/kit"
-            shutil.copytree(ROOT / ".agents/kit", nested)
+            nested = Path(directory) / ".agents/template"
+            shutil.copytree(ROOT / ".agents/template", nested)
             result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(ROOT))
             self.assertEqual(0, result.returncode, result.stderr)
 

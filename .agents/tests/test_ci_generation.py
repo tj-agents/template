@@ -55,6 +55,8 @@ class PluginCiGenerationTests(unittest.TestCase):
         self.assertLess(verify.index("- name: generated files are current"), verify.index("- name: the repository conforms"))
         self.assert_generation_precedes(hosts, "- name: Claude Code and Codex accept")
         self.assertIn("ref: ${{ inputs.kit_ref }}", hosts)
+        self.assertIn("repository: ${{ inputs.template_repository }}", verify)
+        self.assertIn("repository: ${{ inputs.template_repository }}", hosts)
 
     def test_regeneration_is_main_push_only_and_uses_the_verified_head(self) -> None:
         self.assertIn("push:\n    branches: [main]", self.ci)
@@ -66,6 +68,7 @@ class PluginCiGenerationTests(unittest.TestCase):
         self.assertIn("group: regenerate-main", regenerate)
         self.assertIn("cancel-in-progress: false", regenerate)
         self.assertIn("generate_before_verify: true", self.job("verify", self.ci, "regenerate"))
+        self.assertIn("template_repository: ${{ github.repository }}", self.job("verify", self.ci, "regenerate"))
 
     def test_write_permission_and_staging_are_limited_to_regeneration(self) -> None:
         verify = self.job("verify", self.ci, "regenerate")

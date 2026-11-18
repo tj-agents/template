@@ -33,7 +33,7 @@ def text(path: Path) -> str:
 
 
 def owns_templates(root: Path) -> bool:
-    return (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+    return (root / ".agents/template/utility/new-plugin/templates/repository").is_dir()
 
 
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:

@@ -26,7 +26,7 @@ Install `template@kit-agents`. Existing Kit installations remain compatible duri
 
 A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the Template release tag it pins.
 The workflow checks the generated outputs, runs the repository's own tests, `template:check` and core's tier payload check, and
-installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private `kit` and
+installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private Template and
 `core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
 
 ## Authoring and verification

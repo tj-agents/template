@@ -575,7 +575,7 @@ class PackagedScriptsTests(unittest.TestCase):
                 self.assertEqual(0, new_plugin.returncode, new_plugin.stdout + new_plugin.stderr)
                 example = Path(directory) / "example"
                 adapter_check = package / "skills/check/scripts/check.py"
-                canonical_check = package / ".agents/kit/utility/check/scripts/check.py"
+                canonical_check = package / ".agents/template/utility/check/scripts/check.py"
                 check = subprocess.run(
                     [sys.executable, "-B", str(adapter_check), "--root", str(example)],
                     capture_output=True,

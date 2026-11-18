@@ -1,10 +1,10 @@
 {
   "payloads": {
     "kit": [
-      "kit"
+      "template"
     ],
     "template": [
-      "kit"
+      "template"
     ]
   }
 }

@@ -1,5 +1,17 @@
 # Template ownership and uniform tj-agents package structure
 
+## Rename takeover, 2026-10-16
+
+The `Fix/TemplateRepositoryName` worktree is the active owner of the kit-to-template source rename. Tommy authorized finishing the existing uncommitted work, delivery, and consumer migration. The immediate slice is a compatible rename of this repository's authored source, generated packages, plugin identity and workflow. The existing staged moves and unstaged edits are preserved for reconciliation with `origin/main` at `15609a6`, which already prepares version 1.6.1. Generated-package deletions must be checked against replacement paths before staging. Then run the repository check, full tests and generated freshness check; commit, review, and deliver this slice. Tagging the release and changing the marketplace pin require Tommy's specific approval under the handoff. Consumer updates follow as one PR per repository, and the old compatibility route is removed only after those migrations pass.
+
+Pickup evidence: `A-template-rename.md` and this goal were read from the named worktree. `HEAD` is `1f00a04`, two commits behind `origin/main`; the worktree has 166 changed tracked paths plus untracked replacement package paths. The diff is dominated by mechanical source and generated-package moves, with authored changes in payload mapping, generator version, check/update paths, workflow and tests. No tests have yet been run for this takeover.
+
+## Rename takeover, 2026-10-16
+
+The `Fix/TemplateRepositoryName` worktree is the active owner of the kit-to-template source rename. Tommy authorized finishing the existing uncommitted work, delivery, and consumer migration. The immediate slice is a compatible rename of this repository's authored source, generated packages, plugin identity and workflow. The existing staged moves and unstaged edits are preserved for reconciliation with `origin/main` at `15609a6`, which already prepares version 1.6.1. Generated-package deletions must be checked against replacement paths before staging. Then run the repository check, full tests and generated freshness check; commit, review, and deliver this slice. Tagging the release and changing the marketplace pin require Tommy's specific approval under the handoff. Consumer updates follow as one PR per repository, and the old compatibility route is removed only after those migrations pass.
+
+Pickup evidence: `A-template-rename.md` and this goal were read from the named worktree. `HEAD` is `1f00a04`, two commits behind `origin/main`; the worktree has 166 changed tracked paths plus untracked replacement package paths. The diff is dominated by mechanical source and generated-package moves, with authored changes in payload mapping, generator version, check/update paths, workflow and tests. No tests have yet been run for this takeover.
+
 Status: active; handoff accepted by native Codex session 01a12ccc-aaa2-7631-943f-7fe2947f05cd.
 Date: 2026-10-11
 Branch: Refactor/TemplateStructureContract

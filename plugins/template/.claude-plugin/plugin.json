@@ -5,7 +5,7 @@
   "author": {
     "name": "Tommy Seery"
   },
-  "repository": "https://github.com/tj-agents/kit",
+  "repository": "https://github.com/tj-agents/template",
   "skills": "./skills/",
   "keywords": [
     "plugins",

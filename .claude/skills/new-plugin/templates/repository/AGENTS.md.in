@@ -1,7 +1,7 @@
 # {{namespace}}
 
 This repository uses the plugin layout `template:check` documents and enforces
-(https://github.com/{{owner}}/kit). Authored skills live once under `.agents/<plugin>/<kind>/<name>/SKILL.md`,
+(https://github.com/{{owner}}/template). Authored skills live once under `.agents/<plugin>/<kind>/<name>/SKILL.md`,
 with each skill's scripts and templates beside it; related skills share a family folder, family first
 (`state/client/` publishes `state-client`). `.agents/sync_generated.py`, `.agents/sync-generated.ps1`,
 `.gitattributes`, `.gitignore`, `CLAUDE.md` and `.github/workflows/ci.yml` are vendored from Template and pinned by
