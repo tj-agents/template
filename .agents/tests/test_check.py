@@ -517,6 +517,7 @@ def test_portable_repository_plugin_configuration_is_allowed(zig_repo: Path) -> 
         "plugins.lock.json",
         "settings.json",
         "repository-harness.json",
+        "repository.json",
         "delivery-binding.json",
     ):
         (zig_repo / ".agents" / filename).write_text("{}\n", encoding="utf-8")
