@@ -11,6 +11,7 @@ The final breaking release is published: Template PR #14 merged at `84277e7260a2
 
 Current execution: final v2 consumer migrations are merged: React #18, Rust #5, Work-items #11/#12, Nvim #6, GitHub Actions #11, Azure #15, Work #6, Docs #4, Core #282 and Template #15. Available Windows/Linux and host checks were green. PR #269 was never modified by this workstream; its separate owner merged it as `2ed865e13f071a573d505dacd59c1a482eb5f2bb`, introducing rolling `machine:plugin-selection`. The .NET scaffold is being aligned with that contract in #55, and Template's own lock is migrating to the current `plugins.json` selection.
 
+Audit: all 15 tj-agents repositories were fetched and searched. Remaining live references were .NET's pending migration and one sentence in Work's README (PR #7). Cpp, the employer profile and CLI contain no Kit dependency and require no migration. Dated problem records, reviews and completed plans retain historical names.
 
 Remaining: finish exact-head review and CI for .NET #55, Work #7 and Template rolling selection; merge normally; rerun the live-source audit; update the parent handoff result and clean merged task worktrees. Current Template branch: `Chore/TemplateRollingSelection`. This file remains the canonical recovery record.
 
