@@ -1242,13 +1242,10 @@ def harness_body(
         isinstance(value, dict) for value in marketplaces
     ):
         raise ValueError(f"{relative}: requires.marketplaces must be a list of objects")
-    listed = requires.get("plugins", [])
-    if not isinstance(listed, list) or not all(
-        isinstance(value, str) and DEPENDENCY.fullmatch(value) for value in listed
-    ):
+    if "plugins" in requires:
         raise ValueError(
-            f"{relative}: requires.plugins lists only "
-            f"{TJ_AGENTS_MARKETPLACE}/<package> identities"
+            f"{relative}: requires.plugins is generated; declare dependencies in "
+            ".agents/plugins/payloads.json"
         )
     plugins = [
         identity,

@@ -1301,11 +1301,11 @@ HARNESS_ENVELOPE_CASES: list[tuple[Any, str]] = [
     ({**VALID_HARNESS, "requires": None}, "requires must be a JSON object"),
     (
         {**VALID_HARNESS, "requires": {"plugins": ["base-agents/base"]}},
-        "requires.plugins lists only tj-agents/<package> identities",
+        "requires.plugins is generated",
     ),
     (
         {**VALID_HARNESS, "requires": {"plugins": "tj-agents/base"}},
-        "requires.plugins lists only tj-agents/<package> identities",
+        "requires.plugins is generated",
     ),
     (
         {**VALID_HARNESS, "source_roots": None},
@@ -1473,7 +1473,7 @@ def test_every_marketplace_is_tj_agents_without_cross_marketplace_grants(
 
 
 @pytest.mark.parametrize("kind", ["stack", "tool", "utility", "profile"])
-def test_harness_drops_every_marketplace_and_ignores_authored_plugins(
+def test_harness_drops_every_marketplace_and_projects_dependencies(
     demo_root: Path, kind: str
 ) -> None:
     config = demo_root / ".agents/plugins/template.json"
@@ -1491,7 +1491,6 @@ def test_harness_drops_every_marketplace_and_ignores_authored_plugins(
                     {"id": "demo-agents", "repository": "owner/demo"},
                     {"id": "base-agents", "repository": "tj-agents/core"},
                 ],
-                "plugins": ["tj-agents/demo", "tj-agents/stale"],
             },
         },
     )
@@ -1509,6 +1508,19 @@ def test_harness_drops_every_marketplace_and_ignores_authored_plugins(
         *inherited.get(kind, []),
         "tj-agents/work",
     ]
+
+
+def test_authored_harness_plugins_are_rejected(demo_root: Path) -> None:
+    path = demo_root / ".agents/plugins/manifests/harness/demo.json"
+    write_json(
+        path,
+        {
+            **VALID_HARNESS,
+            "requires": {"plugins": ["tj-agents/demo", "tj-agents/stale"]},
+        },
+    )
+    with pytest.raises(ValueError, match=r"requires.plugins is generated"):
+        build(demo_root)
 
 
 @pytest.mark.parametrize("host", ["claude", "codex"])
