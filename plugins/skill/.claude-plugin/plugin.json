@@ -11,5 +11,9 @@
     "skills",
     "authoring",
     "native-creator"
+  ],
+  "dependencies": [
+    "base@tj-agents",
+    "engineering@tj-agents"
   ]
 }

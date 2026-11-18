@@ -100,6 +100,11 @@ predicates. Core validates their detailed shape. New repositories include a self
 Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
 `tj-agents/<plugin>` identities. `tj-agents` is the only marketplace: the generator names both repository
 marketplace files `tj-agents`, drops any other harness marketplace, and `template:check` fails on any other.
+`payloads.json`'s `dependencies` is the one declaration a package's dependencies need, for every repository type:
+the generator projects it into the shipped Claude manifest's `dependencies` (as `<package>@tj-agents` identities,
+omitted when there are none) and into the shipped harness's `requires.plugins`, alongside the package's own
+identity. An authored Claude or Codex manifest source must omit `dependencies`; the generator rejects one that
+declares it.
 
 `payloads.json` may also ship explicit package resources: a file or recursive directory from `.agents/hooks`, a
 declared canonical plugin's `.agents/<plugin>/runtime` or `resources` directory, or discovered skill assets beside

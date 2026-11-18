@@ -418,6 +418,30 @@ def test_stack_generated_dependency_projection_must_match(zig_repo: Path) -> Non
     )
 
 
+def test_tool_generated_dependency_projection_must_match(helix_repo: Path) -> None:
+    path = helix_repo / "plugins/helix/harness.json"
+    harness = json.loads(path.read_text(encoding="utf-8"))
+    harness["requires"]["plugins"] = ["tj-agents/helix"]
+    path.write_text(json.dumps(harness, indent=2) + "\n", encoding="utf-8")
+    assert_problem(
+        helix_repo,
+        "plugins/helix/harness.json: effective dependency projection is "
+        "missing or differs",
+    )
+
+
+def test_utility_generated_dependency_projection_must_match(tools_repo: Path) -> None:
+    path = tools_repo / "plugins/tools/.claude-plugin/plugin.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["dependencies"] = []
+    path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    assert_problem(
+        tools_repo,
+        "plugins/tools/.claude-plugin/plugin.json: effective dependency "
+        "projection is missing or differs",
+    )
+
+
 def test_stack_generated_dependency_projection_reports_wrong_json_shapes(
     zig_repo: Path,
 ) -> None:

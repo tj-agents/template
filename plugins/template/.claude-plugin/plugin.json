@@ -12,5 +12,10 @@
     "scaffold",
     "standards",
     "generator"
+  ],
+  "dependencies": [
+    "base@tj-agents",
+    "engineering@tj-agents",
+    "skill@tj-agents"
   ]
 }
