@@ -1,0 +1,3137 @@
+standards: Trusted 10 tj-agents hook definitions
+OpenAI Codex v0.163.0-alpha.1
+--------
+workdir: C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+model: gpt-6-astra
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a12ddf-bbac-7041-95e3-fc8710839bb5
+--------
+user
+changes against 'd0b42f2382e477c48ee7d062005b1813d712bee6'
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\codex-skills\\lanes\\SKILL.md'; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\codex-skills\\review\\SKILL.md'; git status --short; git diff --stat d0b42f2382e477c48ee7d062005b1813d712bee6" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 1322ms:
+---
+name: lanes
+description: Pick the model and thinking effort a piece of work is worth by declaring an ordinal lane (L1 most capable to L7 cheapest) that each harness resolves to its own model, so no skill, agent or workflow stage ever names a model. Covers the ladder and what each rung is for, the four questions that choose a rung, why a merge or publish never raises a lane, re-routing per phase rather than running a whole task in its highest lane, where a lane is applied (skill front matter, a delegated lane agent, a workflow stage), and the three places the Claude and Codex ladders are deliberately not level. Use when adding or reviewing a skill or agent, when clerical work is running on an expensive model, when tempted to write a model name anywhere, or when a new model needs pricing into the ladder.
+
+kind: policy
+domain: process
+---
+
+# Lanes
+
+Read and follow the [canonical shared definition](../../.agents/engineering/policy/lanes/SKILL.md) in full.
+This entry point supplies only Codex discovery metadata; the shared procedure is authored once under `.agents/`.
+---
+name: review
+description: Run the canonical isolated code-review workflow over one frozen branch, PR, commit-range, or path candidate with the host's native reviewer, relevant fresh read-only lenses, validated evidence, and parent-only deduplication, severity, judgment, and work-order writing. Use for a first full code review when asked to review a branch or PR; use incremental-review for later commits, big-review for a very large diff, docs-review for a meta-only diff, and address-review for existing findings.
+
+kind: workflow
+domain: process
+---
+
+# Canonical isolated code review
+
+Read and follow the [canonical shared definition](../../.agents/engineering/workflow/review/SKILL.md) in full.
+This entry point adds only Codex's reviewers; the shared procedure is authored once under `.agents/`.
+
+## Codex reviewers
+
+- **Native layer (Stage 3):** `codex review --base <frozen-base>`, run from a checkout at the frozen head.
+  It cannot take a path scope, so the parent drops findings outside a bounded scope.
+- **Security layer (Stage 6):** Codex has no native security reviewer; use the `security` lens.
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+ .../repository/.agents/sync_generated.py.in        | 52 ++++++++++++++-
+ .agents/plugins/kit.json                           |  2 +-
+ .agents/plugins/manifests/codex/kit.json           |  2 +-
+ .agents/plugins/manifests/codex/template.json      |  2 +-
+ .agents/sync_generated.py                          | 52 ++++++++++++++-
+ .agents/tests/test_check.py                        |  8 +--
+ .agents/tests/test_new_plugin.py                   |  4 +-
+ .agents/tests/test_sync_generated.py               | 74 ++++++++++++++++++++++
+ 8 files changed, 185 insertions(+), 11 deletions(-)
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\engineering\\policy\\lanes\\SKILL.md'; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\engineering\\workflow\\review\\SKILL.md'; Get-ChildItem -Force; Get-ChildItem -Recurse -Force -File -Filter 'AGENTS*' | Select-Object -ExpandProperty FullName; git diff d0b42f2382e477c48ee7d062005b1813d712bee6" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 1501ms:
+---
+name: lanes
+description: Pick the model and thinking effort a piece of work is worth by declaring an ordinal lane (L1 most capable to L7 cheapest) that each harness resolves to its own model, so no skill, agent or workflow stage ever names a model. Covers the ladder and what each rung is for, the four questions that choose a rung, why a merge or publish never raises a lane, re-routing per phase rather than running a whole task in its highest lane, where a lane is applied (skill front matter, a delegated lane agent, a workflow stage), and the three places the Claude and Codex ladders are deliberately not level. Use when adding or reviewing a skill or agent, when clerical work is running on an expensive model, when tempted to write a model name anywhere, or when a new model needs pricing into the ladder.
+
+kind: policy
+domain: process
+---
+
+# Lanes
+
+**A lane is what work is worth, not which model runs it.** Declare `lane: L5`; never write a model name.
+Two tables â€” `claude.json` and `codex.json` â€” are the only places a model name may appear, so a new model
+or a reprice is a one-file change per harness and every consumer inherits it. They live at
+`.agents/lanes/` in the source repository, at `../../.agents/lanes/` from an installed host entry, and at `../../../lanes/` from the packaged canonical definition, alongside
+`resolve.py`.
+
+## The ladder
+
+L1 is the most capable rung and L7 the cheapest. The same `LN` means the same *relative* capability on
+both harnesses, which is the whole point: one declaration, two resolutions.
+Relative capability does not require the same exact model family: paired rungs have the same role and price
+ordering even when a harness's available families differ.
+
+| Lane | For | Resolves to |
+|---|---|---|
+| **L1** | a critical design decision, or a big complex plan with substantial interacting decisions; never implementation, review or delivery | the highest appropriate design capability |
+| **L2** | high-stakes judgement that designs nothing â€” a diagnosis of a production failure, a security or migration review | top general family, the setting above its default |
+| **L3** | open investigation or bounded uncertain design with unresolved alternatives | top general family, default setting |
+| **L4** | specified implementation, ordinary review, and small local choices inside a testable fix | the workhorse family, high setting |
+| **L5** | mechanical work whose shape is already decided â€” including small file deletions or moves, config or docs cleanup, and removing or migrating `CLAUDE.local.md` once its destination or rule is decided | a cheaper family or reduced workhorse setting |
+| **L6** | bulk clerical work whose input outgrows the cheapest rung â€” a monitor loop, a long transcript, a big diff | the cheapest model that still holds the input |
+| **L7** | clerical work with a small input â€” commit, push, pull, sync, one poll | the cheapest usable model |
+
+**This document deliberately names no model.** Which model each rung resolves to is data, in the two
+tables, and a rule stated in prose beside the data is a second copy waiting to disagree with it. Run
+`resolve.py --lanes` from whichever of the two locations above exists here for the current pairings.
+
+**Only a leaf skill that IS one shape of work may declare a lane.** A standard or supporting contract â€”
+anything loaded *during* other work to be consulted â€” must not, because its lane would re-point the model
+of whatever task loaded it: a migration would drop to the docs rung for having read the persistence
+standard. A lifecycle or orchestrating skill that spans phases of varying shape (`feature`, `review`,
+`merge`) must not either: invoking one re-points the whole session, so it inherits the session's model and
+routes each bounded phase down the ladder instead. The generator refuses a lane on a routed standard for
+exactly this reason; the test for the rest is whether an agent *runs* one unvarying shape of work.
+`commit` takes a lane; `committing`, `feature`, and `plan-authoring` do not. Planning does not itself
+select a lane.
+
+**No declaration means inherit the session's model** â€” not a default rung. A lane is opt-in per skill, so
+adding one is a visible, reviewable decision and no skill silently changes model because a default moved.
+Declare the cheapest suitable lane explicitly rather than relying on absence: use L4 only for specified
+implementation that still needs code-level judgement, and L5 for small already-decided mechanical work.
+
+## Choosing a rung â€” four questions, in this order
+
+1. **Critical design or scale.** Is this a critical design decision, or a big complex plan with substantial
+   interacting decisions? Record one concrete criticality or scale reason before selecting L1. A plan,
+   architecture, data model, contract, or mechanism label alone does not select it. Bounded uncertain
+   design is L3; small local choices inside a specified, testable fix are L4.
+2. **Stakes.** For work that designs nothing: how costly, and how hard to undo, is a wrong call? A
+   diagnosis or review with a lot riding on it â€” production, security, stored data â€” is L2.
+3. **Ambiguity.** Is the answer known and this is typing, or is the problem open? Open is never below L3;
+   specified implementation that still needs code-level judgement is L4; small already-decided file
+   deletion or move, config or docs cleanup is L5. File count, a handoff, or a merge does not raise it.
+4. **Verifiability.** What catches the mistake â€” a compiler, a test suite, or only human judgement? Use
+   verification to choose the cheapest rung that still supplies the required judgement; automated checks do
+   not remove unresolved design or diagnosis.
+
+**Delivery never raises a lane.** Take the rung from the hardest judgement inside the delegated work,
+never from the operations at its end. Nearly every change ends in a merge, push, publish or release, so
+reading that as irreversibility would put almost every job on L1. Those steps are governed by the delivery
+gates â€” review, CI, the merge queue, release checks â€” never by model tier. Implementation, review and
+delivery never select L1; a high-stakes review may select L2 under the stakes question.
+
+Nothing here says "how hard does this feel". A long mechanical edit is still L5; a one-paragraph plan that
+picks a mechanism is L3 or L4 according to its uncertainty and verification. One extra axis applies at the floor alone: clerical work is L7 only while
+its input fits the cheapest rung, and an input that outgrows it selects L6.
+
+**The frontier tier is above the ladder and is not a rung.** Each table carries a `frontier` entry the
+four questions can never select: it is priced by provenance â€” the user explicitly asking for that tier or
+its model by name â€” not by task shape. A test asserts no rung resolves to the frontier's exact
+model-and-effort pair, so lane inflation cannot reach the tier. Consumers that expose it
+(the handoff launchers' `-Frontier`) make selecting it a distinct visible act rather than one lane value
+among others.
+
+**Re-route per phase.** For every new task, work type, phase, review entry or fallback, make a fresh lane
+selection before substantive work, even when retaining the same lane. Record the phase, lane and reason in
+the existing task context, and resolve model and effort from the canonical host table. Apply the selection
+under the canonical execution rules: continue directly when the current owner already honors the selected
+lane; otherwise use a supported control or bounded lane worker. Inherited settings or an earlier phase's
+selection do not count. One task is usually open/judgement while it is being designed, then specified and
+test-caught while it is built, then clerical to commit and push. Running the whole task in the rung its
+hardest phase needed is the waste this ladder exists to stop, and running the design phase in the rung its
+cleanup needed is how a bad design gets built efficiently.
+
+Lane selection does not itself transfer task ownership. A Claude parent hands multi-phase work and every
+delegated design, implementation, or review phase to Codex before delegating, unless the user explicitly
+chooses Claude for non-frontier work. It keeps conversation and tiny inline follow-ups. If Codex cannot
+launch, report the capability gate and preserve the checkpoint; never silently use Claude for that phase.
+For Codex, the parent normally continues in the same checkout and may give a bounded implementation or
+review task to a lane agent. Claude keeps only conversation and tiny inline follow-ups.
+Give that agent explicit path and responsibility ownership, avoid overlapping writers, and reconcile its
+result in the parent. A small follow-up can stay with the parent. If delegation is unavailable, use the
+current owner's supported fallback; do not open an independent session solely to change model or cost.
+Direct execution and parent fallback use the selected phase lane. A tiny inline follow-up may remain
+with the parent, but that allowance does not cover an implementation phase or a complete implementation
+goal on L1. If a worker is unavailable, use a supported in-session model/effort control or another
+available bounded worker that honors the selected lane. If neither is available and the current owner
+cannot execute at that lane, report the unavailable control and the blocked phase in the existing goal;
+continue independent authorized preparation and resume implementation when a suitable control or worker
+is available. Never claim a model switch happened merely because a lane was recorded.
+For a massive plan whose design is a substantial phase, `engineering:plans` normally transfers execution
+to a fresh harness after a durable phased checkpoint. That decision is about the work and its context,
+not a lane change.
+
+## Where a lane is applied
+
+- **A skill** declares `lane:` in front matter. The generator resolves it and stamps the harness's own
+  keys into each generated payload: `model:` plus `effort:` for Claude, `model:` alone for Codex â€”
+  **Codex has no per-skill effort key**, so a Codex skill gets the rung's model at whatever effort the
+  session is on. Where that half matters, use a delegated lane agent, which is the only place Codex can
+  carry `model_reasoning_effort`. Invoking the skill re-points the session and the switch outlives it,
+  which is why only a terminal leaf task declares one.
+- **A delegated lane agent** (`lane-l5`, `lane-l7`) is the alternative for cheap work that runs many
+  turns. Prompt caches are model-scoped and a mid-conversation effort change invalidates the message
+  cache, so re-pointing the main loop for a single clerical turn can cost more than it saves, while a
+  delegated agent carries only its own small prompt and leaves the parent's cache intact. Reach for it
+  when the cheap work is a loop â€” a monitor, a bulk pass â€” not a one-shot; `lane-l6` exists for exactly
+  the loop whose input outgrows `lane-l7`.
+- **A workflow stage** keeps its own pinned model in `.agents/workflows/hosts/*.json`, because those pins
+  live under the workflow contract's version rather than being re-resolved at dispatch. They are derived
+  from the ladder and a test asserts they still agree with it, so a rung and its stage cannot drift apart
+  â€” but the pin is the value the runtime reads.
+- **A handoff launcher** takes a lane (or frontier) flag per dispatch: both `machine:handoff-claude` and
+  `machine:handoff-codex`'s Python launchers take `--lane` (or `--frontier`), and `handoff-codex` also
+  takes `--reasoning-effort` for a Codex model named outright. Either way the calling agent judges the
+  lane by the four questions and the launcher only prices it, never inferring one from the prompt.
+
+L7 is in-session clerical work only. Both handoff launchers reject it before opening a tab. Claude handoff
+also requires an explicit L1â€“L6 lane, frontier tier, or non-Haiku model, because an unchecked CLI default
+could otherwise select Haiku.
+
+## Where the two ladders are not level â€” know these before trusting parity
+
+1. **L7 is a capability step on Claude, not just a price step.** Its model rejects `effort` outright and
+   its context window is a fifth of every rung above it, so a clerical skill that reads a large diff or a
+   long transcript fails on L7 where L6 would not. The Claude table records that ceiling; the Codex one
+   records `null`, meaning *unrecorded*, not unlimited.
+2. **The floor is a different kind of drop on each harness.** Claude's L7 drops to a small-window model;
+   Codex's L7 is the small family at its lowest setting, with no recorded ceiling. Work that genuinely
+   needs a big-window floor has L6, which keeps Claude on the workhorse with its full context and Codex at
+   higher effort in the small family.
+3. **A specialist model is a second axis, not a rung.** Codex's review stage names its own review-tuned
+   model with a fallback â€” chosen for the *kind* of work, not its capability rank. Such a choice is
+   declared as a `specialist` on the stage, never as its own lane, and it then owns its effort too;
+   folding it into the ladder would imply a capability ordering that is not what it means.
+
+## Anti-patterns
+
+- **A model name outside the lane tables.** In a skill, an agent, a workflow script, a hook, a settings
+  file: every one of those is a place that has to be found again at the next model release.
+- **A lane picked by how the work feels** rather than by the four questions. That is how every rung drifts
+  to L1 and the ladder stops meaning anything.
+- **A lane raised by delivery.** "It ends in a merge, so it is irreversible" is the same drift; the
+  delivery gates own that risk.
+- **An alias where an ID belongs.** The tables carry exact model IDs because `ANTHROPIC_DEFAULT_*_MODEL`
+  re-points a family alias â€” an alias can silently resolve to a different, dearer model than intended.
+- **A new rung for a model that is merely different.** Rungs are ordinal. A model that is cheaper *and*
+  weaker is a rung; a model that is sideways is a specialist.
+---
+name: review
+description: Run the canonical isolated code-review workflow over one frozen branch, PR, commit-range, or path candidate with the host's native reviewer, relevant fresh read-only lenses, validated evidence, and parent-only deduplication, severity, judgment, and work-order writing. Use for a first full code review when asked to review a branch or PR; use incremental-review for later commits, big-review for a very large diff, docs-review for a meta-only diff, and address-review for existing findings.
+
+kind: workflow
+domain: process
+---
+
+# Canonical isolated code review
+
+Review one immutable candidate through the host's mandatory native reviewer and relevant repository-aware lenses.
+Subordinate contexts return evidence only. The strong parent validates every result, verifies citations,
+deduplicates, assigns severity, makes the final judgment, and is the sole writer of the canonical work order
+defined by `review-lifecycle`.
+
+## Arguments and selection
+
+```text
+[low|medium|high|max] [<pr-number>|<branch>|<path>] [--comment] [--fix]
+```
+
+- Effort applies to the native layer and every lens. `low` and `medium` keep only high-confidence defects;
+  `high` and `max` broaden coverage and may retain lower-confidence findings when their uncertainty and
+  concrete fix are explicit. With no value, reuse the last review effort.
+- No target means the current worktree's branch. A PR resolves its base, head branch, and head SHA through the
+  forge. Resolve a branch's actual base from its open PR or owning stack map: the immediate parent for
+  a stack child, otherwise the trunk. A path scopes that same branch candidate.
+- `--comment` posts finalized findings to the target PR after the work order is complete.
+- `--fix` explicitly authorizes the combined review -> `address-review` -> `incremental-review` lifecycle.
+  The same transition is authorized when this review is a stage of an implementation workflow whose original
+  request already authorized fixing its candidate. Otherwise review is read-only and ends after judgment.
+
+`<engineering>` is the installed engineering plugin root: two directories above this skill's host entry
+point (`<engineering>/skills/review/` in Claude Code, `<engineering>/codex-skills/review/` in Codex). Every
+helper below runs from there against the reviewed repository, which needs no `.agents/` of its own.
+
+Use `incremental-review` when the canonical work order already has a completed watermark and HEAD moved.
+Use `big-review` when the frozen changed surface is too large for one pass, normally more than 300 files or
+several substantial components. Use `docs-review` for a documentation/meta-only diff.
+
+## Stage 1 â€” resolve and freeze the candidate
+
+Resolve the target before reading or writing review state. An implementation workflow synchronizes with the
+remote base exactly once, immediately before this final review, while the worktree is clean. Then invoke the
+shared deterministic review preparation operation:
+
+Run these Python workflow commands with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-prepare --base <actual-base> --head HEAD --synchronize
+```
+
+Use the same resolved actual base for preparation, reconciliation and PR preflight. A stack child's
+review covers its layer against the parent; its tests still validate the cumulative tree. Do not merge
+main directly into each child as a substitute for reconciling the stack from its bottom.
+
+A review-only request over an already immutable remote or commit candidate omits `--synchronize`. The helper
+returns one compact Git-private descriptor and an external temporary bundle containing the binary patch and NUL path manifest. It
+also records the one synchronization, candidate identity, routed rule hashes, relevant lenses, security-path
+classification, and one wave.
+Do not reconstruct those facts through separate shell calls.
+
+Freeze a candidate descriptor containing the full base SHA, full head SHA, target branch, scope as `all` or
+an exact bounded value,
+exact sorted changed-path set, SHA-256 of their UTF-8 bytes joined by one NUL byte with no trailing NUL, path
+count, canonical work-order path, and new-or-append mode. Every later command and dispatch uses
+`<base>..<head>`, never a live replacement
+for `<head>`.
+
+The helper stores the authoritative descriptor in repository-private Git state and materializes the candidate
+bundle defined by `review-lifecycle` in an external temporary cache. It validates the exact patch, NUL path
+manifest, descriptor identity, and hashes before returning.
+Add its paths and identities to every immutable-artifact set. A host without safe read-only Git reads this
+bundle; no reviewer depends on the implementation transcript.
+
+When the descriptor reports `host_coverage.required`, its frozen paths touch an agent surface.
+`base:plan-artifacts` owns the coverage-record shape and evidence requirements.
+
+If the branch moves while work is active, do not widen the pass. Cancel any dispatch whose baseline is no
+longer trustworthy, finish or restart the frozen pass, and leave later commits to `incremental-review`.
+
+## Stage 2 â€” open the canonical work order
+
+Read `review-lifecycle`. Use only `reviews/<branch-slug>.md`; staged, documentation, and incremental modes
+share it. Before expensive review work, have the parent create the immutable pass identity and set
+the top-level `Review status`, current `Judgment`, and new `Pass judgment` to `in-progress`, `pending`, and
+`pending`. A first pass has no completion watermark yet. An interrupted
+incremental pass retains the earlier completed watermark but remains merge-blocking through its status.
+Record every descriptor field, including branch, scope, bundle path and identity, canonical work-order path,
+and `new` or `append` mode, before dispatch.
+
+No lens writes the artifact. Append a confirmed finding only after the parent validates its result and
+evidence. The parent may buffer independent lens results long enough to synthesize them together; recovery
+identity and confirmed findings must remain durable.
+
+## Stage 3 â€” native layer
+
+Run the host's own native reviewer first, covering correctness, simplification, reuse, efficiency, and
+error handling, over the frozen range `<frozen-base>..<frozen-head>` and scope. `review`'s host entry point
+names that reviewer and its invocation (`<engineering>/skills/review/SKILL.md` in Claude Code,
+`<engineering>/codex-skills/review/SKILL.md` in Codex). It is a tool call; reading the diff yourself is not
+this layer. Keep only findings on lines changed inside the frozen range and scope. When the host
+reviewer is not callable in this session, dispatch the existing `review-lens` capability with the bounded
+lens `native-general` instead. Record in the work order which native layer ran. Do not invent or require a
+second repository agent definition.
+
+A `native-general` dispatch receives the frozen base, head, path digest, exact scoped paths, materialized
+bundle path and identity, effort, rule-independent objective, read-only tools, and no prior lens
+conclusions. Validate the result against Workflow v2 before using it. Agent/role/model unavailability falls
+back to the parent over the same descriptor and bundle.
+
+## Stage 4 â€” load applicable rules
+
+Two mechanical rule sources; neither depends on anything wired into the reviewed repository.
+
+**Tier conventions â€” every repository.** Run the tier gate shipped with this plugin in conventions mode
+against the reviewed repository root, using `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/hooks/tier_gate.py --conventions --project <repository-root>
+```
+
+The base package's tiers README owns the output contract. Read every listed convention whose domain the
+frozen paths plainly touch, and check each changed file against the conventions of the tier(s) that own
+its language. Do not substitute the session's already-loaded skill list for this resolution; the gate
+reads the same installed declarations that gated the session.
+
+**Repository routes â€” repositories that carry them.** When the frozen tree ships `.agents/skill-routes.json`,
+`review-prepare` runs this plugin's router over it: the descriptor's `routed_skills` names every skill the
+frozen paths owe, plugin-owned ones included, and `route_violations` holds each deny-pattern hit. A
+repository without a route table owes only its tier conventions; that absence is normal, not a defect.
+
+Read every routed skill, the root and nearest changed-path `AGENTS.md` files, and the architecture premise
+from the exported frozen tree, never the live checkout. A route violation is evidence, not a hint.
+Invoke additional standards only when the diff plainly touches their domain; a missing route is a
+route-table defect rather than a list to duplicate here. If the candidate contains plans or
+implementation-ready design references, load plans and apply its implementation-design review gate to
+those artifacts, including their implementation-path standards.
+
+Record the owning `review` lifecycle and the helper's routed technical rule identities with
+`<engineering>/workflows/workflow_ops.py skills`. Read only identities returned as `load`; an unchanged
+identity returned as `cached` is already available to this logical workflow and is not reread after
+compaction. The descriptor's hashes prove whether a cached body still matches the frozen candidate. Check
+every changed file against each routed rule; a changed or missing hash requires a new body read.
+
+## Stage 5 â€” choose and dispatch fresh lenses
+
+Choose only lenses supported by the frozen paths, rules, and risk:
+
+- correctness: logic, concurrency, boundaries, exceptions, and observable failure paths;
+- service isolation: runtime coupling that violates the repository's service-boundary owner;
+- module boundaries: facade, visibility, and persistence ownership violations;
+- seeding: writes production cannot make through the same path;
+- language/framework conventions: only rules stated by the loaded standards; and
+- changed-behaviour test impact: one concrete missing assertion for behavior this candidate adds or reroutes.
+
+Each bounded dispatch uses `review-lens`, a unique dispatch/context identity, the same immutable candidate
+artifacts including the materialized bundle path and identity, one exact lens or region, read-only
+permissions, no subdispatch, and no sibling conclusions.
+Dispatch the helper-selected lenses together in its single wave. A small candidate normally selects only
+`native-general` plus a path-proven specialist lens. If a lens depends on another result, return that check to
+the parent instead of starting another source-review wave. Very large candidates route to `big-review` for
+staged coverage. Writers never participate in review production.
+
+Validate each result identity, status, citations, confidence, acceptance conditions, and decision boundary.
+A malformed or correctable incomplete result gets at most one focused follow-up without widening scope.
+Unsupported dispatch, timeout, cancellation, or a second invalid result closes that dispatch and returns the
+same bounded check to the parent. Obsolete results from a different base, head, path digest, stage, or
+dispatch ID contribute nothing.
+
+## Stage 6 â€” conditional security layer
+
+The descriptor's `security` field applies the merge gate's generic and repository `security_paths`
+inventory: `first_path` to the frozen paths, `trunk_first_path` to `<trunk_base>..<frozen-head>`, the range
+the gate classifies. Run the layer when `first_path` is set, or when `trunk_first_path` is set and the work
+order's `Security-reviewed up to commit:` marker is missing, unresolvable, or followed by a change to a
+security-sensitive path before the frozen head. It covers `<trunk_base>..<frozen-head>`, or
+`<frozen-base>..<frozen-head>` when `trunk_base` is null, through the host security reviewer that `review`'s
+host entry point names. When the host has none that reviews exactly that range, dispatch `review-lens` with
+the bounded lens `security` over it. Security evidence joins parent synthesis, while the marker is written
+only when the whole pass completes. No qualifying path means no security marker.
+
+## Stage 7 â€” parent synthesis and completion
+
+The parent independently checks cited evidence and reads beyond the frozen diff only to confirm a candidate.
+Drop pre-existing issues on unchanged lines, compiler/linter failures CI already owns, preferences no loaded
+rule states, intentional changes, and anything below the effort-adjusted confidence bar.
+
+Every retained finding is a defect the parent would fix and names one concrete fix. Do not keep hedged
+observations. Deduplicate across native, security, concern, and region results by underlying defect and
+evidence, preserving stable IDs. Lenses do not supply final severity or approval; the parent assigns
+severity, writes one judgment, and records findings in the canonical shape from `review-lifecycle`.
+
+Before completing an agent-surface pass, update the canonical work order's one moving coverage record for
+the frozen head, then run with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-host-check --descriptor <descriptor-path> --work-order <canonical-work-order>
+```
+
+The command validates that record against the descriptor's frozen paths and exact head. A failed check keeps
+the review incomplete.
+
+On completion, set `Review status` to `complete`, set the current and active-pass judgments, stamp the single
+`Reviewed up to commit:` marker at the frozen head, and stamp the security marker there when required. If
+HEAD moved, this completed pass remains truthful at its frozen head and the later delta belongs to
+`incremental-review`.
+
+Remove the disposable candidate bundle after completion, cancellation, or terminal failure. An interrupted
+pass may be resumed only after regenerating the bundle from its recorded descriptor and reproducing the
+recorded bundle identity.
+
+Apply `--comment` only after completion. Enter `address-review` only under the explicit combined
+authorization described above; remediation remains a separate serial-write workflow and must return through
+a fresh incremental watermark after any code change.
+
+## Report
+
+If a plan owns the work, completion of the whole pass is one material review transition; record only its
+artifact and current gate. Report the frozen range, finding counts by severity or lens, canonical work-order
+path, completed watermark, and whether an explicitly authorized remediation transition began. Do not replay
+subordinate output or create a review-only commit.
+
+
+    Directory: C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----        12/10/2026     03:08                .agents                                                              
+d-----        12/10/2026     03:08                .claude                                                              
+d-----        12/10/2026     03:08                .claude-plugin                                                       
+d-----        12/10/2026     03:08                .codex                                                               
+d-----        12/10/2026     03:08                .github                                                              
+d-----        12/10/2026     03:08                plans                                                                
+d-----        12/10/2026     03:08                plugins                                                              
+-a-h--        12/10/2026     03:08             79 .git                                                                 
+-a----        12/10/2026     03:08             19 .gitattributes                                                       
+-a----        12/10/2026     03:08            102 .gitignore                                                           
+-a----        12/10/2026     03:08           1330 AGENTS.md                                                            
+-a----        12/10/2026     03:08             11 CLAUDE.md                                                            
+-a----        12/10/2026     03:08           4658 CONTINUATION_SOURCE_SCAN_PLAN.md                                     
+-a----        12/10/2026     03:08           2915 README.md                                                            
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\AGENTS.md
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.agents\kit\utility\new-plugin\templates\repository\AGENTS.md.in
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.claude\skills\new-plugin\templates\repository\AGENTS.md.in
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.codex\skills\new-plugin\templates\repository\AGENTS.md.in
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\plugins\kit\skills\new-plugin\templates\repository\AGENTS.md.in
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+diff --git a/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in b/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+index 5bd7428..38f8d08 100644
+--- a/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
++++ b/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+@@ -16,7 +16,7 @@ import shutil
+ import stat
+ 
+ 
+-KIT_VERSION = "1.4.0"
++KIT_VERSION = "1.4.1"
+ FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
+ NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+ KIND = re.compile(r"^[a-z]+$")
+@@ -50,6 +50,55 @@ TIER_MATCHERS = ("files", "globs", "content", "remote")
+ PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+ 
+ 
++def package_component(value: str, where: str) -> None:
++    reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
++    reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
++    stem = value.split(".", 1)[0].rstrip(" ").upper()
++    if (
++        not value or value in (".", "..") or value.endswith((" ", "."))
++        or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
++        or stem in reserved
++    ):
++        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
++
++def package_relative(value: str, where: str, *, native: bool = False) -> str:
++    if not isinstance(value, str) or not value:
++        raise ValueError(f"{where}: expected a nonempty relative path")
++    relative = value
++    if native:
++        relative = relative.removeprefix("./").removesuffix("/")
++    path = PurePosixPath(relative)
++    if (
++        not relative or "\\" in relative or ":" in relative or "\x00" in relative
++        or path.is_absolute() or ".." in path.parts
++        or path.as_posix() != relative or relative == "."
++    ):
++        raise ValueError(f"{where}: unsafe relative path {value!r}")
++    for component in path.parts:
++        package_component(component, where)
++    return relative
++
++def package_identities(files: dict[str, bytes]) -> None:
++    identities: dict[str, tuple[str, bool]] = {}
++    for key, data in files.items():
++        package_relative(key, "shipped file map")
++        if not isinstance(data, bytes):
++            raise ValueError(f"{key}: shipped file contents must be bytes")
++        nodes = [(key, True)] + [
++            (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
++            if ancestor.as_posix() != "."
++        ]
++        for path, is_file in nodes:
++            identity = path.casefold()
++            previous = identities.get(identity)
++            if previous is not None:
++                spelling, previous_is_file = previous
++                if spelling != path:
++                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
++                if previous_is_file != is_file:
++                    raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
++            identities[identity] = (path, is_file)
++
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+ 
+@@ -608,6 +657,7 @@ def build(root: Path) -> dict[str, bytes]:
+         )
+     emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
+     emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
++    package_identities(output)
+     validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
+     return output
+ 
+diff --git a/.agents/plugins/kit.json b/.agents/plugins/kit.json
+index 7b4017f..d0a448a 100644
+--- a/.agents/plugins/kit.json
++++ b/.agents/plugins/kit.json
+@@ -1,6 +1,6 @@
+ {
+   "schema_version": 1,
+-  "kit": "1.4.0",
++  "kit": "1.4.1",
+   "repository": "tj-agents/kit",
+   "type": "utility"
+ }
+diff --git a/.agents/plugins/manifests/codex/kit.json b/.agents/plugins/manifests/codex/kit.json
+index 9a9d35a..1ca791f 100644
+--- a/.agents/plugins/manifests/codex/kit.json
++++ b/.agents/plugins/manifests/codex/kit.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "kit",
+-  "version": "1.4.0",
++  "version": "1.4.1",
+   "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
+   "author": {
+     "name": "Tommy Seery"
+diff --git a/.agents/plugins/manifests/codex/template.json b/.agents/plugins/manifests/codex/template.json
+index b55f1ef..5b36d40 100644
+--- a/.agents/plugins/manifests/codex/template.json
++++ b/.agents/plugins/manifests/codex/template.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "template",
+-  "version": "1.4.0",
++  "version": "1.4.1",
+   "description": "Meta-scaffolder for plugin repositories: one layout, one vendored generator and one shared CI for every stack, tool and utility plugin.",
+   "author": {
+     "name": "Tommy Seery"
+diff --git a/.agents/sync_generated.py b/.agents/sync_generated.py
+index 5bd7428..38f8d08 100644
+--- a/.agents/sync_generated.py
++++ b/.agents/sync_generated.py
+@@ -16,7 +16,7 @@ import shutil
+ import stat
+ 
+ 
+-KIT_VERSION = "1.4.0"
++KIT_VERSION = "1.4.1"
+ FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
+ NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+ KIND = re.compile(r"^[a-z]+$")
+@@ -50,6 +50,55 @@ TIER_MATCHERS = ("files", "globs", "content", "remote")
+ PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+ 
+ 
++def package_component(value: str, where: str) -> None:
++    reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
++    reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
++    stem = value.split(".", 1)[0].rstrip(" ").upper()
++    if (
++        not value or value in (".", "..") or value.endswith((" ", "."))
++        or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
++        or stem in reserved
++    ):
++        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
++
++def package_relative(value: str, where: str, *, native: bool = False) -> str:
++    if not isinstance(value, str) or not value:
++        raise ValueError(f"{where}: expected a nonempty relative path")
++    relative = value
++    if native:
++        relative = relative.removeprefix("./").removesuffix("/")
++    path = PurePosixPath(relative)
++    if (
++        not relative or "\\" in relative or ":" in relative or "\x00" in relative
++        or path.is_absolute() or ".." in path.parts
++        or path.as_posix() != relative or relative == "."
++    ):
++        raise ValueError(f"{where}: unsafe relative path {value!r}")
++    for component in path.parts:
++        package_component(component, where)
++    return relative
++
++def package_identities(files: dict[str, bytes]) -> None:
++    identities: dict[str, tuple[str, bool]] = {}
++    for key, data in files.items():
++        package_relative(key, "shipped file map")
++        if not isinstance(data, bytes):
++            raise ValueError(f"{key}: shipped file contents must be bytes")
++        nodes = [(key, True)] + [
++            (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
++            if ancestor.as_posix() != "."
++        ]
++        for path, is_file in nodes:
++            identity = path.casefold()
++            previous = identities.get(identity)
++            if previous is not None:
++                spelling, previous_is_file = previous
++                if spelling != path:
++                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
++                if previous_is_file != is_file:
++                    raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
++            identities[identity] = (path, is_file)
++
+ def read(path: Path) -> str:
+     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+ 
+@@ -608,6 +657,7 @@ def build(root: Path) -> dict[str, bytes]:
+         )
+     emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
+     emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
++    package_identities(output)
+     validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
+     return output
+ 
+diff --git a/.agents/tests/test_check.py b/.agents/tests/test_check.py
+index 2d9bb52..42f5080 100644
+--- a/.agents/tests/test_check.py
++++ b/.agents/tests/test_check.py
+@@ -154,12 +154,12 @@ class StackCheckTests(RenderedRepositoryTestCase):
+ 
+     def test_drifted_vendored_file(self) -> None:
+         self.edit(".gitignore", ".worktrees/\n", ".worktrees/\nlocal/\n")
+-        self.assert_problem(".gitignore: differs from release 1.4.0")
++        self.assert_problem(".gitignore: differs from release 1.4.1")
+ 
+     def test_other_pinned_release(self) -> None:
+         path = self.root / ".agents/plugins/kit.json"
+         path.write_text(json.dumps({**json.loads(path.read_text()), "kit": "0.9.0"}), encoding="utf-8")
+-        self.assert_problem("pins kit 0.9.0; this check is 1.4.0: run update")
++        self.assert_problem("pins kit 0.9.0; this check is 1.4.1: run update")
+ 
+     def test_retired_and_unknown_entries(self) -> None:
+         (self.root / "SOURCE_LAYOUT.md").write_text("old\n", encoding="utf-8")
+@@ -176,10 +176,10 @@ class StackCheckTests(RenderedRepositoryTestCase):
+     def test_ci_layout_still_compares_the_ci_caller(self) -> None:
+         nested = self.root / ".kit/.agents/kit"
+         shutil.copytree(ROOT / ".agents/kit", nested)
+-        self.edit(".github/workflows/ci.yml", "kit_ref: v1.4.0", "kit_ref: v0.9.0")
++        self.edit(".github/workflows/ci.yml", "kit_ref: v1.4.1", "kit_ref: v0.9.0")
+         result = run(str(nested / "utility/check/scripts/check.py"), "--root", str(self.root))
+         self.assertEqual(1, result.returncode)
+-        self.assertIn(".github/workflows/ci.yml: differs from release 1.4.0", result.stderr)
++        self.assertIn(".github/workflows/ci.yml: differs from release 1.4.1", result.stderr)
+ 
+     def test_missing_tier_is_reported(self) -> None:
+         (self.root / ".agents/tiers/zig.json").unlink()
+diff --git a/.agents/tests/test_new_plugin.py b/.agents/tests/test_new_plugin.py
+index 55c5c21..317baf4 100644
+--- a/.agents/tests/test_new_plugin.py
++++ b/.agents/tests/test_new_plugin.py
+@@ -106,8 +106,8 @@ class NewPluginTests(unittest.TestCase):
+         for relative in VENDORED:
+             self.assertEqual((ROOT / relative).read_bytes(), (repository / relative).read_bytes(), relative)
+         ci = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+-        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.4.0", ci)
+-        self.assertIn("kit_ref: v1.4.0", ci)
++        self.assertIn("uses: owner/kit/.github/workflows/plugin-ci.yml@v1.4.1", ci)
++        self.assertIn("kit_ref: v1.4.1", ci)
+ 
+     def test_refuses_an_existing_repository_and_a_stack_without_markers(self) -> None:
+         (self.destination / "zig").mkdir()
+diff --git a/.agents/tests/test_sync_generated.py b/.agents/tests/test_sync_generated.py
+index 5ddec7f..d876f35 100644
+--- a/.agents/tests/test_sync_generated.py
++++ b/.agents/tests/test_sync_generated.py
+@@ -129,6 +129,80 @@ class GeneratorTestCase(unittest.TestCase):
+         return code, stream.getvalue()
+ 
+ 
++class PackageIdentityTests(unittest.TestCase):
++    def assert_rejected(self, files: dict[str, bytes], message: str) -> None:
++        with self.assertRaisesRegex(ValueError, message):
++            sync_generated.package_identities(files)
++
++    def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
++        self.assert_rejected(
++            {
++                "plugins/kit/skills/check/SKILL.md": b"",
++                "plugins/KIT/skills/check/README.md": b"",
++            },
++            "Windows path identity collision",
++        )
++        self.assert_rejected(
++            {
++                "plugins/kit/skills/check/SKILL.md": b"",
++                "plugins/kit/skills/check": b"",
++            },
++            "file/directory conflict",
++        )
++
++    def test_rejects_windows_unsafe_components(self) -> None:
++        for component in ("CON", "LPT\u00b9", "rule.", "rule "):
++            with self.subTest(component=component):
++                self.assert_rejected(
++                    {f"plugins/kit/skills/check/{component}/SKILL.md": b""},
++                    "Windows-unsafe path component",
++                )
++
++    def test_rejects_unsafe_paths_and_nonbytes_contents(self) -> None:
++        for path in (
++            "/plugins/kit/skills/check/SKILL.md",
++            "plugins\\kit/skills/check/SKILL.md",
++            "plugins/kit:alt/skills/check/SKILL.md",
++            "plugins/kit/skills/\x00check/SKILL.md",
++        ):
++            with self.subTest(path=path):
++                self.assert_rejected({path: b""}, "unsafe relative path")
++        self.assert_rejected(
++            {"plugins/kit/skills/check/SKILL.md": "not bytes"},
++            "shipped file contents must be bytes",
++        )
++
++    def test_accepts_ordinary_spaced_parenthesized_unicode_paths(self) -> None:
++        sync_generated.package_identities(
++            {
++                "plugins/template/.agents/kit/utility/check/templates/Guide (\u03b1).md": b"",
++                "plugins/template/skills/check/templates/caf\u00e9 guide.md": b"",
++            }
++        )
++
++    def test_build_validates_output_identities_before_references(self) -> None:
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            make_repository(root)
++            events = []
++            identities = sync_generated.package_identities
++            references = sync_generated.validate_file_references
++
++            def record_identities(files):
++                events.append("identities")
++                identities(files)
++
++            def record_references(*arguments):
++                events.append("references")
++                references(*arguments)
++
++            with mock.patch.object(sync_generated, "package_identities", side_effect=record_identities), mock.patch.object(
++                sync_generated, "validate_file_references", side_effect=record_references
++            ):
++                sync_generated.build(root)
++            self.assertEqual(["identities", "references"], events)
++
++
+ class BuildTests(GeneratorTestCase):
+     def test_ships_skill_local_files_beside_the_package_and_adapter_entries(self) -> None:
+         make_repository(self.root)
+
+
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content AGENTS.md; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\lanes\\codex.json'; Get-Content .agents/sync_generated.py" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 1151ms:
+# kit
+
+kit creates plugin repositories and owns the parts they share: the layout, the generator, the root files and CI.
+It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/kit/utility/<name>/`.
+
+The files a plugin repository vendors have one source, under `.agents/kit/utility/new-plugin/templates/repository/`.
+kit's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and
+`CLAUDE.md` must stay byte-identical to those templates; the tests enforce it. Change the template first.
+`kit:check` and `kit:update` read those templates and `kit:check`'s `standard.json`, the one statement of what each
+repository type requires.
+
+`.github/workflows/plugin-ci.yml` is the CI every plugin repository calls, pinned to a kit tag. Changing the
+generator, a vendored file or the workflow is a kit release: bump `KIT_VERSION`, `.agents/plugins/kit.json` and the
+Codex manifest version together, then tag `v<version>` after the merge.
+
+`.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
+`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and
+`python -B -m unittest discover -s .agents/tests -p "test_*.py"` must pass before delivery.
+{
+  "_": "Codex's rung of the lane ladder. Paired name-for-name with .agents/lanes/claude.json: the same LN means the same *relative* capability on both harnesses, so a skill declares `lane: L4` once and each harness resolves it to its own model. These two files are the only two places in the repo a model name may appear. Rungs are ordered L1 (most capable) to L7 (cheapest).",
+
+  "host": "codex",
+  "effort_key": "reasoning_effort",
+  "skill_supports_effort": false,
+  "$comment_skill_supports_effort": "Whether this harness accepts an effort key in SKILL.md front matter. Codex does not, so a Codex skill payload gets the rung's model alone and the rung's effort reaches it only through a lane agent.",
+  "model_key": "model",
+
+  "lanes": {
+    "L1": {
+      "summary": "Critical design decisions or large complex plans with interacting decisions.",
+      "model": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "context_ceiling": null,
+      "why": "The highest lane for a critical design decision or a big, complex plan with substantial interacting decisions. Record a concrete criticality or scale reason before selecting it. A plan label, architecture, data model, contract, or mechanism choice alone does not select it. Never implementation, review or delivery."
+    },
+    "L2": {
+      "summary": "High-stakes judgement that is not design, where a wrong call is costly or hard to undo.",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "xhigh",
+      "context_ceiling": null,
+      "why": "top general family at the setting above `high`. Judgement with a lot riding on it that designs nothing: a diagnosis of a production failure, a security or migration review. Delivering a change never selects it; merge, push and publish are governed by the delivery gates."
+    },
+    "L3": {
+      "summary": "Open investigation or bounded uncertain design with unresolved alternatives.",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "top general family at its default setting. Open investigation or bounded uncertain design with unresolved alternatives, including a diagnosis with no known answer or evidence a test cannot settle."
+    },
+    "L4": {
+      "summary": "Specified implementation, ordinary review, and small local testable choices.",
+      "model": "gpt-5.6-terra",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "the workhorse family at high effort. Specified implementation and ordinary review, including a small local mechanism choice inside a testable fix. Features, bugfixes and review lenses whose mistakes a compiler or a test suite will catch. Delivery never selects this rung."
+    },
+    "L5": {
+      "summary": "Mechanical work whose shape is already decided.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "the small family at high effort. Mechanical work whose shape is already decided: scripted edits, docs, ledger upkeep."
+    },
+    "L6": {
+      "summary": "Bulk clerical work whose input is too large for the cheapest rung.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "medium",
+      "context_ceiling": null,
+      "why": "the small family at medium effort. Clerical loops and bulk passes -- a monitor, a long transcript, a big diff -- that outgrow the floor rung."
+    },
+    "L7": {
+      "summary": "Clerical work with a small input and no judgement to make.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "low",
+      "context_ceiling": null,
+      "why": "the small family at low effort. In-session clerical work with a small input: commit, push, pull, sync, one poll. Handoff launchers reject this rung."
+    }
+  },
+
+  "frontier": {
+    "summary": "Frontier deliberation above the ladder, priced by provenance rather than by task shape.",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "max",
+    "why": "valid only when the user explicitly asks for this tier or its model by name. Deliberately not a rung: the four lane questions grade task shape, and no answer to them may select this spend. L1 prices the same family one effort step below, and a test asserts no rung prices this exact model-and-effort pair, so lane inflation can never reach it."
+  },
+
+  "$comment_context_ceiling": "null means unrecorded, not unlimited. The Claude table carries real per-model windows from the published model table; the Codex figures are not verified here, so recording a number would be inventing one. A lane consumer that needs a ceiling must treat null as 'unknown' and not assume the input fits."
+}
+#!/usr/bin/env python3
+"""Generate a plugin repository's host discovery entries, marketplaces and installable payloads.
+
+Vendored from the kit repository and pinned by `.agents/plugins/kit.json`: change it in kit, never here.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path, PurePosixPath
+import posixpath
+import re
+import shutil
+import stat
+
+
+KIT_VERSION = "1.4.1"
+FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
+NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+KIND = re.compile(r"^[a-z]+$")
+REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+BARE_SKILL_REFERENCE = re.compile(r"`([a-z][a-z0-9-]+)`\s+skill(?:'s)?")
+MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
+SKILL_DIRECTORY_REFERENCE = re.compile(r"<skill-directory>/([^\s`'\")\]]+)")
+REQUIRED_METADATA = ("name", "description", "kind", "domain", "profile", "applicability", "requires", "provenance")
+REPOSITORY_TYPES = ("stack", "tool", "utility")
+RESERVED_AGENT_DIRS = {"continuation", "plugins", "tiers", "tests", "hooks"}
+IGNORED_PARTS = {"__pycache__"}
+IGNORED_SUFFIXES = {".pyc"}
+HOSTS = ("claude", "codex")
+ADAPTER_ROOTS = {"claude": ".claude/skills", "codex": ".codex/skills"}
+MANIFEST_ROOT = ".agents/plugins/manifests"
+MARKETPLACE_OUTPUTS = {"claude": ".claude-plugin/marketplace.json", "codex": ".agents/plugins/marketplace.json"}
+MARKETPLACE_FIELDS = {"claude": {"name", "description", "owner"}, "codex": {"name", "interface"}}
+CODEX_POLICY = {"installation": "INSTALLED_BY_DEFAULT", "authentication": "ON_INSTALL"}
+GENERATED_ROOTS = (
+    ".claude/skills",
+    ".codex/skills",
+    "plugins",
+    ".claude-plugin/marketplace.json",
+    ".agents/plugins/marketplace.json",
+    ".agents/INDEX.md",
+)
+TIER_MATCHERS = ("files", "globs", "content", "remote")
+PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+
+
+def package_component(value: str, where: str) -> None:
+    reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
+    stem = value.split(".", 1)[0].rstrip(" ").upper()
+    if (
+        not value or value in (".", "..") or value.endswith((" ", "."))
+        or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
+        or stem in reserved
+    ):
+        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
+
+def package_relative(value: str, where: str, *, native: bool = False) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{where}: expected a nonempty relative path")
+    relative = value
+    if native:
+        relative = relative.removeprefix("./").removesuffix("/")
+    path = PurePosixPath(relative)
+    if (
+        not relative or "\\" in relative or ":" in relative or "\x00" in relative
+        or path.is_absolute() or ".." in path.parts
+        or path.as_posix() != relative or relative == "."
+    ):
+        raise ValueError(f"{where}: unsafe relative path {value!r}")
+    for component in path.parts:
+        package_component(component, where)
+    return relative
+
+def package_identities(files: dict[str, bytes]) -> None:
+    identities: dict[str, tuple[str, bool]] = {}
+    for key, data in files.items():
+        package_relative(key, "shipped file map")
+        if not isinstance(data, bytes):
+            raise ValueError(f"{key}: shipped file contents must be bytes")
+        nodes = [(key, True)] + [
+            (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
+            if ancestor.as_posix() != "."
+        ]
+        for path, is_file in nodes:
+            identity = path.casefold()
+            previous = identities.get(identity)
+            if previous is not None:
+                spelling, previous_is_file = previous
+                if spelling != path:
+                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
+                if previous_is_file != is_file:
+                    raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
+            identities[identity] = (path, is_file)
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def load(path: Path):
+    try:
+        return json.loads(read(path))
+    except FileNotFoundError:
+        raise ValueError(f"Missing {path.as_posix()}") from None
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{path.as_posix()}: invalid JSON ({error.msg})") from None
+
+
+def dump(value) -> str:
+    return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+
+
+def ignored(path: PurePosixPath | Path) -> bool:
+    return bool(IGNORED_PARTS.intersection(path.parts)) or path.suffix in IGNORED_SUFFIXES
+
+
+def is_link_or_junction(path: Path) -> bool:
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None and is_junction():
+        return True
+    if os.name != "nt":
+        return False
+    try:
+        attributes = path.lstat().st_file_attributes
+    except FileNotFoundError:
+        return False
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+
+
+def load_config(root: Path) -> dict:
+    config = load(root / ".agents/plugins/kit.json")
+    if not isinstance(config, dict):
+        raise ValueError(".agents/plugins/kit.json: must be a JSON object")
+    if config.get("schema_version") != 1:
+        raise ValueError(".agents/plugins/kit.json: schema_version must be 1")
+    if config.get("kit") != KIT_VERSION:
+        raise ValueError(
+            f".agents/plugins/kit.json pins kit {config.get('kit')} but this generator is kit {KIT_VERSION}; "
+            "run kit:update"
+        )
+    if config.get("type") not in REPOSITORY_TYPES:
+        raise ValueError(f".agents/plugins/kit.json: type must be one of {', '.join(REPOSITORY_TYPES)}")
+    match = REPOSITORY.fullmatch(str(config.get("repository", "")))
+    if match is None:
+        raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
+    unknown = set(config) - {"schema_version", "kit", "type", "repository"}
+    if unknown:
+        raise ValueError(f".agents/plugins/kit.json: unknown fields {sorted(unknown)}")
+    return {**config, "namespace": match.group(1)}
+
+
+def metadata(body: str, source: str) -> dict[str, str]:
+    match = FRONTMATTER.match(body)
+    if match is None:
+        raise ValueError(f"{source}: missing frontmatter")
+    values: dict[str, str] = {}
+    for line in match.group("header").splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            values[key.strip()] = value.strip()
+    for field in REQUIRED_METADATA:
+        if not values.get(field):
+            raise ValueError(f"{source}: missing {field}")
+    for field in ("name", "profile"):
+        if not NAME.fullmatch(values[field]):
+            raise ValueError(f"{source}: {field} must be a lowercase name")
+    if not KIND.fullmatch(values["kind"]):
+        raise ValueError(f"{source}: kind must be one lowercase word")
+    return values
+
+
+def is_skill_folder(path: Path) -> bool:
+    return path.is_dir() and not ignored(path) and not is_link_or_junction(path) and (path / "SKILL.md").is_file()
+
+
+def load_skill(root: Path, plugin: str, kind: str, directory: Path, name: str, namespace: str) -> dict:
+    path = directory / "SKILL.md"
+    relative = path.relative_to(root).as_posix()
+    raw = path.read_bytes()
+    if b"\xef\xbb\xbf" in raw:
+        raise ValueError(f"{relative}: embedded UTF-8 BOM")
+    body = raw.decode("utf-8").replace("\r\n", "\n")
+    values = metadata(body, relative)
+    if values["name"] != name:
+        raise ValueError(f"{relative}: name must be {name}, its folder path below the kind folder joined by hyphens")
+    if values["kind"] != kind:
+        raise ValueError(f"{relative}: kind must equal its kind folder")
+    if values["domain"] != namespace:
+        raise ValueError(f"{relative}: domain must be {namespace}")
+    members = {item.name for item in directory.iterdir() if is_skill_folder(item)}
+    files: list[str] = []
+    for item in sorted(directory.rglob("*")):
+        part = item.relative_to(directory)
+        if ignored(part) or part.parts[0] in members:
+            continue
+        if is_link_or_junction(item):
+            raise ValueError(f"{item.relative_to(root).as_posix()}: links are not shipped")
+        if item.is_file() and item != path:
+            files.append(part.as_posix())
+    return {
+        "plugin": plugin,
+        "name": values["name"],
+        "kind": kind,
+        "body": body,
+        "metadata": values,
+        "directory": directory.relative_to(root).as_posix(),
+        "files": files,
+    }
+
+
+def collect_skills(
+    root: Path, plugin: str, kind: str, directory: Path, family: tuple[str, ...], namespace: str, skills: dict[str, dict]
+) -> None:
+    location = directory.relative_to(root).as_posix()
+    if is_link_or_junction(directory):
+        raise ValueError(f"{location}: links are not shipped")
+    if not directory.is_dir() or not NAME.fullmatch(directory.name):
+        raise ValueError(f"{location}: kind and family folders hold only skill folders and family folders")
+    parts = (*family, directory.name)
+    if (directory / "SKILL.md").is_file():
+        skill = load_skill(root, plugin, kind, directory, "-".join(parts), namespace)
+        if skill["name"] in skills:
+            raise ValueError(f"{plugin}: duplicate skill {skill['name']}")
+        skills[skill["name"]] = skill
+        members = [item for item in sorted(directory.iterdir()) if is_skill_folder(item)]
+    else:
+        members = sorted(path for path in directory.iterdir() if not ignored(path))
+        if not members:
+            raise ValueError(f"{location}: a family folder holds skill folders")
+    for member in members:
+        collect_skills(root, plugin, kind, member, parts, namespace, skills)
+
+
+def discover(root: Path, namespace: str) -> dict[str, dict[str, dict]]:
+    agents = root / ".agents"
+    plugins: dict[str, dict[str, dict]] = {}
+    for plugin_dir in sorted(path for path in agents.iterdir() if path.is_dir() and not ignored(path)):
+        if plugin_dir.name in RESERVED_AGENT_DIRS:
+            continue
+        plugin = plugin_dir.name
+        if not NAME.fullmatch(plugin):
+            raise ValueError(f".agents/{plugin}: a plugin folder must be a lowercase name")
+        skills: dict[str, dict] = {}
+        for kind_dir in sorted(path for path in plugin_dir.iterdir() if not ignored(path)):
+            if not kind_dir.is_dir() or not NAME.fullmatch(kind_dir.name):
+                raise ValueError(f".agents/{plugin}/{kind_dir.name}: only kind folders belong in a plugin folder")
+            for entry in sorted(path for path in kind_dir.iterdir() if not ignored(path)):
+                collect_skills(root, plugin, kind_dir.name, entry, (), namespace, skills)
+        if not skills:
+            raise ValueError(f".agents/{plugin}: a plugin folder needs at least one skill")
+        plugins[plugin] = skills
+    if not plugins:
+        raise ValueError("No plugin folder with skills under .agents/")
+    return plugins
+
+
+def validate_payloads(payloads: dict, plugins: dict[str, dict[str, dict]]) -> dict[str, str]:
+    if not isinstance(payloads, dict):
+        raise ValueError(".agents/plugins/payloads.json: must be a JSON object")
+    unknown = set(payloads) - PAYLOAD_FIELDS
+    if unknown:
+        raise ValueError(f".agents/plugins/payloads.json: unknown fields {sorted(unknown)}")
+    declarations = payloads.get("payloads")
+    if not isinstance(declarations, dict) or not declarations:
+        raise ValueError(".agents/plugins/payloads.json: payloads must be a nonempty object")
+    publications = {}
+    for package, owners in sorted(declarations.items()):
+        if not isinstance(package, str) or not NAME.fullmatch(package):
+            raise ValueError(f".agents/plugins/payloads.json: invalid package {package!r}")
+        if (
+            not isinstance(owners, list)
+            or len(owners) != 1
+            or not isinstance(owners[0], str)
+            or owners[0] not in plugins
+        ):
+            raise ValueError(f".agents/plugins/payloads.json: {package} must select exactly one canonical source")
+        publications[package] = owners[0]
+    for source in plugins:
+        if publications.get(source) != source:
+            raise ValueError(f".agents/plugins/payloads.json: {source} must retain its identity publication")
+    dependencies = payloads.get("dependencies", {})
+    if not isinstance(dependencies, dict):
+        raise ValueError(".agents/plugins/payloads.json: dependencies must be an object")
+    for plugin, needs in dependencies.items():
+        if plugin not in plugins or not isinstance(needs, list) or not all(isinstance(need, str) for need in needs) or len(needs) != len(set(needs)):
+            raise ValueError(f".agents/plugins/payloads.json: invalid dependencies for {plugin}")
+        for need in needs:
+            if (
+                (need not in publications and not re.fullmatch(r"[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*", need))
+                or publications.get(need) == plugin
+            ):
+                raise ValueError(f".agents/plugins/payloads.json: {plugin} cannot depend on {need}")
+    compatibility_aliases = payloads.get("compatibilitySkillAliases", {})
+    if not isinstance(compatibility_aliases, dict):
+        raise ValueError(".agents/plugins/payloads.json: compatibilitySkillAliases must be an object")
+    for plugin, aliases in compatibility_aliases.items():
+        if plugin not in plugins or not isinstance(aliases, dict):
+            raise ValueError(f".agents/plugins/payloads.json: invalid compatibility aliases for {plugin}")
+        skills = plugins[plugin]
+        for alias, declaration in aliases.items():
+            if not isinstance(declaration, dict) or set(declaration) != {"replacedBy", "removeAfter"}:
+                raise ValueError(f"{plugin}:{alias}: an alias declares exactly replacedBy and removeAfter")
+            target = str(declaration["replacedBy"]).removeprefix(f"{plugin}:")
+            if (
+                alias not in skills
+                or declaration["replacedBy"] != f"{plugin}:{target}"
+                or target not in skills
+                or target in aliases
+            ):
+                raise ValueError(f"{plugin}:{alias}: an alias must forward to another skill of the same plugin")
+            if not DATE.fullmatch(str(declaration["removeAfter"])):
+                raise ValueError(f"{plugin}:{alias}: removeAfter must be YYYY-MM-DD")
+            if skills[alias]["metadata"]["profile"] != skills[target]["metadata"]["profile"]:
+                raise ValueError(f"{plugin}:{alias}: an alias keeps its replacement's profile")
+    return publications
+
+
+def validate_publication_dependencies(publications: dict, dependencies: dict, marketplace: str) -> None:
+    for source, needs in dependencies.items():
+        for need in needs:
+            if "/" not in need:
+                continue
+            owner, package = need.split("/", 1)
+            if owner == marketplace and (
+                package not in publications or publications[package] == source
+            ):
+                raise ValueError(f".agents/plugins/payloads.json: {source} cannot depend on {need}")
+
+
+def publication_aliases(package: str, aliases: dict) -> dict:
+    return {
+        name: {
+            "replacedBy": f"{package}:{declaration['replacedBy'].split(':', 1)[1]}",
+            "removeAfter": declaration["removeAfter"],
+        }
+        for name, declaration in aliases.items()
+    }
+
+
+def validate_tiers(root: Path, plugins: dict, repository: str) -> None:
+    tier_dir = root / ".agents/tiers"
+    present = sorted(path.name for path in tier_dir.iterdir()) if tier_dir.is_dir() else []
+    expected = sorted(f"{plugin}.json" for plugin in plugins)
+    if present != expected:
+        raise ValueError(f".agents/tiers must hold exactly {', '.join(expected)}")
+    for plugin in plugins:
+        source = f".agents/tiers/{plugin}.json"
+        tier = load(root / source)
+        if not isinstance(tier, dict):
+            raise ValueError(f"{source}: must be a JSON object")
+        if tier.get("schema_version") not in (1, 2, 3):
+            raise ValueError(f"{source}: schema_version must be 1, 2 or 3")
+        if tier.get("tier") != plugin:
+            raise ValueError(f"{source}: tier must be {plugin}")
+        owners = tier.get("owner_repository")
+        owners = [owners] if isinstance(owners, str) else owners or []
+        if repository.lower() not in {str(owner).lower() for owner in owners}:
+            raise ValueError(f"{source}: owner_repository must name {repository}")
+        detect = tier.get("detect")
+        if tier.get("applies") == "always":
+            if detect is not None:
+                raise ValueError(f"{source}: an always-applicable tier declares no detect markers")
+        elif tier.get("applies") == "stack-present":
+            if tier.get("schema_version") == 3:
+                if not isinstance(detect, dict) or not detect:
+                    raise ValueError(f"{source}: a stack-present tier needs a detect predicate")
+                continue
+            if not isinstance(detect, dict) or not any(detect.get(field) for field in TIER_MATCHERS):
+                raise ValueError(f"{source}: a stack-present tier needs at least one detect marker")
+            if set(detect) - set(TIER_MATCHERS):
+                raise ValueError(f"{source}: unknown detect matchers {sorted(set(detect) - set(TIER_MATCHERS))}")
+        else:
+            raise ValueError(f"{source}: applies must be always or stack-present")
+
+
+def load_manifests(root: Path, plugins: dict, repository: str) -> tuple[dict, dict]:
+    expected = sorted([f"{plugin}.json" for plugin in plugins] + ["marketplace.json"])
+    manifests: dict[str, dict] = {}
+    templates: dict[str, dict] = {}
+    for host in HOSTS:
+        host_dir = root / MANIFEST_ROOT / host
+        present = sorted(path.name for path in host_dir.iterdir()) if host_dir.is_dir() else []
+        if present != expected:
+            raise ValueError(f"{MANIFEST_ROOT}/{host} must hold exactly {', '.join(expected)}")
+        manifests[host] = {plugin: load(host_dir / f"{plugin}.json") for plugin in plugins}
+        templates[host] = load(host_dir / "marketplace.json")
+        if not isinstance(templates[host], dict):
+            raise ValueError(f"{MANIFEST_ROOT}/{host}/marketplace.json: must be a JSON object")
+        if any(not isinstance(manifest, dict) for manifest in manifests[host].values()):
+            raise ValueError(f"{MANIFEST_ROOT}/{host}: each plugin manifest must be a JSON object")
+        if set(templates[host]) != MARKETPLACE_FIELDS[host]:
+            raise ValueError(
+                f"{MANIFEST_ROOT}/{host}/marketplace.json declares exactly {sorted(MARKETPLACE_FIELDS[host])}; "
+                "its plugin entries are generated"
+            )
+    if not NAME.fullmatch(str(templates["claude"]["name"])) or templates["claude"]["name"] != templates["codex"]["name"]:
+        raise ValueError("Claude and Codex marketplaces must share one lowercase name")
+    if not templates["codex"]["interface"].get("displayName") or not templates["claude"]["owner"].get("name"):
+        raise ValueError("Marketplaces need an owner name and a display name")
+    for plugin in plugins:
+        claude, codex = manifests["claude"][plugin], manifests["codex"][plugin]
+        for field in ("name", "description", "author", "repository", "skills", "keywords"):
+            if not codex.get(field) or codex.get(field) != claude.get(field):
+                raise ValueError(f"{plugin}: Claude and Codex manifests disagree on {field}")
+        if codex["name"] != plugin or codex["skills"] != "./skills/":
+            raise ValueError(f"{plugin}: manifests must keep the {plugin} identity and the ./skills/ path")
+        if codex["repository"] != f"https://github.com/{repository}":
+            raise ValueError(f"{plugin}: manifest repository must be https://github.com/{repository}")
+        if "version" in claude:
+            raise ValueError(f"{plugin}: the Claude manifest stays commit-versioned and omits version")
+        if not SEMVER.fullmatch(str(codex.get("version", ""))):
+            raise ValueError(f"{plugin}: the Codex manifest declares a semantic version")
+        interface = codex.get("interface") or {}
+        if not claude.get("displayName") or claude["displayName"] != interface.get("displayName"):
+            raise ValueError(f"{plugin}: Claude and Codex manifests disagree on display name")
+        if not interface.get("category"):
+            raise ValueError(f"{plugin}: the Codex manifest interface declares a category")
+    return manifests, templates
+
+
+def adapter_name(skill: dict, single_plugin: bool) -> str:
+    return skill["name"] if single_plugin else f"{skill['plugin']}-{skill['name']}"
+
+
+def adapter_body(skill: dict, adapter_dir: str, canonical_dir: str | None = None) -> str:
+    source = f"{canonical_dir or skill['directory']}/SKILL.md"
+    relative = posixpath.relpath(f"/{source}", f"/{adapter_dir}")
+    match = FRONTMATTER.match(skill["body"])
+    title = next((line for line in match.group("body").splitlines() if line.startswith("# ")), f"# {skill['name']}")
+    return (
+        f"---\n{match.group('header')}\n---\n\n{title}\n\n"
+        f"Read and follow the [canonical definition]({relative}) in full.\n"
+        "This discovery entry is generated; edit the referenced `.agents/` definition.\n"
+    )
+
+
+def references(body: str):
+    for target in MARKDOWN_LINK.findall(body):
+        if URL_SCHEME.match(target) or target.startswith(("#", "/")):
+            continue
+        target = target.split("#", 1)[0]
+        if target:
+            yield target
+    for target in SKILL_DIRECTORY_REFERENCE.findall(body):
+        yield target.rstrip(".,;:")
+
+
+def validate_skill_references(plugins: dict[str, dict[str, dict]]) -> None:
+    qualified = re.compile(
+        r"(?<![-/\w])(" + "|".join(re.escape(plugin) for plugin in sorted(plugins)) + r"):(?!:)([a-z][a-z0-9-]+)"
+    )
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            for namespace, name in qualified.findall(skill["body"]):
+                if name not in plugins[namespace]:
+                    raise ValueError(f"{plugin}:{skill['name']}: unknown skill reference {namespace}:{name}")
+            for name in BARE_SKILL_REFERENCE.findall(skill["body"]):
+                if name not in skills:
+                    raise ValueError(f"{plugin}:{skill['name']}: unknown skill reference `{name}` skill")
+
+
+def validate_file_references(
+    root: Path,
+    plugins: dict,
+    canonical_locations: dict[tuple[str, str], list[str]],
+    adapter_locations: list[tuple[dict, str, str, bool, bool]],
+    output: dict,
+) -> None:
+    def present(path: str) -> bool:
+        return path in output or any(key.startswith(path + "/") for key in output)
+
+    def validate(
+        plugin: str,
+        skill: dict,
+        body: str,
+        source_dir: str,
+        shipped_dir: str,
+        source_exists: bool,
+        generated_required: bool,
+    ) -> None:
+        for target in sorted(set(references(body))):
+            source = posixpath.normpath(posixpath.join(source_dir, target))
+            if source.startswith("../"):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            if source_exists and not (root / source).exists():
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            shipped = posixpath.normpath(posixpath.join(shipped_dir, target))
+            if generated_required and not present(shipped):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
+
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            for directory in canonical_locations[(plugin, skill["name"])]:
+                validate(plugin, skill, skill["body"], skill["directory"], directory, True, True)
+    for skill, body, directory, source_exists, generated_required in adapter_locations:
+        validate(skill["plugin"], skill, body, directory, directory, source_exists, generated_required)
+
+
+def harness_body(root: Path, package: str, marketplace: str, output: dict[str, bytes]) -> str | None:
+    relative = f"{MANIFEST_ROOT}/harness/{package}.json"
+    path = root / relative
+    if not path.exists():
+        return None
+    try:
+        body = read(path)
+        manifest = json.loads(body)
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ValueError(f"{relative}: unreadable JSON ({error})") from None
+    if not isinstance(manifest, dict):
+        raise ValueError(f"{relative}: must be a JSON object")
+    if type(manifest.get("schema_version")) is not int or manifest["schema_version"] != 1:
+        raise ValueError(f"{relative}: schema_version must be 1")
+    if manifest.get("plugin") != f"{marketplace}/{package}":
+        raise ValueError(f"{relative}: plugin must be {marketplace}/{package}")
+    roots = manifest.get("source_roots")
+    if not isinstance(roots, list) or not roots or not all(isinstance(value, str) and value for value in roots):
+        raise ValueError(f"{relative}: source_roots must be a nonempty list of paths")
+    if len(roots) != len(set(roots)):
+        raise ValueError(f"{relative}: source_roots must be unique")
+    for value in roots:
+        source = PurePosixPath(value)
+        if (
+            "\\" in value or ":" in value or "\x00" in value
+            or source.is_absolute() or ".." in source.parts
+            or source.as_posix() != value or len(source.parts) < 2
+            or source.parts[0] != ".agents"
+        ):
+            raise ValueError(f"{relative}: unsafe canonical source root {value!r}")
+        target = f"plugins/{package}/{value}"
+        if target not in output and not any(name.startswith(target + "/") for name in output):
+            raise ValueError(f"{relative}: source root {value!r} is not shipped in {package}")
+    return body
+
+
+def build(root: Path) -> dict[str, bytes]:
+    config = load_config(root)
+    namespace, repository = config["namespace"], config["repository"]
+    plugins = discover(root, namespace)
+    payloads = load(root / ".agents/plugins/payloads.json")
+    publications = validate_payloads(payloads, plugins)
+    validate_tiers(root, plugins, repository)
+    manifests, templates = load_manifests(root, publications, repository)
+    validate_skill_references(plugins)
+    aliases = payloads.get("compatibilitySkillAliases", {})
+    dependencies = payloads.get("dependencies", {})
+    validate_publication_dependencies(publications, dependencies, templates["claude"]["name"])
+    single_plugin = len(plugins) == 1
+
+    output: dict[str, bytes] = {}
+    canonical_locations: dict[tuple[str, str], list[str]] = {}
+    adapter_locations: list[tuple[dict, str, str, bool, bool]] = []
+
+    def emit(relative: str, data: str | bytes) -> None:
+        key = PurePosixPath(relative).as_posix()
+        if key in output:
+            raise ValueError(f"Duplicate generated output: {key}")
+        output[key] = data.encode("utf-8") if isinstance(data, str) else data
+
+    def emit_skill(directory: str, skill: dict, body: str) -> None:
+        emit(f"{directory}/SKILL.md", body)
+        for file in skill["files"]:
+            emit(f"{directory}/{file}", (root / skill["directory"] / file).read_bytes())
+
+    repository_index = [
+        f"# {namespace} capabilities",
+        "",
+        "Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's name is its folder path below "
+        "the kind folder joined by hyphens.",
+        "",
+    ]
+    for source, skills in plugins.items():
+        ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
+        for skill in ordered:
+            for adapter_root in ADAPTER_ROOTS.values():
+                adapter_dir = f"{adapter_root}/{adapter_name(skill, single_plugin)}"
+                host_adapter = adapter_body(skill, adapter_dir)
+                emit_skill(adapter_dir, skill, host_adapter)
+                adapter_locations.append((skill, host_adapter, adapter_dir, True, False))
+        entries = [f"- `{skill['name']}` â€” {skill['kind']} â€” {skill['metadata']['profile']}" for skill in ordered]
+        repository_index += [f"## {source}", ""]
+        repository_index += [f"{entry} â€” `{skill['directory']}/SKILL.md`" for entry, skill in zip(entries, ordered)]
+        repository_index.append("")
+
+    for package, source in publications.items():
+        skills = plugins[source]
+        ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
+        package_aliases = publication_aliases(package, aliases.get(source, {}))
+        for skill in ordered:
+            canonical_dir = f"plugins/{package}/{skill['directory']}"
+            package_adapter_dir = f"plugins/{package}/skills/{skill['name']}"
+            package_adapter = adapter_body(skill, package_adapter_dir, canonical_dir)
+            emit_skill(canonical_dir, skill, skill["body"])
+            emit_skill(package_adapter_dir, skill, package_adapter)
+            canonical_locations.setdefault((source, skill["name"]), []).append(canonical_dir)
+            adapter_locations.append((skill, package_adapter, package_adapter_dir, False, True))
+
+        entries = [f"- `{skill['name']}` â€” {skill['kind']} â€” {skill['metadata']['profile']}" for skill in ordered]
+        emit(f"plugins/{package}/INDEX.md", "\n".join([f"# {package} package capabilities", "", *entries, ""]))
+        profiles: dict[str, list[str]] = {}
+        for skill in ordered:
+            if skill["name"] not in package_aliases:
+                profiles.setdefault(skill["metadata"]["profile"], []).append(skill["name"])
+        selection = {
+            "plugin": package,
+            "dependencies": dependencies.get(source, []),
+            "profiles": {profile: sorted(names) for profile, names in sorted(profiles.items())},
+            "compatibilitySkillAliases": package_aliases,
+            "skills": [
+                {
+                    "name": skill["name"],
+                    "kind": skill["kind"],
+                    "profile": skill["metadata"]["profile"],
+                    "applicability": split_tags(skill["metadata"]["applicability"]),
+                    "requires": split_tags(skill["metadata"]["requires"]),
+                    "provenance": split_tags(skill["metadata"]["provenance"]),
+                }
+                for skill in sorted(ordered, key=lambda item: item["name"])
+            ],
+        }
+        emit(f"plugins/{package}/selection.json", dump(selection))
+        emit(f"plugins/{package}/tier.json", read(root / f".agents/tiers/{source}.json"))
+        harness = harness_body(root, package, templates["claude"]["name"], output)
+        if harness is not None:
+            emit(f"plugins/{package}/harness.json", harness)
+        for host in HOSTS:
+            emit(f"plugins/{package}/.{host}-plugin/plugin.json", read(root / MANIFEST_ROOT / host / f"{package}.json"))
+
+    emit(".agents/INDEX.md", "\n".join(repository_index))
+    claude_entries, codex_entries = [], []
+    for package in publications:
+        claude, codex = manifests["claude"][package], manifests["codex"][package]
+        category = codex["interface"]["category"]
+        claude_entries.append(
+            {
+                "name": package,
+                "source": f"./plugins/{package}",
+                "description": claude["description"],
+                "category": category,
+                "keywords": claude["keywords"],
+            }
+        )
+        codex_entries.append(
+            {
+                "name": package,
+                "source": {"source": "local", "path": f"./plugins/{package}"},
+                "policy": CODEX_POLICY,
+                "category": category,
+            }
+        )
+    emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
+    emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
+    package_identities(output)
+    validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
+    return output
+
+
+def split_tags(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def generated_root_paths(root: Path) -> list[Path]:
+    resolved_root = root.resolve()
+    result: list[Path] = []
+    for value in GENERATED_ROOTS:
+        relative = PurePosixPath(value)
+        ancestor = resolved_root
+        for part in relative.parts:
+            ancestor = ancestor / part
+            if is_link_or_junction(ancestor):
+                raise ValueError(f"Generated root must not be or sit under a link or junction: {value}")
+        path = resolved_root.joinpath(*relative.parts).resolve()
+        if path == resolved_root or not path.is_relative_to(resolved_root):
+            raise ValueError(f"Generated root escapes the repository: {value}")
+        result.append(path)
+    return result
+
+
+def existing_files(root: Path) -> set[str]:
+    result: set[str] = set()
+    for value in GENERATED_ROOTS:
+        path = root / value
+        if path.is_dir():
+            result.update(
+                item.relative_to(root).as_posix()
+                for item in path.rglob("*")
+                if item.is_file() and not ignored(item.relative_to(root))
+            )
+        elif path.is_file():
+            result.add(value)
+    return result
+
+
+def synchronize(root: Path, check: bool) -> int:
+    output = build(root)
+    expected = set(output)
+    actual = existing_files(root)
+    if check:
+        stale = sorted(path for path in expected & actual if (root / path).read_bytes() != output[path])
+        problems = [("MISSING", sorted(expected - actual)), ("STALE", stale), ("EXTRA", sorted(actual - expected))]
+        for label, paths in problems:
+            for path in paths:
+                print(f"{label}: {path}")
+        if any(paths for _, paths in problems):
+            return 1
+        print(f"generated outputs current: {len(expected)} files")
+        return 0
+    for path in generated_root_paths(root):
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    for relative, data in output.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    print(f"generated {len(expected)} files")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    try:
+        return synchronize(args.root.resolve(), args.check)
+    except ValueError as error:
+        print(f"error: {error}")
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'python -B -m unittest discover -s .agents/tests -p "test_*.py"' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'pwsh -NoProfile -File .agents/sync-generated.ps1 -Check' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git ls-files .codex/skills plugins .agents/INDEX.md .agents/plugins/marketplace.json; Get-Content .agents/sync-generated.ps1; Get-Content .github/workflows/plugin-ci.yml; Get-ChildItem -Recurse plans; Get-Content .agents/tests/test_sync_generated.py | Select-Object -First 400' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ exited 1 in 1148ms:
+Program 'pwsh.exe' failed to run: Access is deniedAt line:2 char:1
++ pwsh -NoProfile -File .agents/sync-generated.ps1 -Check
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~.
+At line:2 char:1
++ pwsh -NoProfile -File .agents/sync-generated.ps1 -Check
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ResourceUnavailable: (:) [], ApplicationFailedException
+    + FullyQualifiedErrorId : NativeCommandFailed
+ 
+
+ succeeded in 1623ms:
+.agents/INDEX.md
+.agents/plugins/marketplace.json
+.codex/skills/check/SKILL.md
+.codex/skills/check/scripts/check.py
+.codex/skills/check/scripts/check_skill_references.py
+.codex/skills/check/standard.json
+.codex/skills/new-plugin/SKILL.md
+.codex/skills/new-plugin/scripts/new_plugin.py
+.codex/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/__namespace__.json.in
+.codex/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/marketplace.json.in
+.codex/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/__namespace__.json.in
+.codex/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/marketplace.json.in
+.codex/skills/new-plugin/templates/repository/.agents/plugins/manifests/harness/__namespace__.json.in
+.codex/skills/new-plugin/templates/repository/.agents/sync-generated.ps1.in
+.codex/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+.codex/skills/new-plugin/templates/repository/.gitattributes.in
+.codex/skills/new-plugin/templates/repository/.github/workflows/ci.yml.in
+.codex/skills/new-plugin/templates/repository/.gitignore.in
+.codex/skills/new-plugin/templates/repository/AGENTS.md.in
+.codex/skills/new-plugin/templates/repository/CLAUDE.md.in
+.codex/skills/new-plugin/templates/repository/README.md.in
+.codex/skills/new-plugin/templates/skills/common/knowledge/direction/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/common/knowledge/knowledge/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/build/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/domain-design/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/errors/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/libraries/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/structure/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/style/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/convention/testing/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/policy/learning/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/stack/utility/scaffold/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/tool/policy/learning/SKILL.md.in
+.codex/skills/new-plugin/templates/skills/utility/utility/__skill__/SKILL.md.in
+.codex/skills/update/SKILL.md
+.codex/skills/update/scripts/update.py
+plugins/kit/.claude-plugin/plugin.json
+plugins/kit/.codex-plugin/plugin.json
+plugins/kit/INDEX.md
+plugins/kit/selection.json
+plugins/kit/skills/check/SKILL.md
+plugins/kit/skills/check/scripts/check.py
+plugins/kit/skills/check/scripts/check_skill_references.py
+plugins/kit/skills/check/standard.json
+plugins/kit/skills/new-plugin/SKILL.md
+plugins/kit/skills/new-plugin/scripts/new_plugin.py
+plugins/kit/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/__namespace__.json.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/marketplace.json.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/__namespace__.json.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/marketplace.json.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/plugins/manifests/harness/__namespace__.json.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/sync-generated.ps1.in
+plugins/kit/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+plugins/kit/skills/new-plugin/templates/repository/.gitattributes.in
+plugins/kit/skills/new-plugin/templates/repository/.github/workflows/ci.yml.in
+plugins/kit/skills/new-plugin/templates/repository/.gitignore.in
+plugins/kit/skills/new-plugin/templates/repository/AGENTS.md.in
+plugins/kit/skills/new-plugin/templates/repository/CLAUDE.md.in
+plugins/kit/skills/new-plugin/templates/repository/README.md.in
+plugins/kit/skills/new-plugin/templates/skills/common/knowledge/direction/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/common/knowledge/knowledge/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/build/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/domain-design/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/errors/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/libraries/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/structure/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/style/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/convention/testing/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/policy/learning/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/stack/utility/scaffold/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/tool/policy/learning/SKILL.md.in
+plugins/kit/skills/new-plugin/templates/skills/utility/utility/__skill__/SKILL.md.in
+plugins/kit/skills/update/SKILL.md
+plugins/kit/skills/update/scripts/update.py
+plugins/kit/tier.json
+#!/usr/bin/env pwsh
+[CmdletBinding()]
+param([switch]$Check)
+$ErrorActionPreference = 'Stop'
+$arguments = @('-B', (Join-Path $PSScriptRoot 'sync_generated.py'), '--root', (Split-Path -Parent $PSScriptRoot))
+if ($Check) { $arguments += '--check' }
+try {
+    & python @arguments
+    $exitCode = $LASTEXITCODE
+    if ($null -eq $exitCode) { throw 'Python returned no process exit code.' }
+}
+catch {
+    Write-Error $_
+    exit 1
+}
+exit $exitCode
+name: plugin-ci
+
+on:
+  workflow_call:
+    inputs:
+      kit_ref:
+        description: The kit release the calling repository pins, such as v1.0.0.
+        required: true
+        type: string
+      generate_before_verify:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      read_token:
+        description: A token that can read the organization's kit and core repositories.
+        required: false
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/core
+          path: .core
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: tj-agents/react
+          path: .react
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: tj-agents/dotnet
+          path: .dotnet
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: repository tests
+        shell: pwsh
+        run: |
+          if (Test-Path .agents/tests/test_*.py) {
+            python -B -m unittest discover -s .agents/tests -p "test_*.py"
+            exit $LASTEXITCODE
+          }
+      - name: the repository conforms to its pinned kit release
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check.py --root .
+      - name: authored skill references resolve in the public corpus
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check_skill_references.py --root . --root .kit --root .core --root .react --root .dotnet --source-root .
+      - name: tier payloads conform to the shipped shape
+        shell: pwsh
+        run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
+
+  hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install the pinned host CLIs
+        run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
+      - name: Claude Code and Codex accept the marketplace and plugins
+        run: python -B .kit/.github/scripts/validate_hosts.py --root .
+
+
+    Directory: C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\plans
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----        12/10/2026     03:08                template-structure                                                   
+
+
+    Directory: C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\plans\template-structure
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+-a----        12/10/2026     03:08          21053 GOAL.md                                                              
+-a----        12/10/2026     03:08            259 handoff.txt                                                          
+-a----        12/10/2026     03:08          17753 TEMPLATE_PUBLICATION.md                                              
+from __future__ import annotations
+
+import contextlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location("sync_generated", ROOT / ".agents" / "sync_generated.py")
+sync_generated = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(sync_generated)
+
+
+def skill_text(name: str, kind: str, body: str = "", domain: str = "demo", profile: str = "core") -> str:
+    return (
+        f"---\nname: {name}\ndescription: The {name} skill.\nkind: {kind}\ndomain: {domain}\nprofile: {profile}\n"
+        f"applicability: demo projects\nrequires: demo\nprovenance: house\n---\n\n# {name}\n\n{body}"
+    )
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def write_json(path: Path, value) -> None:
+    write(path, json.dumps(value, indent=2) + "\n")
+
+
+def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
+    write_json(root / ".agents/plugins/kit.json", {"schema_version": 1, "kit": sync_generated.KIT_VERSION, "repository": "owner/demo", "type": "stack"})
+    write_json(root / ".agents/plugins/payloads.json", {"payloads": {plugin: [plugin] for plugin in plugins}})
+    for host in ("claude", "codex"):
+        templates = {
+            "claude": {"name": "demo-agents", "description": "Demo.", "owner": {"name": "Owner"}},
+            "codex": {"name": "demo-agents", "interface": {"displayName": "Demo"}},
+        }
+        write_json(root / f".agents/plugins/manifests/{host}/marketplace.json", templates[host])
+    for plugin in plugins:
+        write_json(
+            root / f".agents/tiers/{plugin}.json",
+            {"schema_version": 1, "tier": plugin, "applies": "stack-present", "owner_repository": ["owner/demo"], "detect": {"files": ["demo.toml"]}},
+        )
+        common = {
+            "name": plugin,
+            "description": f"The {plugin} plugin.",
+            "author": {"name": "Owner"},
+            "repository": "https://github.com/owner/demo",
+            "skills": "./skills/",
+            "keywords": [plugin],
+        }
+        write_json(root / f".agents/plugins/manifests/claude/{plugin}.json", {**common, "displayName": plugin.title()})
+        write_json(
+            root / f".agents/plugins/manifests/codex/{plugin}.json",
+            {**common, "version": "0.1.0", "interface": {"displayName": plugin.title(), "category": "Productivity"}},
+        )
+        write(
+            root / f".agents/{plugin}/utility/tool/SKILL.md",
+            skill_text("tool", "utility", "Run `<skill-directory>/scripts/run.py`. See [the notes](templates/notes.md).\n"),
+        )
+        write(root / f".agents/{plugin}/utility/tool/scripts/run.py", "print('run')\n")
+        write(root / f".agents/{plugin}/utility/tool/templates/notes.md", "notes\n")
+        write(root / f".agents/{plugin}/contract/style/SKILL.md", skill_text("style", "contract", f"Pairs with `{plugin}:tool`.\n"))
+
+
+def add_publication(root: Path, package: str, source: str) -> None:
+    payload_path = root / ".agents/plugins/payloads.json"
+    payloads = json.loads(payload_path.read_text(encoding="utf-8"))
+    payloads["payloads"][package] = [source]
+    write_json(payload_path, payloads)
+    for host in ("claude", "codex"):
+        manifest_path = root / f".agents/plugins/manifests/{host}/{source}.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["name"] = package
+        if host == "claude":
+            manifest["displayName"] = package.title()
+        else:
+            manifest["interface"]["displayName"] = package.title()
+        write_json(root / f".agents/plugins/manifests/{host}/{package}.json", manifest)
+
+
+class GeneratorTestCase(unittest.TestCase):
+    def test_external_selection_dependency_is_preserved_and_shape_checked(self):
+        make_repository(self.root)
+        path = self.root / ".agents/plugins/payloads.json"
+        payloads = json.loads(path.read_text(encoding="utf-8"))
+        payloads["dependencies"] = {"demo": ["base-agents/machine"]}
+        write_json(path, payloads)
+        self.assertEqual(["base-agents/machine"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        for invalid in ("base-agents/*", "base-agents/machine/extra", "unknown", {}):
+            payloads["dependencies"] = {"demo": [invalid]}
+            write_json(path, payloads)
+            with self.assertRaises(ValueError):
+                self.build()
+
+    def test_optional_harness_is_shipped_without_requiring_migration(self):
+        make_repository(self.root)
+        self.assertNotIn("plugins/demo/harness.json", sync_generated.build(self.root))
+        manifest = {"schema_version": 1, "plugin": "demo-agents/demo", "source_roots": [".agents/demo"], "requires": {}}
+        write_json(self.root / ".agents/plugins/manifests/harness/demo.json", manifest)
+        self.assertEqual(json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"]), manifest)
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.directory.name)
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def build(self) -> dict[str, bytes]:
+        return sync_generated.build(self.root)
+
+    def assert_rejected(self, message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+            self.build()
+
+    def synchronize(self, check: bool) -> tuple[int, str]:
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = sync_generated.synchronize(self.root, check)
+        return code, stream.getvalue()
+
+
+class PackageIdentityTests(unittest.TestCase):
+    def assert_rejected(self, files: dict[str, bytes], message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+            sync_generated.package_identities(files)
+
+    def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
+        self.assert_rejected(
+            {
+                "plugins/kit/skills/check/SKILL.md": b"",
+                "plugins/KIT/skills/check/README.md": b"",
+            },
+            "Windows path identity collision",
+        )
+        self.assert_rejected(
+            {
+                "plugins/kit/skills/check/SKILL.md": b"",
+                "plugins/kit/skills/check": b"",
+            },
+            "file/directory conflict",
+        )
+
+    def test_rejects_windows_unsafe_components(self) -> None:
+        for component in ("CON", "LPT\u00b9", "rule.", "rule "):
+            with self.subTest(component=component):
+                self.assert_rejected(
+                    {f"plugins/kit/skills/check/{component}/SKILL.md": b""},
+                    "Windows-unsafe path component",
+                )
+
+    def test_rejects_unsafe_paths_and_nonbytes_contents(self) -> None:
+        for path in (
+            "/plugins/kit/skills/check/SKILL.md",
+            "plugins\\kit/skills/check/SKILL.md",
+            "plugins/kit:alt/skills/check/SKILL.md",
+            "plugins/kit/skills/\x00check/SKILL.md",
+        ):
+            with self.subTest(path=path):
+                self.assert_rejected({path: b""}, "unsafe relative path")
+        self.assert_rejected(
+            {"plugins/kit/skills/check/SKILL.md": "not bytes"},
+            "shipped file contents must be bytes",
+        )
+
+    def test_accepts_ordinary_spaced_parenthesized_unicode_paths(self) -> None:
+        sync_generated.package_identities(
+            {
+                "plugins/template/.agents/kit/utility/check/templates/Guide (\u03b1).md": b"",
+                "plugins/template/skills/check/templates/caf\u00e9 guide.md": b"",
+            }
+        )
+
+    def test_build_validates_output_identities_before_references(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            make_repository(root)
+            events = []
+            identities = sync_generated.package_identities
+            references = sync_generated.validate_file_references
+
+            def record_identities(files):
+                events.append("identities")
+                identities(files)
+
+            def record_references(*arguments):
+                events.append("references")
+                references(*arguments)
+
+            with mock.patch.object(sync_generated, "package_identities", side_effect=record_identities), mock.patch.object(
+                sync_generated, "validate_file_references", side_effect=record_references
+            ):
+                sync_generated.build(root)
+            self.assertEqual(["identities", "references"], events)
+
+
+class BuildTests(GeneratorTestCase):
+    def test_ships_skill_local_files_beside_the_package_and_adapter_entries(self) -> None:
+        make_repository(self.root)
+        output = self.build()
+        canonical = "plugins/demo/.agents/demo/utility/tool"
+        adapter = "plugins/demo/skills/tool"
+        self.assertEqual(
+            (self.root / ".agents/demo/utility/tool/SKILL.md").read_bytes(),
+            output[f"{canonical}/SKILL.md"],
+        )
+        for directory in (canonical, adapter, ".claude/skills/tool", ".codex/skills/tool"):
+            self.assertIn(f"{directory}/scripts/run.py", output)
+            self.assertIn(f"{directory}/templates/notes.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/utility/tool/SKILL.md)",
+            output[f"{adapter}/SKILL.md"].decode(),
+        )
+        self.assertIn("canonical definition](../../../.agents/demo/utility/tool/SKILL.md)", output[".claude/skills/tool/SKILL.md"].decode())
+
+    def test_marketplaces_and_selection_are_derived_from_manifests_and_frontmatter(self) -> None:
+        make_repository(self.root)
+        output = self.build()
+        claude = json.loads(output[".claude-plugin/marketplace.json"])
+        codex = json.loads(output[".agents/plugins/marketplace.json"])
+        self.assertEqual([{"name": "demo", "source": "./plugins/demo", "description": "The demo plugin.", "category": "Productivity", "keywords": ["demo"]}], claude["plugins"])
+        self.assertEqual({"source": "local", "path": "./plugins/demo"}, codex["plugins"][0]["source"])
+        selection = json.loads(output["plugins/demo/selection.json"])
+        self.assertEqual({"core": ["style", "tool"]}, selection["profiles"])
+        self.assertIn("- `tool` â€” utility â€” core", output["plugins/demo/INDEX.md"].decode())
+
+    def test_publications_share_one_source_and_keep_one_local_adapter_set(self) -> None:
+        make_repository(self.root)
+        add_publication(self.root, "template", "demo")
+        for package in ("demo", "template"):
+            write_json(
+                self.root / f".agents/plugins/manifests/harness/{package}.json",
+                {"schema_version": 1, "plugin": f"demo-agents/{package}", "source_roots": [".agents/demo"], "requires": {}},
+            )
+        output = self.build()
+        for package in ("demo", "template"):
+            canonical = f"plugins/{package}/.agents/demo/utility/tool/SKILL.md"
+            adapter = f"plugins/{package}/skills/tool/SKILL.md"
+            self.assertEqual((self.root / ".agents/demo/utility/tool/SKILL.md").read_bytes(), output[canonical])
+            self.assertIn("canonical definition](../../.agents/demo/utility/tool/SKILL.md)", output[adapter].decode())
+            self.assertEqual(package, json.loads(output[f"plugins/{package}/selection.json"])["plugin"])
+            self.assertEqual(f"demo-agents/{package}", json.loads(output[f"plugins/{package}/harness.json"])["plugin"])
+        self.assertEqual(1, sum(name.endswith("/SKILL.md") for name in output if name == ".claude/skills/tool/SKILL.md"))
+        self.assertEqual(["demo", "template"], [item["name"] for item in json.loads(output[".agents/plugins/marketplace.json"])["plugins"]])
+
+    def test_aliases_are_projected_for_each_publication(self) -> None:
+        make_repository(self.root)
+        write(self.root / ".agents/demo/contract/old-style/SKILL.md", skill_text("old-style", "contract", "Use `demo:style`.\n"))
+        add_publication(self.root, "template", "demo")
+        payloads = json.loads((self.root / ".agents/plugins/payloads.json").read_text(encoding="utf-8"))
+        payloads["compatibilitySkillAliases"] = {"demo": {"old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}}}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        selection = json.loads(self.build()["plugins/template/selection.json"])
+        self.assertEqual({"old-style": {"replacedBy": "template:style", "removeAfter": "2027-03-31"}}, selection["compatibilitySkillAliases"])
+        self.assertEqual({"core": ["style", "tool"]}, selection["profiles"])
+
+    def test_several_plugins_prefix_their_adapter_entries(self) -> None:
+        make_repository(self.root, ("demo", "extra"))
+        output = self.build()
+        self.assertIn(".claude/skills/extra-tool/SKILL.md", output)
+        self.assertNotIn(".claude/skills/tool/SKILL.md", output)
+
+    def test_an_alias_forwards_within_its_plugin_and_stays_out_of_profiles(self) -> None:
+        make_repository(self.root)
+        write(self.root / ".agents/demo/contract/old-style/SKILL.md", skill_text("old-style", "contract", "Use `demo:style`.\n"))
+        payloads = json.loads((self.root / ".agents/plugins/payloads.json").read_text())
+        payloads["compatibilitySkillAliases"] = {"demo": {"old-style": {"replacedBy": "demo:style", "removeAfter": "2027-03-31"}}}
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        selection = json.loads(self.build()["plugins/demo/selection.json"])
+        self.assertEqual({"core": ["style", "tool"]}, selection["profiles"])
+        payloads["compatibilitySkillAliases"]["demo"]["old-style"]["replacedBy"] = "demo:missing"
+        write_json(self.root / ".agents/plugins/payloads.json", payloads)
+        self.assert_rejected("alias must forward")
+
+
+class FamilyTests(GeneratorTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        make_repository(self.root)
+
+    def test_a_family_member_publishes_its_folder_path_joined_by_hyphens(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state/server/SKILL.md", skill_text("state-server", "contract"))
+        output = self.build()
+        for name in ("state-client", "state-server"):
+            self.assertIn(f"plugins/demo/.agents/demo/contract/state/{name.removeprefix('state-')}/SKILL.md", output)
+            self.assertIn(f"plugins/demo/skills/{name}/SKILL.md", output)
+            self.assertIn(f".codex/skills/{name}/SKILL.md", output)
+        self.assertIn(
+            "canonical definition](../../.agents/demo/contract/state/client/SKILL.md)",
+            output["plugins/demo/skills/state-client/SKILL.md"].decode(),
+        )
+        self.assertIn(
+            "canonical definition](../../../.agents/demo/contract/state/client/SKILL.md)",
+            output[".claude/skills/state-client/SKILL.md"].decode(),
+        )
+        self.assertIn("- `state-client` â€” contract â€” core", output["plugins/demo/INDEX.md"].decode())
+
+    def test_a_family_skill_ships_its_own_files_but_not_its_members(self) -> None:
+        write(self.root / ".agents/demo/contract/naming/SKILL.md", skill_text("naming", "contract"))
+        write(self.root / ".agents/demo/contract/naming/templates/rules.md", "rules\n")
+        write(self.root / ".agents/demo/contract/naming/collaborators/SKILL.md", skill_text("naming-collaborators", "contract"))
+        write(self.root / ".agents/demo/contract/naming/collaborators/templates/roles.md", "roles\n")
+        output = self.build()
+        self.assertIn("plugins/demo/skills/naming/templates/rules.md", output)
+        self.assertNotIn("plugins/demo/skills/naming/collaborators/SKILL.md", output)
+        self.assertIn("plugins/demo/skills/naming-collaborators/templates/roles.md", output)
+
+    def test_a_member_named_without_its_family(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("client", "contract"))
+        self.assert_rejected("name must be state-client")
+
+    def test_a_file_in_a_family_folder(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state/notes.md", "stray\n")
+        self.assert_rejected("only skill folders")
+
+    def test_a_linked_member_folder_is_not_shipped(self) -> None:
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        write(Path(outside.name) / "SKILL.md", skill_text("style-linked", "contract"))
+        link = self.root / ".agents/demo/contract/style/linked"
+        try:
+            if os.name == "nt":
+                import _winapi
+
+                _winapi.CreateJunction(outside.name, str(link))
+            else:
+                link.symlink_to(outside.name, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"cannot create a link here: {error}")
+        self.assert_rejected("links are not shipped")
+
+    def test_a_family_name_colliding_with_a_flat_skill(self) -> None:
+        write(self.root / ".agents/demo/contract/state/client/SKILL.md", skill_text("state-client", "contract"))
+        write(self.root / ".agents/demo/contract/state-client/SKILL.md", skill_text("state-client", "contract"))
+        self.assert_rejected("duplicate skill state-client")
+
+
+class RejectionTests(GeneratorTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        make_repository(self.root)
+
+    def test_missing_frontmatter_field(self) -> None:
+        path = self.root / ".agents/demo/contract/style/SKILL.md"
+        write(path, path.read_text().replace("provenance: house\n", ""))
+        self.assert_rejected("missing provenance")
+
+    def test_domain_other_than_the_repository_namespace(self) -> None:
+        write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", domain="other"))
+        self.assert_rejected("domain must be demo")
+
+    def test_kind_other_than_its_folder(self) -> None:
+        write(self.root / ".agents/demo/knowledge/style/SKILL.md", skill_text("style", "contract"))
+        self.assert_rejected("kind must equal its kind folder")
+
+    def test_kind_with_a_digit_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/contract2/style/SKILL.md", skill_text("style", "contract2"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_kind_with_a_hyphen_is_rejected(self) -> None:
+        write(self.root / ".agents/demo/my-kind/style/SKILL.md", skill_text("style", "my-kind"))
+        self.assert_rejected("kind must be one lowercase word")
+
+    def test_an_unknown_lowercase_kind_is_accepted(self) -> None:
+        write(self.root / ".agents/demo/policy/learning/SKILL.md", skill_text("learning", "policy"))
+        output = self.build()
+        self.assertIn("plugins/demo/skills/learning/SKILL.md", output)
+
+    def test_file_directly_under_a_plugin_folder(self) -> None:
+        write(self.root / ".agents/demo/notes.md", "stray\n")
+        self.assert_rejected("only kind folders")
+
+    def test_folder_without_skill_under_a_kind_folder(self) -> None:
+        write(self.root / ".agents/demo/utility/empty/notes.md", "stray\n")
+        self.assert_rejected("only skill folders")
+
+    def test_unknown_qualified_and_bare_references(self) -> None:
+        write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See `demo:missing`.\n"))
+        self.assert_rejected("unknown skill reference demo:missing")
+        write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See the `missing` skill.\n"))
+        self.assert_rejected("unknown skill reference `missing` skill")
+
+    def test_link_that_leaves_the_package(self) -> None:
+        write(self.root / "README.md", "readme\n")
+        write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "See [the readme](../../../../README.md).\n"))
+        self.assert_rejected("does not resolve from generated")
+
+    def test_missing_skill_directory_file(self) -> None:
+        write(self.root / ".agents/demo/contract/style/SKILL.md", skill_text("style", "contract", "Run `<skill-directory>/scripts/missing.py`.\n"))
+
+
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'python -B .agents/sync_generated.py --check; Get-Content .github/workflows/ci.yml; Get-Content .agents/kit/utility/new-plugin/scripts/new_plugin.py | Select-Object -First 230; Get-Content .agents/kit/utility/check/scripts/check.py | Select-Object -First 180; git log -4 --oneline' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 2368ms:
+MISSING: plugins/kit/.agents/kit/utility/check/SKILL.md
+MISSING: plugins/kit/.agents/kit/utility/check/scripts/check.py
+MISSING: plugins/kit/.agents/kit/utility/check/scripts/check_skill_references.py
+MISSING: plugins/kit/.agents/kit/utility/check/standard.json
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/SKILL.md
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/scripts/new_plugin.py
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/claude/__namespace__.json.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/claude/marketplace.json.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/codex/__namespace__.json.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/codex/marketplace.json.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/harness/__namespace__.json.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/sync-generated.ps1.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.gitattributes.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.github/workflows/ci.yml.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/.gitignore.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/AGENTS.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/CLAUDE.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/repository/README.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/common/knowledge/direction/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/common/knowledge/knowledge/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/build/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/domain-design/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/errors/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/libraries/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/structure/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/style/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/convention/testing/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/policy/learning/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/stack/utility/scaffold/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/tool/policy/learning/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/new-plugin/templates/skills/utility/utility/__skill__/SKILL.md.in
+MISSING: plugins/kit/.agents/kit/utility/update/SKILL.md
+MISSING: plugins/kit/.agents/kit/utility/update/scripts/update.py
+MISSING: plugins/kit/harness.json
+MISSING: plugins/template/.agents/kit/utility/check/SKILL.md
+MISSING: plugins/template/.agents/kit/utility/check/scripts/check.py
+MISSING: plugins/template/.agents/kit/utility/check/scripts/check_skill_references.py
+MISSING: plugins/template/.agents/kit/utility/check/standard.json
+MISSING: plugins/template/.agents/kit/utility/new-plugin/SKILL.md
+MISSING: plugins/template/.agents/kit/utility/new-plugin/scripts/new_plugin.py
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/claude/__namespace__.json.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/claude/marketplace.json.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/codex/__namespace__.json.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/codex/marketplace.json.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/plugins/manifests/harness/__namespace__.json.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/sync-generated.ps1.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.gitattributes.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.github/workflows/ci.yml.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/.gitignore.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/AGENTS.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/CLAUDE.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/repository/README.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/common/knowledge/direction/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/common/knowledge/knowledge/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/build/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/domain-design/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/errors/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/libraries/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/structure/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/style/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/convention/testing/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/policy/learning/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/stack/utility/scaffold/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/tool/policy/learning/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/new-plugin/templates/skills/utility/utility/__skill__/SKILL.md.in
+MISSING: plugins/template/.agents/kit/utility/update/SKILL.md
+MISSING: plugins/template/.agents/kit/utility/update/scripts/update.py
+MISSING: plugins/template/.claude-plugin/plugin.json
+MISSING: plugins/template/.codex-plugin/plugin.json
+MISSING: plugins/template/INDEX.md
+MISSING: plugins/template/harness.json
+MISSING: plugins/template/selection.json
+MISSING: plugins/template/skills/check/SKILL.md
+MISSING: plugins/template/skills/check/scripts/check.py
+MISSING: plugins/template/skills/check/scripts/check_skill_references.py
+MISSING: plugins/template/skills/check/standard.json
+MISSING: plugins/template/skills/new-plugin/SKILL.md
+MISSING: plugins/template/skills/new-plugin/scripts/new_plugin.py
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/__namespace__.json.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/plugins/manifests/claude/marketplace.json.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/__namespace__.json.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/plugins/manifests/codex/marketplace.json.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/plugins/manifests/harness/__namespace__.json.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/sync-generated.ps1.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.gitattributes.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.github/workflows/ci.yml.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/.gitignore.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/AGENTS.md.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/CLAUDE.md.in
+MISSING: plugins/template/skills/new-plugin/templates/repository/README.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/common/knowledge/direction/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/common/knowledge/knowledge/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/build/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/domain-design/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/errors/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/libraries/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/structure/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/style/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/convention/testing/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/policy/learning/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/stack/utility/scaffold/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/tool/policy/learning/SKILL.md.in
+MISSING: plugins/template/skills/new-plugin/templates/skills/utility/utility/__skill__/SKILL.md.in
+MISSING: plugins/template/skills/update/SKILL.md
+MISSING: plugins/template/skills/update/scripts/update.py
+MISSING: plugins/template/tier.json
+STALE: .agents/plugins/marketplace.json
+STALE: .claude-plugin/marketplace.json
+STALE: .claude/skills/check/SKILL.md
+STALE: .claude/skills/check/scripts/check.py
+STALE: .claude/skills/new-plugin/SKILL.md
+STALE: .claude/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+STALE: .claude/skills/update/SKILL.md
+STALE: .codex/skills/check/SKILL.md
+STALE: .codex/skills/check/scripts/check.py
+STALE: .codex/skills/new-plugin/SKILL.md
+STALE: .codex/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+STALE: .codex/skills/update/SKILL.md
+STALE: plugins/kit/.codex-plugin/plugin.json
+STALE: plugins/kit/skills/check/SKILL.md
+STALE: plugins/kit/skills/check/scripts/check.py
+STALE: plugins/kit/skills/new-plugin/SKILL.md
+STALE: plugins/kit/skills/new-plugin/templates/repository/.agents/sync_generated.py.in
+STALE: plugins/kit/skills/update/SKILL.md
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    uses: ./.github/workflows/plugin-ci.yml
+    with:
+      kit_ref: ${{ github.sha }}
+      generate_before_verify: true
+    secrets:
+      read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
+
+  regenerate:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: regenerate-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: regenerate committed packages from authored sources
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: verify the regenerated tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: commit and push the regeneration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
+          $staged = git diff --cached --name-only
+          if ($staged) {
+            git commit -m "Regenerate packages for $env:GITHUB_SHA"
+            git push origin HEAD:main
+          } else {
+            "Generated output already current."
+          }
+#!/usr/bin/env python3
+"""Create a plugin repository in the kit layout."""
+
+from __future__ import annotations
+
+import argparse
+from datetime import date
+import json
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+import sys
+
+
+SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
+TEMPLATES = SKILL_DIRECTORY / "templates"
+GENERATOR_TEMPLATE = TEMPLATES / "repository/.agents/sync_generated.py.in"
+NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+REPOSITORY = re.compile(r"^([A-Za-z0-9_.-]+)/([a-z][a-z0-9-]*)$")
+PLACEHOLDER = re.compile(r"\{\{[A-Za-z_]+\}\}")
+KIT_VERSION = re.compile(r'^KIT_VERSION = "(\d+\.\d+\.\d+)"$', re.MULTILINE)
+VENDORED = (
+    ".agents/sync_generated.py",
+    ".agents/sync-generated.ps1",
+    ".gitattributes",
+    ".gitignore",
+    "CLAUDE.md",
+    ".github/workflows/ci.yml",
+)
+SKILL_SETS = {"stack": ("common", "stack"), "tool": ("common", "tool"), "utility": ("utility",)}
+KIND_HEADINGS = {
+    "knowledge": "Knowledge",
+    "policy": "Policies",
+    "convention": "Conventions, empty until a decision is recorded",
+    "utility": "Utilities",
+}
+AGENTS_RULES = {
+    "stack": (
+        "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules. A `convention`\n"
+        "skill gains a rule only through `learning`'s convention procedure, after {learner} decides it."
+    ),
+    "tool": "`knowledge` is {learner}'s progress record: change it only under `learning`'s Progress rules.",
+    "utility": "Every skill here is a `utility`. Its scripts and templates sit beside its `SKILL.md`.",
+}
+DEFAULT_PROMPTS = {
+    "stack": "Teach me the next {stack} concept my current task needs.",
+    "tool": "Teach me the next {stack} step at my current level.",
+    "utility": "Show me what {namespace} can do.",
+}
+
+
+def kit_version() -> str:
+    match = KIT_VERSION.search(GENERATOR_TEMPLATE.read_text(encoding="utf-8"))
+    if match is None:
+        raise ValueError(f"{GENERATOR_TEMPLATE}: no KIT_VERSION")
+    return match.group(1)
+
+
+def git_user_name() -> str:
+    result = subprocess.run(["git", "config", "--get", "user.name"], capture_output=True, text=True, check=False)
+    return result.stdout.strip()
+
+
+def render(text: str, values: dict[str, str], source: PurePosixPath) -> str:
+    in_json = source.name.endswith(".json.in")
+    for key, value in values.items():
+        replacement = json.dumps(value)[1:-1] if in_json and not key.endswith("_json") else value
+        text = text.replace("{{" + key + "}}", replacement)
+    leftover = PLACEHOLDER.findall(text)
+    if leftover:
+        raise ValueError(f"{source}: unknown placeholders {sorted(set(leftover))}")
+    return text
+
+
+def vendored_files(repository: str) -> dict[str, str]:
+    values = {"owner": REPOSITORY.fullmatch(repository).group(1), "kit_version": kit_version()}
+    return {
+        relative: render(
+            (TEMPLATES / "repository" / f"{relative}.in").read_text(encoding="utf-8"),
+            values,
+            PurePosixPath(f"{relative}.in"),
+        )
+        for relative in VENDORED
+    }
+
+
+def destination_path(relative: PurePosixPath, values: dict[str, str]) -> str:
+    parts = [part.replace("__namespace__", values["namespace"]).replace("__skill__", values.get("skill", "")) for part in relative.parts]
+    parts[-1] = parts[-1].removesuffix(".in")
+    return PurePosixPath(*parts).as_posix()
+
+
+def tier(arguments: argparse.Namespace, namespace: str) -> dict:
+    declaration = {
+        "schema_version": 1,
+        "tier": namespace,
+        "stack": arguments.stack,
+        "applies": "stack-present" if arguments.type == "stack" else "always",
+        "owner_repository": [arguments.repository],
+    }
+    if arguments.type == "stack":
+        detect = {}
+        if arguments.detect_file:
+            detect["files"] = arguments.detect_file
+        if arguments.detect_glob:
+            detect["globs"] = arguments.detect_glob
+        declaration["detect"] = detect
+    return declaration
+
+
+def skill_list(files: dict[str, str], namespace: str) -> str:
+    grouped: dict[str, list[str]] = {}
+    for path in files:
+        parts = PurePosixPath(path).parts
+        if len(parts) == 5 and parts[0] == ".agents" and parts[4] == "SKILL.md":
+            grouped.setdefault(parts[2], []).append(f"`{namespace}:{parts[3]}`")
+    lines = []
+    for kind in sorted(grouped, key=lambda item: list(KIND_HEADINGS).index(item) if item in KIND_HEADINGS else 99):
+        lines.append(f"- {KIND_HEADINGS.get(kind, kind)}: {', '.join(sorted(grouped[kind]))}.")
+    return "\n".join(lines)
+
+
+def plan(arguments: argparse.Namespace) -> dict[str, str]:
+    match = REPOSITORY.fullmatch(arguments.repository)
+    owner, namespace = match.group(1), match.group(2)
+    keywords = [item.strip() for item in (arguments.keywords or namespace).split(",") if item.strip()]
+    values = {
+        "namespace": namespace,
+        "owner": owner,
+        "repository": arguments.repository,
+        "Stack": arguments.stack,
+        "display_name": arguments.stack,
+        "description": arguments.description,
+        "author": arguments.author,
+        "learner": arguments.learner,
+        "marketplace": f"{namespace}-agents",
+        "category": arguments.category,
+        "keywords_json": json.dumps(keywords),
+        "default_prompt": DEFAULT_PROMPTS[arguments.type].format(stack=arguments.stack, namespace=namespace),
+        "kit_version": kit_version(),
+        "date": date.today().isoformat(),
+        "agents_rules": AGENTS_RULES[arguments.type].format(learner=arguments.learner),
+    }
+    if arguments.type == "utility":
+        values["skill"] = arguments.skill
+    files: dict[str, str] = {}
+    sources: list[tuple[Path, PurePosixPath]] = []
+    for source in sorted((TEMPLATES / "repository").rglob("*.in")):
+        sources.append((source, PurePosixPath(source.relative_to(TEMPLATES / "repository").as_posix())))
+    for skill_set in SKILL_SETS[arguments.type]:
+        base = TEMPLATES / "skills" / skill_set
+        for source in sorted(base.rglob("*.in")):
+            sources.append((source, PurePosixPath(".agents", namespace, source.relative_to(base).as_posix())))
+    deferred = []
+    for source, relative in sources:
+        if relative.name == "README.md.in":
+            deferred.append((source, relative))
+            continue
+        files[destination_path(relative, values)] = render(source.read_text(encoding="utf-8"), values, relative)
+    values["skill_list"] = skill_list(files, namespace)
+    for source, relative in deferred:
+        files[destination_path(relative, values)] = render(source.read_text(encoding="utf-8"), values, relative)
+    files[f".agents/tiers/{namespace}.json"] = json.dumps(tier(arguments, namespace), indent=2) + "\n"
+    files[".agents/plugins/kit.json"] = json.dumps(
+        {"schema_version": 1, "kit": values["kit_version"], "repository": arguments.repository, "type": arguments.type},
+        indent=2,
+    ) + "\n"
+    files[".agents/plugins/payloads.json"] = json.dumps({"payloads": {namespace: [namespace]}}, indent=2) + "\n"
+    return files
+
+
+def validate(arguments: argparse.Namespace) -> Path:
+    if not REPOSITORY.fullmatch(arguments.repository):
+        raise ValueError("--repository must be owner/name with a lowercase name")
+    if arguments.repository.split("/", 1)[1] == "base":
+        raise ValueError("namespace base is reserved: base-agents/base is the required core dependency identity")
+    if not arguments.description.strip():
+        raise ValueError("--description is required")
+    if not arguments.author:
+        raise ValueError("--author is required when git config user.name is unset")
+    if arguments.type in ("stack", "tool") and not arguments.learner:
+        raise ValueError("--learner is required when git config user.name is unset")
+    if arguments.type == "stack" and not (arguments.detect_file or arguments.detect_glob):
+        raise ValueError("a stack repository needs --detect-file or --detect-glob")
+    if arguments.type != "stack" and (arguments.detect_file or arguments.detect_glob):
+        raise ValueError("only a stack repository declares detect markers")
+    if arguments.type == "utility" and not (arguments.skill and NAME.fullmatch(arguments.skill)):
+        raise ValueError("a utility repository needs --skill with a lowercase name")
+    destination = arguments.destination.resolve()
+    if not destination.is_dir():
+        raise ValueError(f"{destination} does not exist")
+    target = destination / arguments.repository.split("/", 1)[1]
+    if target.exists():
+        raise ValueError(f"{target} already exists")
+    return target
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repository", required=True, help="owner/name; the name is the plugin namespace")
+    parser.add_argument("--type", required=True, choices=sorted(SKILL_SETS))
+    parser.add_argument("--stack", help="display name, such as Rust; defaults to the capitalized name")
+    parser.add_argument("--description", required=True, help="one sentence for the README, manifests and marketplace")
+    parser.add_argument("--destination", required=True, type=Path, help="existing parent folder")
+    parser.add_argument("--author", default=None)
+    parser.add_argument("--learner", default=None)
+    parser.add_argument("--detect-file", action="append", default=[])
+    parser.add_argument("--detect-glob", action="append", default=[])
+    parser.add_argument("--skill", help="first utility skill name, for a utility repository")
+    parser.add_argument("--keywords", help="comma-separated; defaults to the name")
+    parser.add_argument("--category", default="Productivity")
+    parser.add_argument("--dry-run", action="store_true")
+    arguments = parser.parse_args()
+    arguments.author = arguments.author or git_user_name()
+    arguments.learner = arguments.learner or (arguments.author.split()[0] if arguments.author else "")
+    if not arguments.stack and REPOSITORY.fullmatch(arguments.repository):
+        arguments.stack = arguments.repository.split("/", 1)[1].capitalize()
+    try:
+        target = validate(arguments)
+        files = plan(arguments)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    if arguments.dry_run:
+        for path in sorted(files):
+            print(f"{target.name}/{path}")
+        return 0
+    for relative, text in files.items():
+        path = target / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+#!/usr/bin/env python3
+"""Check a plugin repository against kit's layout and standard."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+from importlib.machinery import SourceFileLoader
+import json
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+
+SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
+NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
+STANDARD = json.loads((SKILL_DIRECTORY / "standard.json").read_text(encoding="utf-8"))
+
+
+def load_module(name: str, path: Path):
+    loader = SourceFileLoader(name, str(path))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader))
+    loader.exec_module(module)
+    return module
+
+
+new_plugin = load_module("kit_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
+generator = load_module("kit_generator", new_plugin.GENERATOR_TEMPLATE)
+
+
+def text(path: Path) -> str:
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def owns_templates(root: Path) -> bool:
+    return (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+
+
+def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
+    running = new_plugin.kit_version()
+    if pinned != running:
+        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
+    problems = []
+    for relative, expected in new_plugin.vendored_files(repository).items():
+        if relative == ".github/workflows/ci.yml" and owns_templates(root):
+            continue
+        path = root / relative
+        if not path.is_file():
+            problems.append(f"{relative}: missing; run update")
+        elif text(path) != expected:
+            problems.append(f"{relative}: differs from release {running}; change it in the source repository, then run update")
+    return problems
+
+
+def check_files(root: Path) -> list[str]:
+    problems = [f"{name}: required" for name in STANDARD["root_files"] if not (root / name).is_file()]
+    problems += [f"{name}: retired; kit documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
+    plugins_root = root / ".agents/plugins"
+    if not plugins_root.is_dir():
+        return [*problems, ".agents/plugins: required"]
+    for entry in sorted(plugins_root.iterdir()):
+        retired = f".agents/plugins/{entry.name}" in STANDARD["retired_files"]
+        if entry.name not in STANDARD["plugins_entries"] and not retired:
+            problems.append(f".agents/plugins/{entry.name}: not part of the plugin layout")
+    return problems
+
+
+def check_agents_entries(root: Path, plugins: set[str]) -> list[str]:
+    problems = []
+    agents_root = root / ".agents"
+    if not agents_root.is_dir():
+        return [".agents: required"]
+    for entry in sorted(agents_root.iterdir()):
+        if entry.name == "__pycache__":
+            continue
+        allowed = STANDARD["agents_folders"] + sorted(plugins) if entry.is_dir() else STANDARD["agents_files"]
+        if entry.name not in allowed:
+            problems.append(f".agents/{entry.name}: not part of the plugin layout")
+    return problems
+
+
+def headings(body: str) -> set[str]:
+    return {line.rstrip() for line in body.splitlines() if line.startswith("## ")}
+
+
+def opening(body: str) -> str:
+    lines = generator.FRONTMATTER.match(body).group("body").splitlines()
+    after_title = False
+    for line in lines:
+        if line.startswith("# "):
+            after_title = True
+        elif after_title and line.strip():
+            return line
+    return ""
+
+
+def skill_problems(skill: dict, name: str, rule: dict, namespace: str) -> list[str]:
+    problems = []
+    allowed_kinds = {rule["kind"], *rule.get("legacy_kinds", [])}
+    if skill["kind"] not in allowed_kinds or skill["metadata"]["profile"] != rule["profile"]:
+        problems.append(f"{skill['directory']}: {name} is kind {rule['kind']}, profile {rule['profile']}")
+    present = headings(skill["body"])
+    for heading in rule["sections"]:
+        heading = heading.replace("{namespace}", namespace)
+        if heading not in present:
+            problems.append(f"{skill['directory']}/SKILL.md: missing section {heading}")
+    return problems
+
+
+def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dict[str, dict]]) -> list[str]:
+    standard = STANDARD["types"][kind]
+    problems = []
+    if namespace not in plugins:
+        return [f".agents/{namespace}: a repository's main plugin folder is named after the repository"]
+    tier_path = root / f".agents/tiers/{namespace}.json"
+    if not tier_path.is_file():
+        problems.append(f".agents/tiers/{namespace}.json: required")
+    else:
+        try:
+            applies = json.loads(text(tier_path)).get("applies")
+        except (json.JSONDecodeError, AttributeError) as error:
+            problems.append(f".agents/tiers/{namespace}.json: not a JSON object ({error})")
+        else:
+            if applies not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
+                problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
+    for name, rule in standard["skills"].items():
+        owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
+        candidates = [skills[name] for skills in owners if name in skills]
+        if not candidates:
+            where = "any plugin" if rule.get("anywhere") else f"plugin {namespace}"
+            problems.append(f"{name}: a {kind} repository needs this {rule['kind']} skill in {where}")
+            continue
+        found = [skill_problems(skill, name, rule, namespace) for skill in candidates]
+        if all(found):
+            problems += [problem for skill_found in found for problem in skill_found]
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:
+                problems.append(f"{skill['directory']}: a {kind} repository has only {', '.join(standard['only_kinds'])} skills")
+            if skill["kind"] in ("contract", "convention") and not opening(skill["body"]).startswith(STANDARD["convention_opening"]):
+                problems.append(f"{skill['directory']}/SKILL.md: a contract opens with an `Owns Ã¢â‚¬Â¦` line after its title")
+    return problems
+
+
+def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -> list[str]:
+    problems = []
+    for plugin, skills in plugins.items():
+        exempt = set(aliases.get(plugin, {}))
+        flat: dict[tuple[str, str], set[str]] = {}
+        families: set[tuple[str, str]] = set()
+        for skill in skills.values():
+            if skill["name"] in exempt:
+                continue
+            parts = skill["directory"].split("/")[3:]
+            if parts[0] == plugin or parts[0].startswith(f"{plugin}-"):
+                problems.append(f"{skill['directory']}: a skill name does not repeat its namespace {plugin}")
+            for index, part in enumerate(parts[1:], 1):
+                for family in parts[:index]:
+                    if part == family or part.startswith(f"{family}-") or part.endswith(f"-{family}"):
+                        problems.append(f"{skill['directory']}: {part} repeats its family {family}")
+            if len(parts) > 1:
+                families.add((skill["kind"], parts[0]))
+            elif "-" in parts[0]:
+                words = parts[0].split("-")
+                for word in {words[0], words[-1]}:
+                    flat.setdefault((skill["kind"], word), set()).add(parts[0])
+        for (kind, word), names in sorted(flat.items()):
+            if len(names) > 1 or (kind, word) in families:
+                problems.append(
+                    f".agents/{plugin}/{kind}: {', '.join(sorted(names))} share `{word}`; "
+                    f"fold them into the family folder {word}/<member>/"
+                )
+    return problems
+
+
+def check(root: Path) -> list[str]:
+    config_path = root / ".agents/plugins/kit.json"
+    if not config_path.is_file():
+        return [".agents/plugins/kit.json: missing; this is not a kit plugin repository"]
+    try:
+7b6e4ca fix(generator): validate portable output identities
+d0b42f2 feat(kit): publish Template with compatible Kit identity
+88c2c25 fix(ci): preserve freshness checks for reusable callers
+a7a8585 feat(kit): package canonical skill sources
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "@'
+import ctypes, importlib.util, tempfile, sys
+from pathlib import Path
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location('sync_generated', '.agents/sync_generated.py')
+sync = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sync)
+compare = ctypes.windll.kernel32.CompareStringOrdinal
+compare.argtypes = [ctypes.c_wchar_p, ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_bool]
+compare.restype = ctypes.c_int
+for a, b in [('Stra\\u00dfe.md', 'STRASSE.md'), ('\\u0131.md', 'I.md'), ('\\u017f.md', 'S.md'), ('\\ufb03.md', 'ffi.md')]:
+    print(ascii(a), ascii(b), 'casefold_equal', a.casefold() == b.casefold(), 'ordinal_equal', compare(a, -1, b, -1, True) == 2)
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        (root / a).write_bytes(b'first')
+        (root / b).write_bytes(b'second')
+        print('directory_files', [ascii(p.name) for p in root.iterdir()], 'first_file_bytes', (root / a).read_bytes())
+        try:
+            sync.package_identities({'plugins/demo/skills/tool/' + a: b'first', 'plugins/demo/skills/tool/' + b: b'second'})
+            print('validator: accepted')
+        except ValueError as e:
+            print('validator:', ascii(str(e)))
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 1110ms:
+'Stra\xdfe.md' 'STRASSE.md' casefold_equal True ordinal_equal False
+directory_files ["'STRASSE.md'", "'Stra\\xdfe.md'"] first_file_bytes b'first'
+validator: "plugins/demo/skills/tool/STRASSE.md: Windows path identity collision: 'plugins/demo/skills/tool/Stra\xdfe.md', 'plugins/demo/skills/tool/STRASSE.md'"
+'\u0131.md' 'I.md' casefold_equal False ordinal_equal False
+directory_files ["'I.md'", "'\\u0131.md'"] first_file_bytes b'first'
+validator: accepted
+'\u017f.md' 'S.md' casefold_equal True ordinal_equal False
+directory_files ["'S.md'", "'\\u017f.md'"] first_file_bytes b'first'
+validator: "plugins/demo/skills/tool/S.md: Windows path identity collision: 'plugins/demo/skills/tool/\u017f.md', 'plugins/demo/skills/tool/S.md'"
+'\ufb03.md' 'ffi.md' casefold_equal True ordinal_equal False
+directory_files ["'ffi.md'", "'\\ufb03.md'"] first_file_bytes b'first'
+validator: "plugins/demo/skills/tool/ffi.md: Windows path identity collision: 'plugins/demo/skills/tool/\ufb03.md', 'plugins/demo/skills/tool/ffi.md'"
+
+ exited 1 in 101514ms:
+...............................................................................F.....FE.................................
+======================================================================
+ERROR: test_each_copied_package_runs_from_its_adapter_resources (test_sync_generated.PackagedScriptsTests.test_each_copied_package_runs_from_its_adapter_resources) (name='template')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.agents\tests\test_sync_generated.py", line 582, in test_each_copied_package_runs_from_its_adapter_resources
+    shutil.copytree(ROOT / f"plugins/{name}", package)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\shutil.py", line 591, in copytree
+    with os.scandir(src) as itr:
+         ~~~~~~~~~~^^^^^
+FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\TommySeery\\AppData\\Local\\Temp\\kit-portable-native-4hvd_kq_\\checkout\\plugins\\template'
+
+======================================================================
+FAIL: test_kit_generated_outputs_are_current (test_sync_generated.KitRepositoryTests.test_kit_generated_outputs_are_current)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.agents\tests\test_sync_generated.py", line 650, in test_kit_generated_outputs_are_current
+    self.assertEqual(0, sync_generated.synchronize(ROOT, check=True))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_each_copied_package_runs_from_its_adapter_resources (test_sync_generated.PackagedScriptsTests.test_each_copied_package_runs_from_its_adapter_resources) (name='kit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout\.agents\tests\test_sync_generated.py", line 628, in test_each_copied_package_runs_from_its_adapter_resources
+    self.assertIn(".gitignore: differs from release", drifted.stderr)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '.gitignore: differs from release' not found in '.gitignore: differs from kit 1.2.2; change it in kit, then run kit:update\nexample does not conform to kit 1.2.2: 1 problem(s)\n'
+
+----------------------------------------------------------------------
+Ran 119 tests in 99.459s
+
+FAILED (failures=2, errors=1)
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$i = 0; Get-Content .agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in | ForEach-Object { $i++; if ($i -ge 48 -and $i -le 106) { '"'{0,4}: {1}' -f "'$i, $_ }}; git diff --check d0b42f2382e477c48ee7d062005b1813d712bee6; rg -n '"'casefold|identity|portable|unsafe|Windows' .agents/tests plans README.md .agents/kit/utility/check/standard.json" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 1780ms:
+  48: )
+  49: TIER_MATCHERS = ("files", "globs", "content", "remote")
+  50: PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+  51: 
+  52: 
+  53: def package_component(value: str, where: str) -> None:
+  54:     reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+  55:     reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
+  56:     stem = value.split(".", 1)[0].rstrip(" ").upper()
+  57:     if (
+  58:         not value or value in (".", "..") or value.endswith((" ", "."))
+  59:         or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
+  60:         or stem in reserved
+  61:     ):
+  62:         raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
+  63: 
+  64: def package_relative(value: str, where: str, *, native: bool = False) -> str:
+  65:     if not isinstance(value, str) or not value:
+  66:         raise ValueError(f"{where}: expected a nonempty relative path")
+  67:     relative = value
+  68:     if native:
+  69:         relative = relative.removeprefix("./").removesuffix("/")
+  70:     path = PurePosixPath(relative)
+  71:     if (
+  72:         not relative or "\\" in relative or ":" in relative or "\x00" in relative
+  73:         or path.is_absolute() or ".." in path.parts
+  74:         or path.as_posix() != relative or relative == "."
+  75:     ):
+  76:         raise ValueError(f"{where}: unsafe relative path {value!r}")
+  77:     for component in path.parts:
+  78:         package_component(component, where)
+  79:     return relative
+  80: 
+  81: def package_identities(files: dict[str, bytes]) -> None:
+  82:     identities: dict[str, tuple[str, bool]] = {}
+  83:     for key, data in files.items():
+  84:         package_relative(key, "shipped file map")
+  85:         if not isinstance(data, bytes):
+  86:             raise ValueError(f"{key}: shipped file contents must be bytes")
+  87:         nodes = [(key, True)] + [
+  88:             (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
+  89:             if ancestor.as_posix() != "."
+  90:         ]
+  91:         for path, is_file in nodes:
+  92:             identity = path.casefold()
+  93:             previous = identities.get(identity)
+  94:             if previous is not None:
+  95:                 spelling, previous_is_file = previous
+  96:                 if spelling != path:
+  97:                     raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
+  98:                 if previous_is_file != is_file:
+  99:                     raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
+ 100:             identities[identity] = (path, is_file)
+ 101: 
+ 102: def read(path: Path) -> str:
+ 103:     return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+ 104: 
+ 105: 
+ 106: def load(path: Path):
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+plans\template-structure\GOAL.md:33:- Both host packages and supported Windows/Linux execution are verified to the appropriate source and native acceptance levels; source tests are not reported as installed-host proof.
+plans\template-structure\GOAL.md:58:The structural mismatch is concrete: installed Kit packages contain full procedures directly in `skills/` and omit the canonical `.agents/` tree that Core packages carry. Also, check accepts a missing Codex manifest directory or an empty payload mapping. Baseline full suite passed 94 tests on Windows.
+plans\template-structure\GOAL.md:61:2. Compatible Template publication: expose a `template` plugin from the same canonical capability source while retaining `kit`, `kit-agents`, `tj-agents/kit`, `.agents/plugins/kit.json` and old workflow addresses. Generalize publication/source identity in a separate recorded successor slice; test Kit-only and Template-only installations. No second authored capability tree or premature repository rename.
+plans\template-structure\GOAL.md:71:Continuation owner initialized at .agents/continuation/owner.json (owner 0a16a38d0f59197f91e5e355) and claimed by native Codex PID 500. Scheduler dry-run verified the Windows ScheduledTasks proposal. Actual registration was rejected by automatic approval review: development-goal authority did not explicitly authorize an unattended scheduler that could later push, merge and release. Tommy explicitly approved scheduled continuation in this native session after the proposal and rejection were explained. Registration succeeded: AgentStandards-Continuation-07e4ac93dbb9e48829b7a4da9f48fc2d143d4ea9d03bd07afa13c6b03b3f9a74. An observed supported wake returned working while the foreground lease was held, and launches remained zero. Maintain that lease while foreground/subordinate writes continue; checkpoint and yield before unattended continuation. No duplicate writer launched. Foreground work continues.
+plans\template-structure\GOAL.md:75:First-slice integration adds source-first CI generation and main-only committed regeneration, because the current workflow cannot validate a source-only PR or publish its regenerated packages. This is atomic with the packaging change, under the same 1.3.0 release; L4 writer generation_ci owns only the two workflow files and a separate CI-generation test file. Expected additional size under 150 substantive lines. The regeneration job must wait for validation, have scoped contents permission, and stage only generated roots. The existing 94-test baseline is green. PR #4's remote Windows/Linux/hosts checks passed on October 5, 2026; those checks do not establish compatibility with main's later commits or a current-head independent review.
+plans\template-structure\GOAL.md:112:Use payloads `{kit: [kit], template: [kit]}`: each published name selects exactly one existing canonical source, and every source retains its identity publication. Reject invalid/unknown names, aggregation, empty lists and missing identity publications. Keep repository/source discovery, type checks, local adapters and source tier files keyed by canonical source. Native manifests, marketplaces, package directories, package INDEX and selection.plugin use published names. Local adapters emit once; adding Template must not rename the existing check/new-plugin/update discovery entries.
+plans\template-structure\GOAL.md:114:Both publications ship canonical `.agents/kit` definitions and thin entries from that same authored tree. Procedures use bare package-local skill references and relative canonical links. Do not regex-rewrite prose or compatibility addresses. Source dependencies and compatibility alias declarations remain source-owned; project structured alias replacement targets into the publication namespace while retaining dates and profiles. No implicit dependency on the counterpart Kit/Template package is allowed. Source tier remains unchanged; Core's checker and gate separately represent published plugin and tier label (verified fixture: Template plugin, Kit tier, template@kit-agents identity).
+plans\template-structure\GOAL.md:124:The shared check should follow native manifest skill roots (Core legitimately has distinct skills and codex-skills roots), validate inventories and identity pairs, require thin entries to resolve safe canonical .agents definitions with matching name/kind/domain, resolve required resources and harness source roots, and permit declared host-specific adapter extensions. Reuse one package validator from generation and filesystem checking. Starter-repository required skills/sections and retired layout assumptions stay an additional layer. A packages-only entry lets Core and legacy packages participate without pretending they have Kit's starter schema. Core continues to own lane resolution, hook integrity, workflows, catalogs, extended-adapter wording and runtime behavior.
+plans\template-structure\GOAL.md:136:The L4 writer completed canonical packaged definitions/resources, thin installed entries, separate reference validation, full generator structural validation in check, Kit harness metadata and source version 1.3.0. CI generation is committed at 1199c22; the source implementation checkpoint was 876457b before this goal evidence was folded into the same substantive commit. All 105 discovered source tests passed on Windows (36.030 seconds); generated freshness passed for 145 files, and the copied package created a repository, detected vendored drift, repaired it through update, and passed canonical check. Native marketplace/package acceptance passed with Claude 2.1.282 and Codex 0.163.0-alpha.1. Exact-head CI run 38179984495 passed Windows, Linux and pinned Claude/Codex acceptance for a7a85858c28a5dcfff45faab4a1c458627839573. A later fix requires its own exact-head checks. Validation scratch artifacts were removed.
+.agents/tests\test_new_plugin.py:62:        self.assertTrue(all(identity.split("/")[0] in marketplaces for identity in [harness["plugin"], *harness["requires"]["plugins"]]))
+plans\template-structure\TEMPLATE_PUBLICATION.md:5:Parent artifact: 88c2c25fc763539a230561ed57b2c701e261e2f1, source version 1.3.0, draft PR #8. Parent CI 38182114392 passed Windows, Linux and native acceptance.
+plans\template-structure\TEMPLATE_PUBLICATION.md:15:Authored payloads become `{"payloads": {"kit": ["kit"], "template": ["kit"]}}`. Tiers, local adapters and dependencies/aliases remain owned by canonical source. Native manifests, package directories, selection.plugin and marketplace entries use public identity. Local discovery entries still emit once and retain their current names.
+plans\template-structure\TEMPLATE_PUBLICATION.md:41:            raise ValueError(f".agents/plugins/payloads.json: {source} must retain its identity publication")
+plans\template-structure\TEMPLATE_PUBLICATION.md:55:Here `plugin` remains the canonical source owning the dependency list. Change validate_payloads' annotation to dict[str, str] and end it with `return publications` after all existing alias checks. A fixture must prove a source can depend on another source's public alias and rejects every alias of its own source. Qualified dependencies need the marketplace identity, so call this helper after `load_manifests`:
+plans\template-structure\TEMPLATE_PUBLICATION.md:152:            raise ValueError(f"{relative}: unsafe canonical source root {value!r}")
+plans\template-structure\TEMPLATE_PUBLICATION.md:215:Prove identity-only fixtures preserve existing outputs; both public manifest rosters and marketplace entries; one local adapter set; canonical byte identity; reference validation in both copies; unchanged source tiers; aliases projected with unchanged dates/profiles; no local or same-marketplace qualified counterpart dependency; malformed mappings/manifest targets rejected.
+plans\template-structure\TEMPLATE_PUBLICATION.md:217:Harness negatives cover invalid JSON/UTF-8/unreadable files, scalar/array envelopes, missing/unsupported/boolean version, wrong public identity, absent/string/empty/nonstring roots, duplicate roots, absolute/drive/backslash/traversal/NUL/noncanonical paths, roots outside .agents, and safe but absent or cross-publication roots. Assert focused diagnostics rather than duplicating every implementation line.
+plans\template-structure\TEMPLATE_PUBLICATION.md:227:Deliberate Kit survivors: repository tj-agents/kit and marketplace kit-agents preserve published addresses; plugins/kit preserves existing installations; canonical .agents/kit preserves one authored source; .agents/plugins/kit.json and KIT_VERSION/kit_version preserve the existing pin and generator API; kit workflow/tag references and compatibility fixtures continue proving old-consumer behavior. Public Template identity is additive; these retained names do not represent a second template owner.
+plans\template-structure\TEMPLATE_PUBLICATION.md:231:The successor implements the 1.4.0 source-only publication layer: `kit` remains its identity publication and
+.agents/tests\test_sync_generated.py:137:    def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
+.agents/tests\test_sync_generated.py:143:            "Windows path identity collision",
+.agents/tests\test_sync_generated.py:153:    def test_rejects_windows_unsafe_components(self) -> None:
+.agents/tests\test_sync_generated.py:158:                    "Windows-unsafe path component",
+.agents/tests\test_sync_generated.py:161:    def test_rejects_unsafe_paths_and_nonbytes_contents(self) -> None:
+.agents/tests\test_sync_generated.py:169:                self.assert_rejected({path: b""}, "unsafe relative path")
+.agents/tests\test_sync_generated.py:403:    def test_payloads_select_known_sources_and_retain_identity_publications(self) -> None:
+.agents/tests\test_sync_generated.py:407:        self.assert_rejected("demo must retain its identity publication")
+.agents/tests\test_sync_generated.py:442:            ({**valid, "source_roots": ["/agents/demo"]}, "unsafe canonical source root"),
+.agents/tests\test_sync_generated.py:443:            ({**valid, "source_roots": ["C:/agents/demo"]}, "unsafe canonical source root"),
+.agents/tests\test_sync_generated.py:444:            ({**valid, "source_roots": [".agents\\demo"]}, "unsafe canonical source root"),
+.agents/tests\test_sync_generated.py:445:            ({**valid, "source_roots": [".agents/../demo"]}, "unsafe canonical source root"),
+.agents/tests\test_sync_generated.py:446:            ({**valid, "source_roots": [".agents/\x00demo"]}, "unsafe canonical source root"),
+.agents/tests\test_sync_generated.py:447:            ({**valid, "source_roots": ["plugins/demo"]}, "unsafe canonical source root"),
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "@'
+import importlib.util, json, subprocess, tempfile, types
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('test_sync_generated', '.agents/tests/test_sync_generated.py')
+test = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(test)
+base = types.ModuleType('base_generator')
+exec(subprocess.check_output(['git', 'show', 'd0b42f2382e477c48ee7d062005b1813d712bee6:.agents/sync_generated.py']).decode('utf-8'), base.__dict__)
+with tempfile.TemporaryDirectory() as d:
+    root = Path(d)
+    test.make_repository(root)
+    templates = root / '.agents/demo/utility/tool/templates'
+    (templates / 'Stra\\u00dfe.md').write_bytes(b'German')
+    (templates / 'STRASSE.md').write_bytes(b'Transliteration')
+    config_path = root / '.agents/plugins/kit.json'
+    config = json.loads(config_path.read_text())
+    config['kit'] = base.KIT_VERSION
+    config_path.write_text(json.dumps(config))
+    print('base:', len(base.build(root)), 'outputs')
+    config['kit'] = test.sync_generated.KIT_VERSION
+    config_path.write_text(json.dumps(config))
+    try:
+        print('head:', len(test.sync_generated.build(root)), 'outputs')
+    except ValueError as e:
+        print('head rejected:', ascii(str(e)))
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 2177ms:
+base: 32 outputs
+head rejected: ".claude/skills/tool/templates/Stra\xdfe.md: Windows path identity collision: '.claude/skills/tool/templates/STRASSE.md', '.claude/skills/tool/templates/Stra\xdfe.md'"
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'python -B -m unittest discover -s .agents/tests -p test_sync_generated.py -k PackageIdentityTests; git status --short; $i=0; Get-Content AGENTS.md | ForEach-Object { $i++; '"'{0}: {1}' -f "'$i, $_ }' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-4hvd_kq_\checkout
+ succeeded in 2517ms:
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.129s
+
+OK
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+1: # kit
+2: 
+3: kit creates plugin repositories and owns the parts they share: the layout, the generator, the root files and CI.
+4: It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/kit/utility/<name>/`.
+5: 
+6: The files a plugin repository vendors have one source, under `.agents/kit/utility/new-plugin/templates/repository/`.
+7: kit's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and
+8: `CLAUDE.md` must stay byte-identical to those templates; the tests enforce it. Change the template first.
+9: `kit:check` and `kit:update` read those templates and `kit:check`'s `standard.json`, the one statement of what each
+10: repository type requires.
+11: 
+12: `.github/workflows/plugin-ci.yml` is the CI every plugin repository calls, pinned to a kit tag. Changing the
+13: generator, a vendored file or the workflow is a kit release: bump `KIT_VERSION`, `.agents/plugins/kit.json` and the
+14: Codex manifest version together, then tag `v<version>` after the merge.
+15: 
+16: `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
+17: `pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and
+18: `python -B -m unittest discover -s .agents/tests -p "test_*.py"` must pass before delivery.
+
+codex
+The new identity validation rejects valid, non-colliding Unicode filenames. This is a reproduced regression from the base commit.
+
+Review comment:
+
+- [P2] Use Windows-compatible casing for path identities — C:/Users/TommySeery/AppData/Local/Temp/kit-portable-native-4hvd_kq_/checkout/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in:92-92
+  For skill resources named `Straße.md` and `STRASSE.md`, `casefold()` produces identical keys even though these files coexist distinctly on Windows. This fixture builds at the base commit but now fails with `Windows path identity collision`, blocking generation of a valid package. Use Windows-compatible case comparison instead of Unicode full case folding, keeping the template and vendored generator synchronized as required by [AGENTS.md:6–8](AGENTS.md#L6-L8).
+The new identity validation rejects valid, non-colliding Unicode filenames. This is a reproduced regression from the base commit.
+
+Review comment:
+
+- [P2] Use Windows-compatible casing for path identities — C:/Users/TommySeery/AppData/Local/Temp/kit-portable-native-4hvd_kq_/checkout/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in:92-92
+  For skill resources named `Straße.md` and `STRASSE.md`, `casefold()` produces identical keys even though these files coexist distinctly on Windows. This fixture builds at the base commit but now fails with `Windows path identity collision`, blocking generation of a valid package. Use Windows-compatible case comparison instead of Unicode full case folding, keeping the template and vendored generator synchronized as required by [AGENTS.md:6–8](AGENTS.md#L6-L8).

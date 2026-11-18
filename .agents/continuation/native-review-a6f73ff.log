@@ -1,0 +1,3431 @@
+standards: Codex package inventory failed (Command '['C:/Users/TommySeery/.local/share/codex/runtimes/0.163.0-alpha.1/bin\\codex.exe', 'plugin', 'list', '--json']' timed out after 10 seconds); running the typed CLI without refresh
+OpenAI Codex v0.163.0-alpha.1
+--------
+workdir: C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+model: gpt-6-astra
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a12ff0-b38a-7be1-834d-0061a6472489
+--------
+user
+changes against '7b6e4caefb205eb7e7bfa0894121c77c6eb334d6'
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\codex-skills\\lanes\\SKILL.md'; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\codex-skills\\review\\SKILL.md'; git status --short; git diff --stat 7b6e4caefb205eb7e7bfa0894121c77c6eb334d6; Get-ChildItem -Force -Name" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 978ms:
+---
+name: lanes
+description: Pick the model and thinking effort a piece of work is worth by declaring an ordinal lane (L1 most capable to L7 cheapest) that each harness resolves to its own model, so no skill, agent or workflow stage ever names a model. Covers the ladder and what each rung is for, the four questions that choose a rung, why a merge or publish never raises a lane, re-routing per phase rather than running a whole task in its highest lane, where a lane is applied (skill front matter, a delegated lane agent, a workflow stage), and the three places the Claude and Codex ladders are deliberately not level. Use when adding or reviewing a skill or agent, when clerical work is running on an expensive model, when tempted to write a model name anywhere, or when a new model needs pricing into the ladder.
+
+kind: policy
+domain: process
+---
+
+# Lanes
+
+Read and follow the [canonical shared definition](../../.agents/engineering/policy/lanes/SKILL.md) in full.
+This entry point supplies only Codex discovery metadata; the shared procedure is authored once under `.agents/`.
+---
+name: review
+description: Run the canonical isolated code-review workflow over one frozen branch, PR, commit-range, or path candidate with the host's native reviewer, relevant fresh read-only lenses, validated evidence, and parent-only deduplication, severity, judgment, and work-order writing. Use for a first full code review when asked to review a branch or PR; use incremental-review for later commits, big-review for a very large diff, docs-review for a meta-only diff, and address-review for existing findings.
+
+kind: workflow
+domain: process
+---
+
+# Canonical isolated code review
+
+Read and follow the [canonical shared definition](../../.agents/engineering/workflow/review/SKILL.md) in full.
+This entry point adds only Codex's reviewers; the shared procedure is authored once under `.agents/`.
+
+## Codex reviewers
+
+- **Native layer (Stage 3):** `codex review --base <frozen-base>`, run from a checkout at the frozen head.
+  It cannot take a path scope, so the parent drops findings outside a bounded scope.
+- **Security layer (Stage 6):** Codex has no native security reviewer; use the `security` lens.
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+ .../repository/.agents/sync_generated.py.in        | 146 +++++++++++++++++-
+ .agents/sync_generated.py                          | 146 +++++++++++++++++-
+ .agents/tests/test_sync_generated.py               | 166 +++++++++++++++++++++
+ 3 files changed, 454 insertions(+), 4 deletions(-)
+.agents
+.claude
+.claude-plugin
+.codex
+.github
+plans
+plugins
+.git
+.gitattributes
+.gitignore
+AGENTS.md
+CLAUDE.md
+CONTINUATION_SOURCE_SCAN_PLAN.md
+README.md
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\engineering\\policy\\lanes\\SKILL.md'; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\engineering\\workflow\\review\\SKILL.md'; Get-ChildItem -Recurse -Force -File -Include AGENTS.md,AGENTS.override.md,CLAUDE.md | Select-Object -ExpandProperty FullName; Get-Content AGENTS.md; git diff 7b6e4caefb205eb7e7bfa0894121c77c6eb334d6" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 1178ms:
+---
+name: lanes
+description: Pick the model and thinking effort a piece of work is worth by declaring an ordinal lane (L1 most capable to L7 cheapest) that each harness resolves to its own model, so no skill, agent or workflow stage ever names a model. Covers the ladder and what each rung is for, the four questions that choose a rung, why a merge or publish never raises a lane, re-routing per phase rather than running a whole task in its highest lane, where a lane is applied (skill front matter, a delegated lane agent, a workflow stage), and the three places the Claude and Codex ladders are deliberately not level. Use when adding or reviewing a skill or agent, when clerical work is running on an expensive model, when tempted to write a model name anywhere, or when a new model needs pricing into the ladder.
+
+kind: policy
+domain: process
+---
+
+# Lanes
+
+**A lane is what work is worth, not which model runs it.** Declare `lane: L5`; never write a model name.
+Two tables â€” `claude.json` and `codex.json` â€” are the only places a model name may appear, so a new model
+or a reprice is a one-file change per harness and every consumer inherits it. They live at
+`.agents/lanes/` in the source repository, at `../../.agents/lanes/` from an installed host entry, and at `../../../lanes/` from the packaged canonical definition, alongside
+`resolve.py`.
+
+## The ladder
+
+L1 is the most capable rung and L7 the cheapest. The same `LN` means the same *relative* capability on
+both harnesses, which is the whole point: one declaration, two resolutions.
+Relative capability does not require the same exact model family: paired rungs have the same role and price
+ordering even when a harness's available families differ.
+
+| Lane | For | Resolves to |
+|---|---|---|
+| **L1** | a critical design decision, or a big complex plan with substantial interacting decisions; never implementation, review or delivery | the highest appropriate design capability |
+| **L2** | high-stakes judgement that designs nothing â€” a diagnosis of a production failure, a security or migration review | top general family, the setting above its default |
+| **L3** | open investigation or bounded uncertain design with unresolved alternatives | top general family, default setting |
+| **L4** | specified implementation, ordinary review, and small local choices inside a testable fix | the workhorse family, high setting |
+| **L5** | mechanical work whose shape is already decided â€” including small file deletions or moves, config or docs cleanup, and removing or migrating `CLAUDE.local.md` once its destination or rule is decided | a cheaper family or reduced workhorse setting |
+| **L6** | bulk clerical work whose input outgrows the cheapest rung â€” a monitor loop, a long transcript, a big diff | the cheapest model that still holds the input |
+| **L7** | clerical work with a small input â€” commit, push, pull, sync, one poll | the cheapest usable model |
+
+**This document deliberately names no model.** Which model each rung resolves to is data, in the two
+tables, and a rule stated in prose beside the data is a second copy waiting to disagree with it. Run
+`resolve.py --lanes` from whichever of the two locations above exists here for the current pairings.
+
+**Only a leaf skill that IS one shape of work may declare a lane.** A standard or supporting contract â€”
+anything loaded *during* other work to be consulted â€” must not, because its lane would re-point the model
+of whatever task loaded it: a migration would drop to the docs rung for having read the persistence
+standard. A lifecycle or orchestrating skill that spans phases of varying shape (`feature`, `review`,
+`merge`) must not either: invoking one re-points the whole session, so it inherits the session's model and
+routes each bounded phase down the ladder instead. The generator refuses a lane on a routed standard for
+exactly this reason; the test for the rest is whether an agent *runs* one unvarying shape of work.
+`commit` takes a lane; `committing`, `feature`, and `plan-authoring` do not. Planning does not itself
+select a lane.
+
+**No declaration means inherit the session's model** â€” not a default rung. A lane is opt-in per skill, so
+adding one is a visible, reviewable decision and no skill silently changes model because a default moved.
+Declare the cheapest suitable lane explicitly rather than relying on absence: use L4 only for specified
+implementation that still needs code-level judgement, and L5 for small already-decided mechanical work.
+
+## Choosing a rung â€” four questions, in this order
+
+1. **Critical design or scale.** Is this a critical design decision, or a big complex plan with substantial
+   interacting decisions? Record one concrete criticality or scale reason before selecting L1. A plan,
+   architecture, data model, contract, or mechanism label alone does not select it. Bounded uncertain
+   design is L3; small local choices inside a specified, testable fix are L4.
+2. **Stakes.** For work that designs nothing: how costly, and how hard to undo, is a wrong call? A
+   diagnosis or review with a lot riding on it â€” production, security, stored data â€” is L2.
+3. **Ambiguity.** Is the answer known and this is typing, or is the problem open? Open is never below L3;
+   specified implementation that still needs code-level judgement is L4; small already-decided file
+   deletion or move, config or docs cleanup is L5. File count, a handoff, or a merge does not raise it.
+4. **Verifiability.** What catches the mistake â€” a compiler, a test suite, or only human judgement? Use
+   verification to choose the cheapest rung that still supplies the required judgement; automated checks do
+   not remove unresolved design or diagnosis.
+
+**Delivery never raises a lane.** Take the rung from the hardest judgement inside the delegated work,
+never from the operations at its end. Nearly every change ends in a merge, push, publish or release, so
+reading that as irreversibility would put almost every job on L1. Those steps are governed by the delivery
+gates â€” review, CI, the merge queue, release checks â€” never by model tier. Implementation, review and
+delivery never select L1; a high-stakes review may select L2 under the stakes question.
+
+Nothing here says "how hard does this feel". A long mechanical edit is still L5; a one-paragraph plan that
+picks a mechanism is L3 or L4 according to its uncertainty and verification. One extra axis applies at the floor alone: clerical work is L7 only while
+its input fits the cheapest rung, and an input that outgrows it selects L6.
+
+**The frontier tier is above the ladder and is not a rung.** Each table carries a `frontier` entry the
+four questions can never select: it is priced by provenance â€” the user explicitly asking for that tier or
+its model by name â€” not by task shape. A test asserts no rung resolves to the frontier's exact
+model-and-effort pair, so lane inflation cannot reach the tier. Consumers that expose it
+(the handoff launchers' `-Frontier`) make selecting it a distinct visible act rather than one lane value
+among others.
+
+**Re-route per phase.** For every new task, work type, phase, review entry or fallback, make a fresh lane
+selection before substantive work, even when retaining the same lane. Record the phase, lane and reason in
+the existing task context, and resolve model and effort from the canonical host table. Apply the selection
+under the canonical execution rules: continue directly when the current owner already honors the selected
+lane; otherwise use a supported control or bounded lane worker. Inherited settings or an earlier phase's
+selection do not count. One task is usually open/judgement while it is being designed, then specified and
+test-caught while it is built, then clerical to commit and push. Running the whole task in the rung its
+hardest phase needed is the waste this ladder exists to stop, and running the design phase in the rung its
+cleanup needed is how a bad design gets built efficiently.
+
+Lane selection does not itself transfer task ownership. A Claude parent hands multi-phase work and every
+delegated design, implementation, or review phase to Codex before delegating, unless the user explicitly
+chooses Claude for non-frontier work. It keeps conversation and tiny inline follow-ups. If Codex cannot
+launch, report the capability gate and preserve the checkpoint; never silently use Claude for that phase.
+For Codex, the parent normally continues in the same checkout and may give a bounded implementation or
+review task to a lane agent. Claude keeps only conversation and tiny inline follow-ups.
+Give that agent explicit path and responsibility ownership, avoid overlapping writers, and reconcile its
+result in the parent. A small follow-up can stay with the parent. If delegation is unavailable, use the
+current owner's supported fallback; do not open an independent session solely to change model or cost.
+Direct execution and parent fallback use the selected phase lane. A tiny inline follow-up may remain
+with the parent, but that allowance does not cover an implementation phase or a complete implementation
+goal on L1. If a worker is unavailable, use a supported in-session model/effort control or another
+available bounded worker that honors the selected lane. If neither is available and the current owner
+cannot execute at that lane, report the unavailable control and the blocked phase in the existing goal;
+continue independent authorized preparation and resume implementation when a suitable control or worker
+is available. Never claim a model switch happened merely because a lane was recorded.
+For a massive plan whose design is a substantial phase, `engineering:plans` normally transfers execution
+to a fresh harness after a durable phased checkpoint. That decision is about the work and its context,
+not a lane change.
+
+## Where a lane is applied
+
+- **A skill** declares `lane:` in front matter. The generator resolves it and stamps the harness's own
+  keys into each generated payload: `model:` plus `effort:` for Claude, `model:` alone for Codex â€”
+  **Codex has no per-skill effort key**, so a Codex skill gets the rung's model at whatever effort the
+  session is on. Where that half matters, use a delegated lane agent, which is the only place Codex can
+  carry `model_reasoning_effort`. Invoking the skill re-points the session and the switch outlives it,
+  which is why only a terminal leaf task declares one.
+- **A delegated lane agent** (`lane-l5`, `lane-l7`) is the alternative for cheap work that runs many
+  turns. Prompt caches are model-scoped and a mid-conversation effort change invalidates the message
+  cache, so re-pointing the main loop for a single clerical turn can cost more than it saves, while a
+  delegated agent carries only its own small prompt and leaves the parent's cache intact. Reach for it
+  when the cheap work is a loop â€” a monitor, a bulk pass â€” not a one-shot; `lane-l6` exists for exactly
+  the loop whose input outgrows `lane-l7`.
+- **A workflow stage** keeps its own pinned model in `.agents/workflows/hosts/*.json`, because those pins
+  live under the workflow contract's version rather than being re-resolved at dispatch. They are derived
+  from the ladder and a test asserts they still agree with it, so a rung and its stage cannot drift apart
+  â€” but the pin is the value the runtime reads.
+- **A handoff launcher** takes a lane (or frontier) flag per dispatch: both `machine:handoff-claude` and
+  `machine:handoff-codex`'s Python launchers take `--lane` (or `--frontier`), and `handoff-codex` also
+  takes `--reasoning-effort` for a Codex model named outright. Either way the calling agent judges the
+  lane by the four questions and the launcher only prices it, never inferring one from the prompt.
+
+L7 is in-session clerical work only. Both handoff launchers reject it before opening a tab. Claude handoff
+also requires an explicit L1â€“L6 lane, frontier tier, or non-Haiku model, because an unchecked CLI default
+could otherwise select Haiku.
+
+## Where the two ladders are not level â€” know these before trusting parity
+
+1. **L7 is a capability step on Claude, not just a price step.** Its model rejects `effort` outright and
+   its context window is a fifth of every rung above it, so a clerical skill that reads a large diff or a
+   long transcript fails on L7 where L6 would not. The Claude table records that ceiling; the Codex one
+   records `null`, meaning *unrecorded*, not unlimited.
+2. **The floor is a different kind of drop on each harness.** Claude's L7 drops to a small-window model;
+   Codex's L7 is the small family at its lowest setting, with no recorded ceiling. Work that genuinely
+   needs a big-window floor has L6, which keeps Claude on the workhorse with its full context and Codex at
+   higher effort in the small family.
+3. **A specialist model is a second axis, not a rung.** Codex's review stage names its own review-tuned
+   model with a fallback â€” chosen for the *kind* of work, not its capability rank. Such a choice is
+   declared as a `specialist` on the stage, never as its own lane, and it then owns its effort too;
+   folding it into the ladder would imply a capability ordering that is not what it means.
+
+## Anti-patterns
+
+- **A model name outside the lane tables.** In a skill, an agent, a workflow script, a hook, a settings
+  file: every one of those is a place that has to be found again at the next model release.
+- **A lane picked by how the work feels** rather than by the four questions. That is how every rung drifts
+  to L1 and the ladder stops meaning anything.
+- **A lane raised by delivery.** "It ends in a merge, so it is irreversible" is the same drift; the
+  delivery gates own that risk.
+- **An alias where an ID belongs.** The tables carry exact model IDs because `ANTHROPIC_DEFAULT_*_MODEL`
+  re-points a family alias â€” an alias can silently resolve to a different, dearer model than intended.
+- **A new rung for a model that is merely different.** Rungs are ordinal. A model that is cheaper *and*
+  weaker is a rung; a model that is sideways is a specialist.
+---
+name: review
+description: Run the canonical isolated code-review workflow over one frozen branch, PR, commit-range, or path candidate with the host's native reviewer, relevant fresh read-only lenses, validated evidence, and parent-only deduplication, severity, judgment, and work-order writing. Use for a first full code review when asked to review a branch or PR; use incremental-review for later commits, big-review for a very large diff, docs-review for a meta-only diff, and address-review for existing findings.
+
+kind: workflow
+domain: process
+---
+
+# Canonical isolated code review
+
+Review one immutable candidate through the host's mandatory native reviewer and relevant repository-aware lenses.
+Subordinate contexts return evidence only. The strong parent validates every result, verifies citations,
+deduplicates, assigns severity, makes the final judgment, and is the sole writer of the canonical work order
+defined by `review-lifecycle`.
+
+## Arguments and selection
+
+```text
+[low|medium|high|max] [<pr-number>|<branch>|<path>] [--comment] [--fix]
+```
+
+- Effort applies to the native layer and every lens. `low` and `medium` keep only high-confidence defects;
+  `high` and `max` broaden coverage and may retain lower-confidence findings when their uncertainty and
+  concrete fix are explicit. With no value, reuse the last review effort.
+- No target means the current worktree's branch. A PR resolves its base, head branch, and head SHA through the
+  forge. Resolve a branch's actual base from its open PR or owning stack map: the immediate parent for
+  a stack child, otherwise the trunk. A path scopes that same branch candidate.
+- `--comment` posts finalized findings to the target PR after the work order is complete.
+- `--fix` explicitly authorizes the combined review -> `address-review` -> `incremental-review` lifecycle.
+  The same transition is authorized when this review is a stage of an implementation workflow whose original
+  request already authorized fixing its candidate. Otherwise review is read-only and ends after judgment.
+
+`<engineering>` is the installed engineering plugin root: two directories above this skill's host entry
+point (`<engineering>/skills/review/` in Claude Code, `<engineering>/codex-skills/review/` in Codex). Every
+helper below runs from there against the reviewed repository, which needs no `.agents/` of its own.
+
+Use `incremental-review` when the canonical work order already has a completed watermark and HEAD moved.
+Use `big-review` when the frozen changed surface is too large for one pass, normally more than 300 files or
+several substantial components. Use `docs-review` for a documentation/meta-only diff.
+
+## Stage 1 â€” resolve and freeze the candidate
+
+Resolve the target before reading or writing review state. An implementation workflow synchronizes with the
+remote base exactly once, immediately before this final review, while the worktree is clean. Then invoke the
+shared deterministic review preparation operation:
+
+Run these Python workflow commands with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-prepare --base <actual-base> --head HEAD --synchronize
+```
+
+Use the same resolved actual base for preparation, reconciliation and PR preflight. A stack child's
+review covers its layer against the parent; its tests still validate the cumulative tree. Do not merge
+main directly into each child as a substitute for reconciling the stack from its bottom.
+
+A review-only request over an already immutable remote or commit candidate omits `--synchronize`. The helper
+returns one compact Git-private descriptor and an external temporary bundle containing the binary patch and NUL path manifest. It
+also records the one synchronization, candidate identity, routed rule hashes, relevant lenses, security-path
+classification, and one wave.
+Do not reconstruct those facts through separate shell calls.
+
+Freeze a candidate descriptor containing the full base SHA, full head SHA, target branch, scope as `all` or
+an exact bounded value,
+exact sorted changed-path set, SHA-256 of their UTF-8 bytes joined by one NUL byte with no trailing NUL, path
+count, canonical work-order path, and new-or-append mode. Every later command and dispatch uses
+`<base>..<head>`, never a live replacement
+for `<head>`.
+
+The helper stores the authoritative descriptor in repository-private Git state and materializes the candidate
+bundle defined by `review-lifecycle` in an external temporary cache. It validates the exact patch, NUL path
+manifest, descriptor identity, and hashes before returning.
+Add its paths and identities to every immutable-artifact set. A host without safe read-only Git reads this
+bundle; no reviewer depends on the implementation transcript.
+
+When the descriptor reports `host_coverage.required`, its frozen paths touch an agent surface.
+`base:plan-artifacts` owns the coverage-record shape and evidence requirements.
+
+If the branch moves while work is active, do not widen the pass. Cancel any dispatch whose baseline is no
+longer trustworthy, finish or restart the frozen pass, and leave later commits to `incremental-review`.
+
+## Stage 2 â€” open the canonical work order
+
+Read `review-lifecycle`. Use only `reviews/<branch-slug>.md`; staged, documentation, and incremental modes
+share it. Before expensive review work, have the parent create the immutable pass identity and set
+the top-level `Review status`, current `Judgment`, and new `Pass judgment` to `in-progress`, `pending`, and
+`pending`. A first pass has no completion watermark yet. An interrupted
+incremental pass retains the earlier completed watermark but remains merge-blocking through its status.
+Record every descriptor field, including branch, scope, bundle path and identity, canonical work-order path,
+and `new` or `append` mode, before dispatch.
+
+No lens writes the artifact. Append a confirmed finding only after the parent validates its result and
+evidence. The parent may buffer independent lens results long enough to synthesize them together; recovery
+identity and confirmed findings must remain durable.
+
+## Stage 3 â€” native layer
+
+Run the host's own native reviewer first, covering correctness, simplification, reuse, efficiency, and
+error handling, over the frozen range `<frozen-base>..<frozen-head>` and scope. `review`'s host entry point
+names that reviewer and its invocation (`<engineering>/skills/review/SKILL.md` in Claude Code,
+`<engineering>/codex-skills/review/SKILL.md` in Codex). It is a tool call; reading the diff yourself is not
+this layer. Keep only findings on lines changed inside the frozen range and scope. When the host
+reviewer is not callable in this session, dispatch the existing `review-lens` capability with the bounded
+lens `native-general` instead. Record in the work order which native layer ran. Do not invent or require a
+second repository agent definition.
+
+A `native-general` dispatch receives the frozen base, head, path digest, exact scoped paths, materialized
+bundle path and identity, effort, rule-independent objective, read-only tools, and no prior lens
+conclusions. Validate the result against Workflow v2 before using it. Agent/role/model unavailability falls
+back to the parent over the same descriptor and bundle.
+
+## Stage 4 â€” load applicable rules
+
+Two mechanical rule sources; neither depends on anything wired into the reviewed repository.
+
+**Tier conventions â€” every repository.** Run the tier gate shipped with this plugin in conventions mode
+against the reviewed repository root, using `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/hooks/tier_gate.py --conventions --project <repository-root>
+```
+
+The base package's tiers README owns the output contract. Read every listed convention whose domain the
+frozen paths plainly touch, and check each changed file against the conventions of the tier(s) that own
+its language. Do not substitute the session's already-loaded skill list for this resolution; the gate
+reads the same installed declarations that gated the session.
+
+**Repository routes â€” repositories that carry them.** When the frozen tree ships `.agents/skill-routes.json`,
+`review-prepare` runs this plugin's router over it: the descriptor's `routed_skills` names every skill the
+frozen paths owe, plugin-owned ones included, and `route_violations` holds each deny-pattern hit. A
+repository without a route table owes only its tier conventions; that absence is normal, not a defect.
+
+Read every routed skill, the root and nearest changed-path `AGENTS.md` files, and the architecture premise
+from the exported frozen tree, never the live checkout. A route violation is evidence, not a hint.
+Invoke additional standards only when the diff plainly touches their domain; a missing route is a
+route-table defect rather than a list to duplicate here. If the candidate contains plans or
+implementation-ready design references, load plans and apply its implementation-design review gate to
+those artifacts, including their implementation-path standards.
+
+Record the owning `review` lifecycle and the helper's routed technical rule identities with
+`<engineering>/workflows/workflow_ops.py skills`. Read only identities returned as `load`; an unchanged
+identity returned as `cached` is already available to this logical workflow and is not reread after
+compaction. The descriptor's hashes prove whether a cached body still matches the frozen candidate. Check
+every changed file against each routed rule; a changed or missing hash requires a new body read.
+
+## Stage 5 â€” choose and dispatch fresh lenses
+
+Choose only lenses supported by the frozen paths, rules, and risk:
+
+- correctness: logic, concurrency, boundaries, exceptions, and observable failure paths;
+- service isolation: runtime coupling that violates the repository's service-boundary owner;
+- module boundaries: facade, visibility, and persistence ownership violations;
+- seeding: writes production cannot make through the same path;
+- language/framework conventions: only rules stated by the loaded standards; and
+- changed-behaviour test impact: one concrete missing assertion for behavior this candidate adds or reroutes.
+
+Each bounded dispatch uses `review-lens`, a unique dispatch/context identity, the same immutable candidate
+artifacts including the materialized bundle path and identity, one exact lens or region, read-only
+permissions, no subdispatch, and no sibling conclusions.
+Dispatch the helper-selected lenses together in its single wave. A small candidate normally selects only
+`native-general` plus a path-proven specialist lens. If a lens depends on another result, return that check to
+the parent instead of starting another source-review wave. Very large candidates route to `big-review` for
+staged coverage. Writers never participate in review production.
+
+Validate each result identity, status, citations, confidence, acceptance conditions, and decision boundary.
+A malformed or correctable incomplete result gets at most one focused follow-up without widening scope.
+Unsupported dispatch, timeout, cancellation, or a second invalid result closes that dispatch and returns the
+same bounded check to the parent. Obsolete results from a different base, head, path digest, stage, or
+dispatch ID contribute nothing.
+
+## Stage 6 â€” conditional security layer
+
+The descriptor's `security` field applies the merge gate's generic and repository `security_paths`
+inventory: `first_path` to the frozen paths, `trunk_first_path` to `<trunk_base>..<frozen-head>`, the range
+the gate classifies. Run the layer when `first_path` is set, or when `trunk_first_path` is set and the work
+order's `Security-reviewed up to commit:` marker is missing, unresolvable, or followed by a change to a
+security-sensitive path before the frozen head. It covers `<trunk_base>..<frozen-head>`, or
+`<frozen-base>..<frozen-head>` when `trunk_base` is null, through the host security reviewer that `review`'s
+host entry point names. When the host has none that reviews exactly that range, dispatch `review-lens` with
+the bounded lens `security` over it. Security evidence joins parent synthesis, while the marker is written
+only when the whole pass completes. No qualifying path means no security marker.
+
+## Stage 7 â€” parent synthesis and completion
+
+The parent independently checks cited evidence and reads beyond the frozen diff only to confirm a candidate.
+Drop pre-existing issues on unchanged lines, compiler/linter failures CI already owns, preferences no loaded
+rule states, intentional changes, and anything below the effort-adjusted confidence bar.
+
+Every retained finding is a defect the parent would fix and names one concrete fix. Do not keep hedged
+observations. Deduplicate across native, security, concern, and region results by underlying defect and
+evidence, preserving stable IDs. Lenses do not supply final severity or approval; the parent assigns
+severity, writes one judgment, and records findings in the canonical shape from `review-lifecycle`.
+
+Before completing an agent-surface pass, update the canonical work order's one moving coverage record for
+the frozen head, then run with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-host-check --descriptor <descriptor-path> --work-order <canonical-work-order>
+```
+
+The command validates that record against the descriptor's frozen paths and exact head. A failed check keeps
+the review incomplete.
+
+On completion, set `Review status` to `complete`, set the current and active-pass judgments, stamp the single
+`Reviewed up to commit:` marker at the frozen head, and stamp the security marker there when required. If
+HEAD moved, this completed pass remains truthful at its frozen head and the later delta belongs to
+`incremental-review`.
+
+Remove the disposable candidate bundle after completion, cancellation, or terminal failure. An interrupted
+pass may be resumed only after regenerating the bundle from its recorded descriptor and reproducing the
+recorded bundle identity.
+
+Apply `--comment` only after completion. Enter `address-review` only under the explicit combined
+authorization described above; remediation remains a separate serial-write workflow and must return through
+a fresh incremental watermark after any code change.
+
+## Report
+
+If a plan owns the work, completion of the whole pass is one material review transition; record only its
+artifact and current gate. Report the frozen range, finding counts by severity or lens, canonical work-order
+path, completed watermark, and whether an explicitly authorized remediation transition began. Do not replay
+subordinate output or create a review-only commit.
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\AGENTS.md
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\CLAUDE.md
+# kit
+
+kit creates plugin repositories and owns the parts they share: the layout, the generator, the root files and CI.
+It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/kit/utility/<name>/`.
+
+The files a plugin repository vendors have one source, under `.agents/kit/utility/new-plugin/templates/repository/`.
+kit's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and
+`CLAUDE.md` must stay byte-identical to those templates; the tests enforce it. Change the template first.
+`kit:check` and `kit:update` read those templates and `kit:check`'s `standard.json`, the one statement of what each
+repository type requires.
+
+`.github/workflows/plugin-ci.yml` is the CI every plugin repository calls, pinned to a kit tag. Changing the
+generator, a vendored file or the workflow is a kit release: bump `KIT_VERSION`, `.agents/plugins/kit.json` and the
+Codex manifest version together, then tag `v<version>` after the merge.
+
+`.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
+`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and
+`python -B -m unittest discover -s .agents/tests -p "test_*.py"` must pass before delivery.
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+diff --git a/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in b/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+index 38f8d08..a668b45 100644
+--- a/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
++++ b/.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in
+@@ -49,6 +49,148 @@ GENERATED_ROOTS = (
+ TIER_MATCHERS = ("files", "globs", "content", "remote")
+ PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+ 
++WINDOWS_PATH_UPPERCASE_RANGES = (
++    (0x0061, 0x007A, 1, -32),
++    (0x00E0, 0x00F6, 1, -32),
++    (0x00F8, 0x00FE, 1, -32),
++    (0x00FF, 0x00FF, 1, 121),
++    (0x0101, 0x012F, 2, -1),
++    (0x0133, 0x0137, 2, -1),
++    (0x013A, 0x0148, 2, -1),
++    (0x014B, 0x0177, 2, -1),
++    (0x017A, 0x017E, 2, -1),
++    (0x0180, 0x0180, 1, 195),
++    (0x0183, 0x0185, 2, -1),
++    (0x0188, 0x0188, 1, -1),
++    (0x018C, 0x018C, 1, -1),
++    (0x0192, 0x0192, 1, -1),
++    (0x0195, 0x0195, 1, 97),
++    (0x0199, 0x0199, 1, -1),
++    (0x019A, 0x019A, 1, 163),
++    (0x019E, 0x019E, 1, 130),
++    (0x01A1, 0x01A5, 2, -1),
++    (0x01A8, 0x01A8, 1, -1),
++    (0x01AD, 0x01AD, 1, -1),
++    (0x01B0, 0x01B0, 1, -1),
++    (0x01B4, 0x01B6, 2, -1),
++    (0x01B9, 0x01B9, 1, -1),
++    (0x01BD, 0x01BD, 1, -1),
++    (0x01BF, 0x01BF, 1, 56),
++    (0x01C6, 0x01C6, 1, -2),
++    (0x01C9, 0x01C9, 1, -2),
++    (0x01CC, 0x01CC, 1, -2),
++    (0x01CE, 0x01DC, 2, -1),
++    (0x01DD, 0x01DD, 1, -79),
++    (0x01DF, 0x01EF, 2, -1),
++    (0x01F3, 0x01F3, 1, -2),
++    (0x01F5, 0x01F5, 1, -1),
++    (0x01F9, 0x021F, 2, -1),
++    (0x0223, 0x0233, 2, -1),
++    (0x023C, 0x023C, 1, -1),
++    (0x0242, 0x0242, 1, -1),
++    (0x0247, 0x024F, 2, -1),
++    (0x0250, 0x0250, 1, 10783),
++    (0x0251, 0x0251, 1, 10780),
++    (0x0253, 0x0253, 1, -210),
++    (0x0254, 0x0254, 1, -206),
++    (0x0256, 0x0257, 1, -205),
++    (0x0259, 0x0259, 1, -202),
++    (0x025B, 0x025B, 1, -203),
++    (0x0260, 0x0260, 1, -205),
++    (0x0263, 0x0263, 1, -207),
++    (0x0268, 0x0268, 1, -209),
++    (0x0269, 0x0269, 1, -211),
++    (0x026B, 0x026B, 1, 10743),
++    (0x026F, 0x026F, 1, -211),
++    (0x0271, 0x0271, 1, 10749),
++    (0x0272, 0x0272, 1, -213),
++    (0x0275, 0x0275, 1, -214),
++    (0x027D, 0x027D, 1, 10727),
++    (0x0280, 0x0280, 1, -218),
++    (0x0283, 0x0283, 1, -218),
++    (0x0288, 0x0288, 1, -218),
++    (0x0289, 0x0289, 1, -69),
++    (0x028A, 0x028B, 1, -217),
++    (0x028C, 0x028C, 1, -71),
++    (0x0292, 0x0292, 1, -219),
++    (0x0371, 0x0373, 2, -1),
++    (0x0377, 0x0377, 1, -1),
++    (0x037B, 0x037D, 1, 130),
++    (0x03AC, 0x03AC, 1, -38),
++    (0x03AD, 0x03AF, 1, -37),
++    (0x03B1, 0x03C1, 1, -32),
++    (0x03C3, 0x03CB, 1, -32),
++    (0x03CC, 0x03CC, 1, -64),
++    (0x03CD, 0x03CE, 1, -63),
++    (0x03D7, 0x03D7, 1, -8),
++    (0x03D9, 0x03EF, 2, -1),
++    (0x03F2, 0x03F2, 1, 7),
++    (0x03F8, 0x03F8, 1, -1),
++    (0x03FB, 0x03FB, 1, -1),
++    (0x0430, 0x044F, 1, -32),
++    (0x0450, 0x045F, 1, -80),
++    (0x0461, 0x0481, 2, -1),
++    (0x048B, 0x04BF, 2, -1),
++    (0x04C2, 0x04CE, 2, -1),
++    (0x04CF, 0x04CF, 1, -15),
++    (0x04D1, 0x0523, 2, -1),
++    (0x0561, 0x0586, 1, -48),
++    (0x1D79, 0x1D79, 1, 35332),
++    (0x1D7D, 0x1D7D, 1, 3814),
++    (0x1E01, 0x1E95, 2, -1),
++    (0x1EA1, 0x1EFF, 2, -1),
++    (0x1F00, 0x1F07, 1, 8),
++    (0x1F10, 0x1F15, 1, 8),
++    (0x1F20, 0x1F27, 1, 8),
++    (0x1F30, 0x1F37, 1, 8),
++    (0x1F40, 0x1F45, 1, 8),
++    (0x1F51, 0x1F57, 2, 8),
++    (0x1F60, 0x1F67, 1, 8),
++    (0x1F70, 0x1F71, 1, 74),
++    (0x1F72, 0x1F75, 1, 86),
++    (0x1F76, 0x1F77, 1, 100),
++    (0x1F78, 0x1F79, 1, 128),
++    (0x1F7A, 0x1F7B, 1, 112),
++    (0x1F7C, 0x1F7D, 1, 126),
++    (0x1F80, 0x1F87, 1, 8),
++    (0x1F90, 0x1F97, 1, 8),
++    (0x1FA0, 0x1FA7, 1, 8),
++    (0x1FB0, 0x1FB1, 1, 8),
++    (0x1FB3, 0x1FB3, 1, 9),
++    (0x1FC3, 0x1FC3, 1, 9),
++    (0x1FD0, 0x1FD1, 1, 8),
++    (0x1FE0, 0x1FE1, 1, 8),
++    (0x1FE5, 0x1FE5, 1, 7),
++    (0x1FF3, 0x1FF3, 1, 9),
++    (0x214E, 0x214E, 1, -28),
++    (0x2170, 0x217F, 1, -16),
++    (0x2184, 0x2184, 1, -1),
++    (0x24D0, 0x24E9, 1, -26),
++    (0x2C30, 0x2C5E, 1, -48),
++    (0x2C61, 0x2C61, 1, -1),
++    (0x2C65, 0x2C65, 1, -10795),
++    (0x2C66, 0x2C66, 1, -10792),
++    (0x2C68, 0x2C6C, 2, -1),
++    (0x2C73, 0x2C73, 1, -1),
++    (0x2C76, 0x2C76, 1, -1),
++    (0x2C81, 0x2CE3, 2, -1),
++    (0x2D00, 0x2D25, 1, -7264),
++    (0xA641, 0xA65F, 2, -1),
++    (0xA663, 0xA66D, 2, -1),
++    (0xA681, 0xA697, 2, -1),
++    (0xA723, 0xA72F, 2, -1),
++    (0xA733, 0xA76F, 2, -1),
++    (0xA77A, 0xA77C, 2, -1),
++    (0xA77F, 0xA787, 2, -1),
++    (0xA78C, 0xA78C, 1, -1),
++    (0xFF41, 0xFF5A, 1, -32),
++)
++WINDOWS_PATH_UPPERCASE = {
++    value: value + delta
++    for start, end, step, delta in WINDOWS_PATH_UPPERCASE_RANGES
++    for value in range(start, end + 1, step)
++}
++
+ 
+ def package_component(value: str, where: str) -> None:
+     reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+@@ -79,7 +221,7 @@ def package_relative(value: str, where: str, *, native: bool = False) -> str:
+     return relative
+ 
+ def package_identities(files: dict[str, bytes]) -> None:
+-    identities: dict[str, tuple[str, bool]] = {}
++    identities: dict[bytes, tuple[str, bool]] = {}
+     for key, data in files.items():
+         package_relative(key, "shipped file map")
+         if not isinstance(data, bytes):
+@@ -89,7 +231,7 @@ def package_identities(files: dict[str, bytes]) -> None:
+             if ancestor.as_posix() != "."
+         ]
+         for path, is_file in nodes:
+-            identity = path.casefold()
++            identity = path.translate(WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
+             previous = identities.get(identity)
+             if previous is not None:
+                 spelling, previous_is_file = previous
+diff --git a/.agents/sync_generated.py b/.agents/sync_generated.py
+index 38f8d08..a668b45 100644
+--- a/.agents/sync_generated.py
++++ b/.agents/sync_generated.py
+@@ -49,6 +49,148 @@ GENERATED_ROOTS = (
+ TIER_MATCHERS = ("files", "globs", "content", "remote")
+ PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+ 
++WINDOWS_PATH_UPPERCASE_RANGES = (
++    (0x0061, 0x007A, 1, -32),
++    (0x00E0, 0x00F6, 1, -32),
++    (0x00F8, 0x00FE, 1, -32),
++    (0x00FF, 0x00FF, 1, 121),
++    (0x0101, 0x012F, 2, -1),
++    (0x0133, 0x0137, 2, -1),
++    (0x013A, 0x0148, 2, -1),
++    (0x014B, 0x0177, 2, -1),
++    (0x017A, 0x017E, 2, -1),
++    (0x0180, 0x0180, 1, 195),
++    (0x0183, 0x0185, 2, -1),
++    (0x0188, 0x0188, 1, -1),
++    (0x018C, 0x018C, 1, -1),
++    (0x0192, 0x0192, 1, -1),
++    (0x0195, 0x0195, 1, 97),
++    (0x0199, 0x0199, 1, -1),
++    (0x019A, 0x019A, 1, 163),
++    (0x019E, 0x019E, 1, 130),
++    (0x01A1, 0x01A5, 2, -1),
++    (0x01A8, 0x01A8, 1, -1),
++    (0x01AD, 0x01AD, 1, -1),
++    (0x01B0, 0x01B0, 1, -1),
++    (0x01B4, 0x01B6, 2, -1),
++    (0x01B9, 0x01B9, 1, -1),
++    (0x01BD, 0x01BD, 1, -1),
++    (0x01BF, 0x01BF, 1, 56),
++    (0x01C6, 0x01C6, 1, -2),
++    (0x01C9, 0x01C9, 1, -2),
++    (0x01CC, 0x01CC, 1, -2),
++    (0x01CE, 0x01DC, 2, -1),
++    (0x01DD, 0x01DD, 1, -79),
++    (0x01DF, 0x01EF, 2, -1),
++    (0x01F3, 0x01F3, 1, -2),
++    (0x01F5, 0x01F5, 1, -1),
++    (0x01F9, 0x021F, 2, -1),
++    (0x0223, 0x0233, 2, -1),
++    (0x023C, 0x023C, 1, -1),
++    (0x0242, 0x0242, 1, -1),
++    (0x0247, 0x024F, 2, -1),
++    (0x0250, 0x0250, 1, 10783),
++    (0x0251, 0x0251, 1, 10780),
++    (0x0253, 0x0253, 1, -210),
++    (0x0254, 0x0254, 1, -206),
++    (0x0256, 0x0257, 1, -205),
++    (0x0259, 0x0259, 1, -202),
++    (0x025B, 0x025B, 1, -203),
++    (0x0260, 0x0260, 1, -205),
++    (0x0263, 0x0263, 1, -207),
++    (0x0268, 0x0268, 1, -209),
++    (0x0269, 0x0269, 1, -211),
++    (0x026B, 0x026B, 1, 10743),
++    (0x026F, 0x026F, 1, -211),
++    (0x0271, 0x0271, 1, 10749),
++    (0x0272, 0x0272, 1, -213),
++    (0x0275, 0x0275, 1, -214),
++    (0x027D, 0x027D, 1, 10727),
++    (0x0280, 0x0280, 1, -218),
++    (0x0283, 0x0283, 1, -218),
++    (0x0288, 0x0288, 1, -218),
++    (0x0289, 0x0289, 1, -69),
++    (0x028A, 0x028B, 1, -217),
++    (0x028C, 0x028C, 1, -71),
++    (0x0292, 0x0292, 1, -219),
++    (0x0371, 0x0373, 2, -1),
++    (0x0377, 0x0377, 1, -1),
++    (0x037B, 0x037D, 1, 130),
++    (0x03AC, 0x03AC, 1, -38),
++    (0x03AD, 0x03AF, 1, -37),
++    (0x03B1, 0x03C1, 1, -32),
++    (0x03C3, 0x03CB, 1, -32),
++    (0x03CC, 0x03CC, 1, -64),
++    (0x03CD, 0x03CE, 1, -63),
++    (0x03D7, 0x03D7, 1, -8),
++    (0x03D9, 0x03EF, 2, -1),
++    (0x03F2, 0x03F2, 1, 7),
++    (0x03F8, 0x03F8, 1, -1),
++    (0x03FB, 0x03FB, 1, -1),
++    (0x0430, 0x044F, 1, -32),
++    (0x0450, 0x045F, 1, -80),
++    (0x0461, 0x0481, 2, -1),
++    (0x048B, 0x04BF, 2, -1),
++    (0x04C2, 0x04CE, 2, -1),
++    (0x04CF, 0x04CF, 1, -15),
++    (0x04D1, 0x0523, 2, -1),
++    (0x0561, 0x0586, 1, -48),
++    (0x1D79, 0x1D79, 1, 35332),
++    (0x1D7D, 0x1D7D, 1, 3814),
++    (0x1E01, 0x1E95, 2, -1),
++    (0x1EA1, 0x1EFF, 2, -1),
++    (0x1F00, 0x1F07, 1, 8),
++    (0x1F10, 0x1F15, 1, 8),
++    (0x1F20, 0x1F27, 1, 8),
++    (0x1F30, 0x1F37, 1, 8),
++    (0x1F40, 0x1F45, 1, 8),
++    (0x1F51, 0x1F57, 2, 8),
++    (0x1F60, 0x1F67, 1, 8),
++    (0x1F70, 0x1F71, 1, 74),
++    (0x1F72, 0x1F75, 1, 86),
++    (0x1F76, 0x1F77, 1, 100),
++    (0x1F78, 0x1F79, 1, 128),
++    (0x1F7A, 0x1F7B, 1, 112),
++    (0x1F7C, 0x1F7D, 1, 126),
++    (0x1F80, 0x1F87, 1, 8),
++    (0x1F90, 0x1F97, 1, 8),
++    (0x1FA0, 0x1FA7, 1, 8),
++    (0x1FB0, 0x1FB1, 1, 8),
++    (0x1FB3, 0x1FB3, 1, 9),
++    (0x1FC3, 0x1FC3, 1, 9),
++    (0x1FD0, 0x1FD1, 1, 8),
++    (0x1FE0, 0x1FE1, 1, 8),
++    (0x1FE5, 0x1FE5, 1, 7),
++    (0x1FF3, 0x1FF3, 1, 9),
++    (0x214E, 0x214E, 1, -28),
++    (0x2170, 0x217F, 1, -16),
++    (0x2184, 0x2184, 1, -1),
++    (0x24D0, 0x24E9, 1, -26),
++    (0x2C30, 0x2C5E, 1, -48),
++    (0x2C61, 0x2C61, 1, -1),
++    (0x2C65, 0x2C65, 1, -10795),
++    (0x2C66, 0x2C66, 1, -10792),
++    (0x2C68, 0x2C6C, 2, -1),
++    (0x2C73, 0x2C73, 1, -1),
++    (0x2C76, 0x2C76, 1, -1),
++    (0x2C81, 0x2CE3, 2, -1),
++    (0x2D00, 0x2D25, 1, -7264),
++    (0xA641, 0xA65F, 2, -1),
++    (0xA663, 0xA66D, 2, -1),
++    (0xA681, 0xA697, 2, -1),
++    (0xA723, 0xA72F, 2, -1),
++    (0xA733, 0xA76F, 2, -1),
++    (0xA77A, 0xA77C, 2, -1),
++    (0xA77F, 0xA787, 2, -1),
++    (0xA78C, 0xA78C, 1, -1),
++    (0xFF41, 0xFF5A, 1, -32),
++)
++WINDOWS_PATH_UPPERCASE = {
++    value: value + delta
++    for start, end, step, delta in WINDOWS_PATH_UPPERCASE_RANGES
++    for value in range(start, end + 1, step)
++}
++
+ 
+ def package_component(value: str, where: str) -> None:
+     reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+@@ -79,7 +221,7 @@ def package_relative(value: str, where: str, *, native: bool = False) -> str:
+     return relative
+ 
+ def package_identities(files: dict[str, bytes]) -> None:
+-    identities: dict[str, tuple[str, bool]] = {}
++    identities: dict[bytes, tuple[str, bool]] = {}
+     for key, data in files.items():
+         package_relative(key, "shipped file map")
+         if not isinstance(data, bytes):
+@@ -89,7 +231,7 @@ def package_identities(files: dict[str, bytes]) -> None:
+             if ancestor.as_posix() != "."
+         ]
+         for path, is_file in nodes:
+-            identity = path.casefold()
++            identity = path.translate(WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
+             previous = identities.get(identity)
+             if previous is not None:
+                 spelling, previous_is_file = previous
+diff --git a/.agents/tests/test_sync_generated.py b/.agents/tests/test_sync_generated.py
+index d876f35..b4746e5 100644
+--- a/.agents/tests/test_sync_generated.py
++++ b/.agents/tests/test_sync_generated.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import contextlib
++import hashlib
+ import importlib.util
+ import io
+ import json
+@@ -134,6 +135,45 @@ class PackageIdentityTests(unittest.TestCase):
+         with self.assertRaisesRegex(ValueError, message):
+             sync_generated.package_identities(files)
+ 
++    def identity(self, path: str) -> bytes:
++        return path.translate(sync_generated.WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
++
++    def test_windows_path_uppercase_table_is_pinned_and_idempotent(self) -> None:
++        ranges = sync_generated.WINDOWS_PATH_UPPERCASE_RANGES
++        table = list(range(65536))
++        seen = set()
++        for start, end, step, delta in ranges:
++            self.assertLessEqual(0, start)
++            self.assertLessEqual(start, end)
++            self.assertLessEqual(end, 65535)
++            self.assertIn(step, (1, 2))
++            self.assertEqual(0, (end - start) % step)
++            self.assertNotEqual(0, delta)
++            for point in range(start, end + 1, step):
++                self.assertNotIn(point, seen)
++                seen.add(point)
++                table[point] = point + delta
++        self.assertEqual(134, len(ranges))
++        self.assertEqual(973, len(seen))
++        self.assertEqual(
++            {point: mapped for point, mapped in enumerate(table) if point != mapped},
++            sync_generated.WINDOWS_PATH_UPPERCASE,
++        )
++        self.assertEqual(
++            "41c26bc7a12bdaeb26025c93118697c7e3ef81ee048b00fe5cce2a472e0e0742",
++            hashlib.sha256(b"".join(point.to_bytes(2, "little") for point in table)).hexdigest(),
++        )
++        self.assertTrue(all(table[table[point]] == table[point] for point in range(65536)))
++        self.assertTrue(all(table[point] == point for point in range(0xD800, 0xE000)))
++        source = Path(sync_generated.__file__).read_text(encoding="utf-8").replace("\r\n", "\n")
++        start = source.index("WINDOWS_PATH_UPPERCASE_RANGES = (")
++        declaration = source[start:source.index("\n\n", start) + 1]
++        self.assertEqual(4163, len(declaration.encode("ascii")))
++        self.assertEqual(
++            "dab0575edcb5aa824c84dbdff349016687a105e999e396626c5a392f2de90923",
++            hashlib.sha256(declaration.encode("ascii")).hexdigest(),
++        )
++
+     def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
+         self.assert_rejected(
+             {
+@@ -180,6 +220,132 @@ class PackageIdentityTests(unittest.TestCase):
+             }
+         )
+ 
++    def test_preserves_distinct_windows_unicode_path_bytes(self) -> None:
++        names = (
++            ("Stra\u00dfe.md", "STRASSE.md"),
++            ("\u00df.md", "\u1e9e.md"),
++            ("\u03c3.md", "\u03c2.md"),
++            ("caf\u00e9.md", "cafe\u0301.md"),
++            ("\U00010400.md", "\U00010428.md"),
++            ("\U0001f600.md", "\U0001f603.md"),
++        )
++        files = {}
++        for index, (left, right) in enumerate(names):
++            left_path = f"plugins/template/unicode-{index}/{left}"
++            right_path = f"plugins/template/unicode-{index}/{right}"
++            self.assertNotEqual(self.identity(left_path), self.identity(right_path))
++            files[left_path] = b"left"
++            files[right_path] = b"right"
++        sync_generated.package_identities(files)
++
++    def test_rejects_windows_unicode_aliases_for_files_ancestors_and_crosskind_paths(self) -> None:
++        for left, right in (
++            ("Rule.md", "rule.md"),
++            ("\u00e0.md", "\u00c0.md"),
++            ("\u03b1.md", "\u0391.md"),
++            ("\u0430.md", "\u0410.md"),
++        ):
++            with self.subTest(left=left, right=right):
++                self.assert_rejected(
++                    {f"plugins/template/{left}": b"", f"plugins/template/{right}": b""},
++                    "Windows path identity collision",
++                )
++        self.assert_rejected(
++            {
++                "plugins/template/\u03b1/one.md": b"",
++                "plugins/template/\u0391/two.md": b"",
++            },
++            "Windows path identity collision",
++        )
++        self.assert_rejected(
++            {
++                "plugins/template/\u0430": b"",
++                "plugins/template/\u0410/child.md": b"",
++            },
++            "Windows path identity collision",
++        )
++
++    def test_rejects_scalar_and_explicit_surrogate_spellings_with_the_same_utf16_identity(self) -> None:
++        scalar = "\U00010400.md"
++        explicit_surrogates = "\ud801\udc00.md"
++        self.assertEqual(self.identity(scalar), self.identity(explicit_surrogates))
++        self.assert_rejected(
++            {
++                f"plugins/template/{scalar}": b"",
++                f"plugins/template/{explicit_surrogates}": b"",
++            },
++            "Windows path identity collision",
++        )
++
++    def test_build_accepts_valid_unicode_sibling_identities(self) -> None:
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            make_repository(root)
++            names = (
++                "Stra\u00dfe.md",
++                "STRASSE.md",
++                "\u00df.md",
++                "\u1e9e.md",
++                "\u03c3.md",
++                "\u03c2.md",
++                "caf\u00e9.md",
++                "cafe\u0301.md",
++                "\U00010400.md",
++                "\U00010428.md",
++                "\U0001f600.md",
++                "\U0001f603.md",
++            )
++            for name in names:
++                write(root / ".agents/demo/utility/tool/templates" / name, "contents\n")
++            output = sync_generated.build(root)
++            for name in names:
++                self.assertIn(f"plugins/demo/.agents/demo/utility/tool/templates/{name}", output)
++
++    @unittest.skipUnless(os.name == "nt", "requires Windows")
++    def test_windows_native_bmp_table_and_ordinal_equivalence(self) -> None:
++        import ctypes
++
++        table = [sync_generated.WINDOWS_PATH_UPPERCASE.get(point, point) for point in range(65536)]
++        ntdll = ctypes.WinDLL("ntdll", use_last_error=True)
++        uppercase = ntdll.RtlUpcaseUnicodeChar
++        uppercase.argtypes = [ctypes.c_ushort]
++        uppercase.restype = ctypes.c_ushort
++        for point, expected in enumerate(table):
++            self.assertEqual(expected, uppercase(point), f"{point:#06x}")
++        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
++        compare = kernel32.CompareStringOrdinal
++        compare.argtypes = [ctypes.c_wchar_p, ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_bool]
++        compare.restype = ctypes.c_int
++        for point, mapped in enumerate(table):
++            if point != mapped:
++                self.assertEqual(2, compare(chr(point), 1, chr(mapped), 1, True), f"{point:#06x}")
++
++    @unittest.skipUnless(os.name == "nt", "requires Windows")
++    def test_windows_filesystem_alias_pairs_for_files_and_directories(self) -> None:
++        pairs = (
++            ("Rule.txt", "rule.txt"),
++            ("\u00e0.txt", "\u00c0.txt"),
++            ("\u03b1.txt", "\u0391.txt"),
++            ("\u0430.txt", "\u0410.txt"),
++        )
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            for index, (left, right) in enumerate(pairs):
++                files = root / f"files-{index}"
++                files.mkdir()
++                first = files / left
++                second = files / right
++                first.write_bytes(b"first")
++                second.write_bytes(b"second")
++                self.assertEqual(b"second", first.read_bytes())
++                self.assertEqual(1, len(list(files.iterdir())))
++                directories = root / f"directories-{index}"
++                directories.mkdir()
++                (directories / left).mkdir()
++                with self.assertRaises(FileExistsError):
++                    (directories / right).mkdir()
++                self.assertEqual(1, len(list(directories.iterdir())))
++
+     def test_build_validates_output_identities_before_references(self) -> None:
+         with tempfile.TemporaryDirectory() as directory:
+             root = Path(directory)
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\engineering\\workflow\\review\\SKILL.md'; Get-Content 'C:\\Users\\TommySeery\\.codex\\plugins\\cache\\base-agents\\engineering\\2.1.16\\.agents\\lanes\\codex.json'; Get-ChildItem -Recurse -Force -File -Include AGENTS.md,AGENTS.override.md,CLAUDE.md | Select-Object -ExpandProperty FullName; Get-Content AGENTS.md; git log -5 --oneline" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 800ms:
+---
+name: review
+description: Run the canonical isolated code-review workflow over one frozen branch, PR, commit-range, or path candidate with the host's native reviewer, relevant fresh read-only lenses, validated evidence, and parent-only deduplication, severity, judgment, and work-order writing. Use for a first full code review when asked to review a branch or PR; use incremental-review for later commits, big-review for a very large diff, docs-review for a meta-only diff, and address-review for existing findings.
+
+kind: workflow
+domain: process
+---
+
+# Canonical isolated code review
+
+Review one immutable candidate through the host's mandatory native reviewer and relevant repository-aware lenses.
+Subordinate contexts return evidence only. The strong parent validates every result, verifies citations,
+deduplicates, assigns severity, makes the final judgment, and is the sole writer of the canonical work order
+defined by `review-lifecycle`.
+
+## Arguments and selection
+
+```text
+[low|medium|high|max] [<pr-number>|<branch>|<path>] [--comment] [--fix]
+```
+
+- Effort applies to the native layer and every lens. `low` and `medium` keep only high-confidence defects;
+  `high` and `max` broaden coverage and may retain lower-confidence findings when their uncertainty and
+  concrete fix are explicit. With no value, reuse the last review effort.
+- No target means the current worktree's branch. A PR resolves its base, head branch, and head SHA through the
+  forge. Resolve a branch's actual base from its open PR or owning stack map: the immediate parent for
+  a stack child, otherwise the trunk. A path scopes that same branch candidate.
+- `--comment` posts finalized findings to the target PR after the work order is complete.
+- `--fix` explicitly authorizes the combined review -> `address-review` -> `incremental-review` lifecycle.
+  The same transition is authorized when this review is a stage of an implementation workflow whose original
+  request already authorized fixing its candidate. Otherwise review is read-only and ends after judgment.
+
+`<engineering>` is the installed engineering plugin root: two directories above this skill's host entry
+point (`<engineering>/skills/review/` in Claude Code, `<engineering>/codex-skills/review/` in Codex). Every
+helper below runs from there against the reviewed repository, which needs no `.agents/` of its own.
+
+Use `incremental-review` when the canonical work order already has a completed watermark and HEAD moved.
+Use `big-review` when the frozen changed surface is too large for one pass, normally more than 300 files or
+several substantial components. Use `docs-review` for a documentation/meta-only diff.
+
+## Stage 1 â€” resolve and freeze the candidate
+
+Resolve the target before reading or writing review state. An implementation workflow synchronizes with the
+remote base exactly once, immediately before this final review, while the worktree is clean. Then invoke the
+shared deterministic review preparation operation:
+
+Run these Python workflow commands with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-prepare --base <actual-base> --head HEAD --synchronize
+```
+
+Use the same resolved actual base for preparation, reconciliation and PR preflight. A stack child's
+review covers its layer against the parent; its tests still validate the cumulative tree. Do not merge
+main directly into each child as a substitute for reconciling the stack from its bottom.
+
+A review-only request over an already immutable remote or commit candidate omits `--synchronize`. The helper
+returns one compact Git-private descriptor and an external temporary bundle containing the binary patch and NUL path manifest. It
+also records the one synchronization, candidate identity, routed rule hashes, relevant lenses, security-path
+classification, and one wave.
+Do not reconstruct those facts through separate shell calls.
+
+Freeze a candidate descriptor containing the full base SHA, full head SHA, target branch, scope as `all` or
+an exact bounded value,
+exact sorted changed-path set, SHA-256 of their UTF-8 bytes joined by one NUL byte with no trailing NUL, path
+count, canonical work-order path, and new-or-append mode. Every later command and dispatch uses
+`<base>..<head>`, never a live replacement
+for `<head>`.
+
+The helper stores the authoritative descriptor in repository-private Git state and materializes the candidate
+bundle defined by `review-lifecycle` in an external temporary cache. It validates the exact patch, NUL path
+manifest, descriptor identity, and hashes before returning.
+Add its paths and identities to every immutable-artifact set. A host without safe read-only Git reads this
+bundle; no reviewer depends on the implementation transcript.
+
+When the descriptor reports `host_coverage.required`, its frozen paths touch an agent surface.
+`base:plan-artifacts` owns the coverage-record shape and evidence requirements.
+
+If the branch moves while work is active, do not widen the pass. Cancel any dispatch whose baseline is no
+longer trustworthy, finish or restart the frozen pass, and leave later commits to `incremental-review`.
+
+## Stage 2 â€” open the canonical work order
+
+Read `review-lifecycle`. Use only `reviews/<branch-slug>.md`; staged, documentation, and incremental modes
+share it. Before expensive review work, have the parent create the immutable pass identity and set
+the top-level `Review status`, current `Judgment`, and new `Pass judgment` to `in-progress`, `pending`, and
+`pending`. A first pass has no completion watermark yet. An interrupted
+incremental pass retains the earlier completed watermark but remains merge-blocking through its status.
+Record every descriptor field, including branch, scope, bundle path and identity, canonical work-order path,
+and `new` or `append` mode, before dispatch.
+
+No lens writes the artifact. Append a confirmed finding only after the parent validates its result and
+evidence. The parent may buffer independent lens results long enough to synthesize them together; recovery
+identity and confirmed findings must remain durable.
+
+## Stage 3 â€” native layer
+
+Run the host's own native reviewer first, covering correctness, simplification, reuse, efficiency, and
+error handling, over the frozen range `<frozen-base>..<frozen-head>` and scope. `review`'s host entry point
+names that reviewer and its invocation (`<engineering>/skills/review/SKILL.md` in Claude Code,
+`<engineering>/codex-skills/review/SKILL.md` in Codex). It is a tool call; reading the diff yourself is not
+this layer. Keep only findings on lines changed inside the frozen range and scope. When the host
+reviewer is not callable in this session, dispatch the existing `review-lens` capability with the bounded
+lens `native-general` instead. Record in the work order which native layer ran. Do not invent or require a
+second repository agent definition.
+
+A `native-general` dispatch receives the frozen base, head, path digest, exact scoped paths, materialized
+bundle path and identity, effort, rule-independent objective, read-only tools, and no prior lens
+conclusions. Validate the result against Workflow v2 before using it. Agent/role/model unavailability falls
+back to the parent over the same descriptor and bundle.
+
+## Stage 4 â€” load applicable rules
+
+Two mechanical rule sources; neither depends on anything wired into the reviewed repository.
+
+**Tier conventions â€” every repository.** Run the tier gate shipped with this plugin in conventions mode
+against the reviewed repository root, using `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/hooks/tier_gate.py --conventions --project <repository-root>
+```
+
+The base package's tiers README owns the output contract. Read every listed convention whose domain the
+frozen paths plainly touch, and check each changed file against the conventions of the tier(s) that own
+its language. Do not substitute the session's already-loaded skill list for this resolution; the gate
+reads the same installed declarations that gated the session.
+
+**Repository routes â€” repositories that carry them.** When the frozen tree ships `.agents/skill-routes.json`,
+`review-prepare` runs this plugin's router over it: the descriptor's `routed_skills` names every skill the
+frozen paths owe, plugin-owned ones included, and `route_violations` holds each deny-pattern hit. A
+repository without a route table owes only its tier conventions; that absence is normal, not a defect.
+
+Read every routed skill, the root and nearest changed-path `AGENTS.md` files, and the architecture premise
+from the exported frozen tree, never the live checkout. A route violation is evidence, not a hint.
+Invoke additional standards only when the diff plainly touches their domain; a missing route is a
+route-table defect rather than a list to duplicate here. If the candidate contains plans or
+implementation-ready design references, load plans and apply its implementation-design review gate to
+those artifacts, including their implementation-path standards.
+
+Record the owning `review` lifecycle and the helper's routed technical rule identities with
+`<engineering>/workflows/workflow_ops.py skills`. Read only identities returned as `load`; an unchanged
+identity returned as `cached` is already available to this logical workflow and is not reread after
+compaction. The descriptor's hashes prove whether a cached body still matches the frozen candidate. Check
+every changed file against each routed rule; a changed or missing hash requires a new body read.
+
+## Stage 5 â€” choose and dispatch fresh lenses
+
+Choose only lenses supported by the frozen paths, rules, and risk:
+
+- correctness: logic, concurrency, boundaries, exceptions, and observable failure paths;
+- service isolation: runtime coupling that violates the repository's service-boundary owner;
+- module boundaries: facade, visibility, and persistence ownership violations;
+- seeding: writes production cannot make through the same path;
+- language/framework conventions: only rules stated by the loaded standards; and
+- changed-behaviour test impact: one concrete missing assertion for behavior this candidate adds or reroutes.
+
+Each bounded dispatch uses `review-lens`, a unique dispatch/context identity, the same immutable candidate
+artifacts including the materialized bundle path and identity, one exact lens or region, read-only
+permissions, no subdispatch, and no sibling conclusions.
+Dispatch the helper-selected lenses together in its single wave. A small candidate normally selects only
+`native-general` plus a path-proven specialist lens. If a lens depends on another result, return that check to
+the parent instead of starting another source-review wave. Very large candidates route to `big-review` for
+staged coverage. Writers never participate in review production.
+
+Validate each result identity, status, citations, confidence, acceptance conditions, and decision boundary.
+A malformed or correctable incomplete result gets at most one focused follow-up without widening scope.
+Unsupported dispatch, timeout, cancellation, or a second invalid result closes that dispatch and returns the
+same bounded check to the parent. Obsolete results from a different base, head, path digest, stage, or
+dispatch ID contribute nothing.
+
+## Stage 6 â€” conditional security layer
+
+The descriptor's `security` field applies the merge gate's generic and repository `security_paths`
+inventory: `first_path` to the frozen paths, `trunk_first_path` to `<trunk_base>..<frozen-head>`, the range
+the gate classifies. Run the layer when `first_path` is set, or when `trunk_first_path` is set and the work
+order's `Security-reviewed up to commit:` marker is missing, unresolvable, or followed by a change to a
+security-sensitive path before the frozen head. It covers `<trunk_base>..<frozen-head>`, or
+`<frozen-base>..<frozen-head>` when `trunk_base` is null, through the host security reviewer that `review`'s
+host entry point names. When the host has none that reviews exactly that range, dispatch `review-lens` with
+the bounded lens `security` over it. Security evidence joins parent synthesis, while the marker is written
+only when the whole pass completes. No qualifying path means no security marker.
+
+## Stage 7 â€” parent synthesis and completion
+
+The parent independently checks cited evidence and reads beyond the frozen diff only to confirm a candidate.
+Drop pre-existing issues on unchanged lines, compiler/linter failures CI already owns, preferences no loaded
+rule states, intentional changes, and anything below the effort-adjusted confidence bar.
+
+Every retained finding is a defect the parent would fix and names one concrete fix. Do not keep hedged
+observations. Deduplicate across native, security, concern, and region results by underlying defect and
+evidence, preserving stable IDs. Lenses do not supply final severity or approval; the parent assigns
+severity, writes one judgment, and records findings in the canonical shape from `review-lifecycle`.
+
+Before completing an agent-surface pass, update the canonical work order's one moving coverage record for
+the frozen head, then run with `python` on Windows or `python3` on Linux/macOS:
+
+```bash
+python <engineering>/workflows/workflow_ops.py --root <repository-root> --workflow-run-id <id> review-host-check --descriptor <descriptor-path> --work-order <canonical-work-order>
+```
+
+The command validates that record against the descriptor's frozen paths and exact head. A failed check keeps
+the review incomplete.
+
+On completion, set `Review status` to `complete`, set the current and active-pass judgments, stamp the single
+`Reviewed up to commit:` marker at the frozen head, and stamp the security marker there when required. If
+HEAD moved, this completed pass remains truthful at its frozen head and the later delta belongs to
+`incremental-review`.
+
+Remove the disposable candidate bundle after completion, cancellation, or terminal failure. An interrupted
+pass may be resumed only after regenerating the bundle from its recorded descriptor and reproducing the
+recorded bundle identity.
+
+Apply `--comment` only after completion. Enter `address-review` only under the explicit combined
+authorization described above; remediation remains a separate serial-write workflow and must return through
+a fresh incremental watermark after any code change.
+
+## Report
+
+If a plan owns the work, completion of the whole pass is one material review transition; record only its
+artifact and current gate. Report the frozen range, finding counts by severity or lens, canonical work-order
+path, completed watermark, and whether an explicitly authorized remediation transition began. Do not replay
+subordinate output or create a review-only commit.
+{
+  "_": "Codex's rung of the lane ladder. Paired name-for-name with .agents/lanes/claude.json: the same LN means the same *relative* capability on both harnesses, so a skill declares `lane: L4` once and each harness resolves it to its own model. These two files are the only two places in the repo a model name may appear. Rungs are ordered L1 (most capable) to L7 (cheapest).",
+
+  "host": "codex",
+  "effort_key": "reasoning_effort",
+  "skill_supports_effort": false,
+  "$comment_skill_supports_effort": "Whether this harness accepts an effort key in SKILL.md front matter. Codex does not, so a Codex skill payload gets the rung's model alone and the rung's effort reaches it only through a lane agent.",
+  "model_key": "model",
+
+  "lanes": {
+    "L1": {
+      "summary": "Critical design decisions or large complex plans with interacting decisions.",
+      "model": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "context_ceiling": null,
+      "why": "The highest lane for a critical design decision or a big, complex plan with substantial interacting decisions. Record a concrete criticality or scale reason before selecting it. A plan label, architecture, data model, contract, or mechanism choice alone does not select it. Never implementation, review or delivery."
+    },
+    "L2": {
+      "summary": "High-stakes judgement that is not design, where a wrong call is costly or hard to undo.",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "xhigh",
+      "context_ceiling": null,
+      "why": "top general family at the setting above `high`. Judgement with a lot riding on it that designs nothing: a diagnosis of a production failure, a security or migration review. Delivering a change never selects it; merge, push and publish are governed by the delivery gates."
+    },
+    "L3": {
+      "summary": "Open investigation or bounded uncertain design with unresolved alternatives.",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "top general family at its default setting. Open investigation or bounded uncertain design with unresolved alternatives, including a diagnosis with no known answer or evidence a test cannot settle."
+    },
+    "L4": {
+      "summary": "Specified implementation, ordinary review, and small local testable choices.",
+      "model": "gpt-5.6-terra",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "the workhorse family at high effort. Specified implementation and ordinary review, including a small local mechanism choice inside a testable fix. Features, bugfixes and review lenses whose mistakes a compiler or a test suite will catch. Delivery never selects this rung."
+    },
+    "L5": {
+      "summary": "Mechanical work whose shape is already decided.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "context_ceiling": null,
+      "why": "the small family at high effort. Mechanical work whose shape is already decided: scripted edits, docs, ledger upkeep."
+    },
+    "L6": {
+      "summary": "Bulk clerical work whose input is too large for the cheapest rung.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "medium",
+      "context_ceiling": null,
+      "why": "the small family at medium effort. Clerical loops and bulk passes -- a monitor, a long transcript, a big diff -- that outgrow the floor rung."
+    },
+    "L7": {
+      "summary": "Clerical work with a small input and no judgement to make.",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "low",
+      "context_ceiling": null,
+      "why": "the small family at low effort. In-session clerical work with a small input: commit, push, pull, sync, one poll. Handoff launchers reject this rung."
+    }
+  },
+
+  "frontier": {
+    "summary": "Frontier deliberation above the ladder, priced by provenance rather than by task shape.",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "max",
+    "why": "valid only when the user explicitly asks for this tier or its model by name. Deliberately not a rung: the four lane questions grade task shape, and no answer to them may select this spend. L1 prices the same family one effort step below, and a test asserts no rung prices this exact model-and-effort pair, so lane inflation can never reach it."
+  },
+
+  "$comment_context_ceiling": "null means unrecorded, not unlimited. The Claude table carries real per-model windows from the published model table; the Codex figures are not verified here, so recording a number would be inventing one. A lane consumer that needs a ceiling must treat null as 'unknown' and not assume the input fits."
+}
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\AGENTS.md
+C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\CLAUDE.md
+# kit
+
+kit creates plugin repositories and owns the parts they share: the layout, the generator, the root files and CI.
+It is itself a plugin repository in that layout, with every skill of kind `utility` under `.agents/kit/utility/<name>/`.
+
+The files a plugin repository vendors have one source, under `.agents/kit/utility/new-plugin/templates/repository/`.
+kit's own copies of `.agents/sync_generated.py`, `.agents/sync-generated.ps1`, `.gitattributes`, `.gitignore` and
+`CLAUDE.md` must stay byte-identical to those templates; the tests enforce it. Change the template first.
+`kit:check` and `kit:update` read those templates and `kit:check`'s `standard.json`, the one statement of what each
+repository type requires.
+
+`.github/workflows/plugin-ci.yml` is the CI every plugin repository calls, pinned to a kit tag. Changing the
+generator, a vendored file or the workflow is a kit release: bump `KIT_VERSION`, `.agents/plugins/kit.json` and the
+Codex manifest version together, then tag `v<version>` after the merge.
+
+`.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
+`pwsh .agents/sync-generated.ps1` after authored changes; `pwsh .agents/sync-generated.ps1 -Check` and
+`python -B -m unittest discover -s .agents/tests -p "test_*.py"` must pass before delivery.
+a6f73ff Fix portable Windows output identities
+7b6e4ca fix(generator): validate portable output identities
+d0b42f2 feat(kit): publish Template with compatible Kit identity
+88c2c25 fix(ci): preserve freshness checks for reusable callers
+a7a8585 feat(kit): package canonical skill sources
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git diff 7b6e4caefb205eb7e7bfa0894121c77c6eb334d6 -- .agents/sync_generated.py .agents/tests/test_sync_generated.py; rg -n 'casefold|lower\\(|upper\\(|package_identities|KIT_VERSION|Windows|unicode|Unicode' .agents/sync_generated.py .agents/tests/test_sync_generated.py .agents/kit/utility/new-plugin .agents/kit/utility/check .github/workflows/plugin-ci.yml README.md; Get-Content .agents/plugins/kit.json; Get-Content .codex/plugin.json" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ exited 1 in 1205ms:
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+diff --git a/.agents/sync_generated.py b/.agents/sync_generated.py
+index 38f8d08..a668b45 100644
+--- a/.agents/sync_generated.py
++++ b/.agents/sync_generated.py
+@@ -49,6 +49,148 @@ GENERATED_ROOTS = (
+ TIER_MATCHERS = ("files", "globs", "content", "remote")
+ PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+ 
++WINDOWS_PATH_UPPERCASE_RANGES = (
++    (0x0061, 0x007A, 1, -32),
++    (0x00E0, 0x00F6, 1, -32),
++    (0x00F8, 0x00FE, 1, -32),
++    (0x00FF, 0x00FF, 1, 121),
++    (0x0101, 0x012F, 2, -1),
++    (0x0133, 0x0137, 2, -1),
++    (0x013A, 0x0148, 2, -1),
++    (0x014B, 0x0177, 2, -1),
++    (0x017A, 0x017E, 2, -1),
++    (0x0180, 0x0180, 1, 195),
++    (0x0183, 0x0185, 2, -1),
++    (0x0188, 0x0188, 1, -1),
++    (0x018C, 0x018C, 1, -1),
++    (0x0192, 0x0192, 1, -1),
++    (0x0195, 0x0195, 1, 97),
++    (0x0199, 0x0199, 1, -1),
++    (0x019A, 0x019A, 1, 163),
++    (0x019E, 0x019E, 1, 130),
++    (0x01A1, 0x01A5, 2, -1),
++    (0x01A8, 0x01A8, 1, -1),
++    (0x01AD, 0x01AD, 1, -1),
++    (0x01B0, 0x01B0, 1, -1),
++    (0x01B4, 0x01B6, 2, -1),
++    (0x01B9, 0x01B9, 1, -1),
++    (0x01BD, 0x01BD, 1, -1),
++    (0x01BF, 0x01BF, 1, 56),
++    (0x01C6, 0x01C6, 1, -2),
++    (0x01C9, 0x01C9, 1, -2),
++    (0x01CC, 0x01CC, 1, -2),
++    (0x01CE, 0x01DC, 2, -1),
++    (0x01DD, 0x01DD, 1, -79),
++    (0x01DF, 0x01EF, 2, -1),
++    (0x01F3, 0x01F3, 1, -2),
++    (0x01F5, 0x01F5, 1, -1),
++    (0x01F9, 0x021F, 2, -1),
++    (0x0223, 0x0233, 2, -1),
++    (0x023C, 0x023C, 1, -1),
++    (0x0242, 0x0242, 1, -1),
++    (0x0247, 0x024F, 2, -1),
++    (0x0250, 0x0250, 1, 10783),
++    (0x0251, 0x0251, 1, 10780),
++    (0x0253, 0x0253, 1, -210),
++    (0x0254, 0x0254, 1, -206),
++    (0x0256, 0x0257, 1, -205),
++    (0x0259, 0x0259, 1, -202),
++    (0x025B, 0x025B, 1, -203),
++    (0x0260, 0x0260, 1, -205),
++    (0x0263, 0x0263, 1, -207),
++    (0x0268, 0x0268, 1, -209),
++    (0x0269, 0x0269, 1, -211),
++    (0x026B, 0x026B, 1, 10743),
++    (0x026F, 0x026F, 1, -211),
++    (0x0271, 0x0271, 1, 10749),
++    (0x0272, 0x0272, 1, -213),
++    (0x0275, 0x0275, 1, -214),
++    (0x027D, 0x027D, 1, 10727),
++    (0x0280, 0x0280, 1, -218),
++    (0x0283, 0x0283, 1, -218),
++    (0x0288, 0x0288, 1, -218),
++    (0x0289, 0x0289, 1, -69),
++    (0x028A, 0x028B, 1, -217),
++    (0x028C, 0x028C, 1, -71),
++    (0x0292, 0x0292, 1, -219),
++    (0x0371, 0x0373, 2, -1),
++    (0x0377, 0x0377, 1, -1),
++    (0x037B, 0x037D, 1, 130),
++    (0x03AC, 0x03AC, 1, -38),
++    (0x03AD, 0x03AF, 1, -37),
++    (0x03B1, 0x03C1, 1, -32),
++    (0x03C3, 0x03CB, 1, -32),
++    (0x03CC, 0x03CC, 1, -64),
++    (0x03CD, 0x03CE, 1, -63),
++    (0x03D7, 0x03D7, 1, -8),
++    (0x03D9, 0x03EF, 2, -1),
++    (0x03F2, 0x03F2, 1, 7),
++    (0x03F8, 0x03F8, 1, -1),
++    (0x03FB, 0x03FB, 1, -1),
++    (0x0430, 0x044F, 1, -32),
++    (0x0450, 0x045F, 1, -80),
++    (0x0461, 0x0481, 2, -1),
++    (0x048B, 0x04BF, 2, -1),
++    (0x04C2, 0x04CE, 2, -1),
++    (0x04CF, 0x04CF, 1, -15),
++    (0x04D1, 0x0523, 2, -1),
++    (0x0561, 0x0586, 1, -48),
++    (0x1D79, 0x1D79, 1, 35332),
++    (0x1D7D, 0x1D7D, 1, 3814),
++    (0x1E01, 0x1E95, 2, -1),
++    (0x1EA1, 0x1EFF, 2, -1),
++    (0x1F00, 0x1F07, 1, 8),
++    (0x1F10, 0x1F15, 1, 8),
++    (0x1F20, 0x1F27, 1, 8),
++    (0x1F30, 0x1F37, 1, 8),
++    (0x1F40, 0x1F45, 1, 8),
++    (0x1F51, 0x1F57, 2, 8),
++    (0x1F60, 0x1F67, 1, 8),
++    (0x1F70, 0x1F71, 1, 74),
++    (0x1F72, 0x1F75, 1, 86),
++    (0x1F76, 0x1F77, 1, 100),
++    (0x1F78, 0x1F79, 1, 128),
++    (0x1F7A, 0x1F7B, 1, 112),
++    (0x1F7C, 0x1F7D, 1, 126),
++    (0x1F80, 0x1F87, 1, 8),
++    (0x1F90, 0x1F97, 1, 8),
++    (0x1FA0, 0x1FA7, 1, 8),
++    (0x1FB0, 0x1FB1, 1, 8),
++    (0x1FB3, 0x1FB3, 1, 9),
++    (0x1FC3, 0x1FC3, 1, 9),
++    (0x1FD0, 0x1FD1, 1, 8),
++    (0x1FE0, 0x1FE1, 1, 8),
++    (0x1FE5, 0x1FE5, 1, 7),
++    (0x1FF3, 0x1FF3, 1, 9),
++    (0x214E, 0x214E, 1, -28),
++    (0x2170, 0x217F, 1, -16),
++    (0x2184, 0x2184, 1, -1),
++    (0x24D0, 0x24E9, 1, -26),
++    (0x2C30, 0x2C5E, 1, -48),
++    (0x2C61, 0x2C61, 1, -1),
++    (0x2C65, 0x2C65, 1, -10795),
++    (0x2C66, 0x2C66, 1, -10792),
++    (0x2C68, 0x2C6C, 2, -1),
++    (0x2C73, 0x2C73, 1, -1),
++    (0x2C76, 0x2C76, 1, -1),
++    (0x2C81, 0x2CE3, 2, -1),
++    (0x2D00, 0x2D25, 1, -7264),
++    (0xA641, 0xA65F, 2, -1),
++    (0xA663, 0xA66D, 2, -1),
++    (0xA681, 0xA697, 2, -1),
++    (0xA723, 0xA72F, 2, -1),
++    (0xA733, 0xA76F, 2, -1),
++    (0xA77A, 0xA77C, 2, -1),
++    (0xA77F, 0xA787, 2, -1),
++    (0xA78C, 0xA78C, 1, -1),
++    (0xFF41, 0xFF5A, 1, -32),
++)
++WINDOWS_PATH_UPPERCASE = {
++    value: value + delta
++    for start, end, step, delta in WINDOWS_PATH_UPPERCASE_RANGES
++    for value in range(start, end + 1, step)
++}
++
+ 
+ def package_component(value: str, where: str) -> None:
+     reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+@@ -79,7 +221,7 @@ def package_relative(value: str, where: str, *, native: bool = False) -> str:
+     return relative
+ 
+ def package_identities(files: dict[str, bytes]) -> None:
+-    identities: dict[str, tuple[str, bool]] = {}
++    identities: dict[bytes, tuple[str, bool]] = {}
+     for key, data in files.items():
+         package_relative(key, "shipped file map")
+         if not isinstance(data, bytes):
+@@ -89,7 +231,7 @@ def package_identities(files: dict[str, bytes]) -> None:
+             if ancestor.as_posix() != "."
+         ]
+         for path, is_file in nodes:
+-            identity = path.casefold()
++            identity = path.translate(WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
+             previous = identities.get(identity)
+             if previous is not None:
+                 spelling, previous_is_file = previous
+diff --git a/.agents/tests/test_sync_generated.py b/.agents/tests/test_sync_generated.py
+index d876f35..b4746e5 100644
+--- a/.agents/tests/test_sync_generated.py
++++ b/.agents/tests/test_sync_generated.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import contextlib
++import hashlib
+ import importlib.util
+ import io
+ import json
+@@ -134,6 +135,45 @@ class PackageIdentityTests(unittest.TestCase):
+         with self.assertRaisesRegex(ValueError, message):
+             sync_generated.package_identities(files)
+ 
++    def identity(self, path: str) -> bytes:
++        return path.translate(sync_generated.WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
++
++    def test_windows_path_uppercase_table_is_pinned_and_idempotent(self) -> None:
++        ranges = sync_generated.WINDOWS_PATH_UPPERCASE_RANGES
++        table = list(range(65536))
++        seen = set()
++        for start, end, step, delta in ranges:
++            self.assertLessEqual(0, start)
++            self.assertLessEqual(start, end)
++            self.assertLessEqual(end, 65535)
++            self.assertIn(step, (1, 2))
++            self.assertEqual(0, (end - start) % step)
++            self.assertNotEqual(0, delta)
++            for point in range(start, end + 1, step):
++                self.assertNotIn(point, seen)
++                seen.add(point)
++                table[point] = point + delta
++        self.assertEqual(134, len(ranges))
++        self.assertEqual(973, len(seen))
++        self.assertEqual(
++            {point: mapped for point, mapped in enumerate(table) if point != mapped},
++            sync_generated.WINDOWS_PATH_UPPERCASE,
++        )
++        self.assertEqual(
++            "41c26bc7a12bdaeb26025c93118697c7e3ef81ee048b00fe5cce2a472e0e0742",
++            hashlib.sha256(b"".join(point.to_bytes(2, "little") for point in table)).hexdigest(),
++        )
++        self.assertTrue(all(table[table[point]] == table[point] for point in range(65536)))
++        self.assertTrue(all(table[point] == point for point in range(0xD800, 0xE000)))
++        source = Path(sync_generated.__file__).read_text(encoding="utf-8").replace("\r\n", "\n")
++        start = source.index("WINDOWS_PATH_UPPERCASE_RANGES = (")
++        declaration = source[start:source.index("\n\n", start) + 1]
++        self.assertEqual(4163, len(declaration.encode("ascii")))
++        self.assertEqual(
++            "dab0575edcb5aa824c84dbdff349016687a105e999e396626c5a392f2de90923",
++            hashlib.sha256(declaration.encode("ascii")).hexdigest(),
++        )
++
+     def test_rejects_case_and_file_directory_identity_collisions(self) -> None:
+         self.assert_rejected(
+             {
+@@ -180,6 +220,132 @@ class PackageIdentityTests(unittest.TestCase):
+             }
+         )
+ 
++    def test_preserves_distinct_windows_unicode_path_bytes(self) -> None:
++        names = (
++            ("Stra\u00dfe.md", "STRASSE.md"),
++            ("\u00df.md", "\u1e9e.md"),
++            ("\u03c3.md", "\u03c2.md"),
++            ("caf\u00e9.md", "cafe\u0301.md"),
++            ("\U00010400.md", "\U00010428.md"),
++            ("\U0001f600.md", "\U0001f603.md"),
++        )
++        files = {}
++        for index, (left, right) in enumerate(names):
++            left_path = f"plugins/template/unicode-{index}/{left}"
++            right_path = f"plugins/template/unicode-{index}/{right}"
++            self.assertNotEqual(self.identity(left_path), self.identity(right_path))
++            files[left_path] = b"left"
++            files[right_path] = b"right"
++        sync_generated.package_identities(files)
++
++    def test_rejects_windows_unicode_aliases_for_files_ancestors_and_crosskind_paths(self) -> None:
++        for left, right in (
++            ("Rule.md", "rule.md"),
++            ("\u00e0.md", "\u00c0.md"),
++            ("\u03b1.md", "\u0391.md"),
++            ("\u0430.md", "\u0410.md"),
++        ):
++            with self.subTest(left=left, right=right):
++                self.assert_rejected(
++                    {f"plugins/template/{left}": b"", f"plugins/template/{right}": b""},
++                    "Windows path identity collision",
++                )
++        self.assert_rejected(
++            {
++                "plugins/template/\u03b1/one.md": b"",
++                "plugins/template/\u0391/two.md": b"",
++            },
++            "Windows path identity collision",
++        )
++        self.assert_rejected(
++            {
++                "plugins/template/\u0430": b"",
++                "plugins/template/\u0410/child.md": b"",
++            },
++            "Windows path identity collision",
++        )
++
++    def test_rejects_scalar_and_explicit_surrogate_spellings_with_the_same_utf16_identity(self) -> None:
++        scalar = "\U00010400.md"
++        explicit_surrogates = "\ud801\udc00.md"
++        self.assertEqual(self.identity(scalar), self.identity(explicit_surrogates))
++        self.assert_rejected(
++            {
++                f"plugins/template/{scalar}": b"",
++                f"plugins/template/{explicit_surrogates}": b"",
++            },
++            "Windows path identity collision",
++        )
++
++    def test_build_accepts_valid_unicode_sibling_identities(self) -> None:
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            make_repository(root)
++            names = (
++                "Stra\u00dfe.md",
++                "STRASSE.md",
++                "\u00df.md",
++                "\u1e9e.md",
++                "\u03c3.md",
++                "\u03c2.md",
++                "caf\u00e9.md",
++                "cafe\u0301.md",
++                "\U00010400.md",
++                "\U00010428.md",
++                "\U0001f600.md",
++                "\U0001f603.md",
++            )
++            for name in names:
++                write(root / ".agents/demo/utility/tool/templates" / name, "contents\n")
++            output = sync_generated.build(root)
++            for name in names:
++                self.assertIn(f"plugins/demo/.agents/demo/utility/tool/templates/{name}", output)
++
++    @unittest.skipUnless(os.name == "nt", "requires Windows")
++    def test_windows_native_bmp_table_and_ordinal_equivalence(self) -> None:
++        import ctypes
++
++        table = [sync_generated.WINDOWS_PATH_UPPERCASE.get(point, point) for point in range(65536)]
++        ntdll = ctypes.WinDLL("ntdll", use_last_error=True)
++        uppercase = ntdll.RtlUpcaseUnicodeChar
++        uppercase.argtypes = [ctypes.c_ushort]
++        uppercase.restype = ctypes.c_ushort
++        for point, expected in enumerate(table):
++            self.assertEqual(expected, uppercase(point), f"{point:#06x}")
++        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
++        compare = kernel32.CompareStringOrdinal
++        compare.argtypes = [ctypes.c_wchar_p, ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_bool]
++        compare.restype = ctypes.c_int
++        for point, mapped in enumerate(table):
++            if point != mapped:
++                self.assertEqual(2, compare(chr(point), 1, chr(mapped), 1, True), f"{point:#06x}")
++
++    @unittest.skipUnless(os.name == "nt", "requires Windows")
++    def test_windows_filesystem_alias_pairs_for_files_and_directories(self) -> None:
++        pairs = (
++            ("Rule.txt", "rule.txt"),
++            ("\u00e0.txt", "\u00c0.txt"),
++            ("\u03b1.txt", "\u0391.txt"),
++            ("\u0430.txt", "\u0410.txt"),
++        )
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            for index, (left, right) in enumerate(pairs):
++                files = root / f"files-{index}"
++                files.mkdir()
++                first = files / left
++                second = files / right
++                first.write_bytes(b"first")
++                second.write_bytes(b"second")
++                self.assertEqual(b"second", first.read_bytes())
++                self.assertEqual(1, len(list(files.iterdir())))
++                directories = root / f"directories-{index}"
++                directories.mkdir()
++                (directories / left).mkdir()
++                with self.assertRaises(FileExistsError):
++                    (directories / right).mkdir()
++                self.assertEqual(1, len(list(directories.iterdir())))
++
+     def test_build_validates_output_identities_before_references(self) -> None:
+         with tempfile.TemporaryDirectory() as directory:
+             root = Path(directory)
+.agents/sync_generated.py:19:KIT_VERSION = "1.4.1"
+.agents/sync_generated.py:198:    stem = value.split(".", 1)[0].rstrip(" ").upper()
+.agents/sync_generated.py:204:        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
+.agents/sync_generated.py:223:def package_identities(files: dict[str, bytes]) -> None:
+.agents/sync_generated.py:239:                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
+.agents/sync_generated.py:286:    if config.get("kit") != KIT_VERSION:
+.agents/sync_generated.py:288:            f".agents/plugins/kit.json pins kit {config.get('kit')} but this generator is kit {KIT_VERSION}; "
+.agents/sync_generated.py:507:        if repository.lower() not in {str(owner).lower() for owner in owners}:
+.agents/sync_generated.py:657:    except (OSError, UnicodeError, ValueError) as error:
+.agents/sync_generated.py:802:    package_identities(output)
+.agents/tests/test_sync_generated.py:40:    write_json(root / ".agents/plugins/kit.json", {"schema_version": 1, "kit": sync_generated.KIT_VERSION, "repository": "owner/demo", "type": "stack"})
+.agents/tests/test_sync_generated.py:136:            sync_generated.package_identities(files)
+.agents/tests/test_sync_generated.py:183:            "Windows path identity collision",
+.agents/tests/test_sync_generated.py:198:                    "Windows-unsafe path component",
+.agents/tests/test_sync_generated.py:215:    def test_accepts_ordinary_spaced_parenthesized_unicode_paths(self) -> None:
+.agents/tests/test_sync_generated.py:216:        sync_generated.package_identities(
+.agents/tests/test_sync_generated.py:223:    def test_preserves_distinct_windows_unicode_path_bytes(self) -> None:
+.agents/tests/test_sync_generated.py:234:            left_path = f"plugins/template/unicode-{index}/{left}"
+.agents/tests/test_sync_generated.py:235:            right_path = f"plugins/template/unicode-{index}/{right}"
+.agents/tests/test_sync_generated.py:239:        sync_generated.package_identities(files)
+.agents/tests/test_sync_generated.py:241:    def test_rejects_windows_unicode_aliases_for_files_ancestors_and_crosskind_paths(self) -> None:
+.agents/tests/test_sync_generated.py:251:                    "Windows path identity collision",
+.agents/tests/test_sync_generated.py:258:            "Windows path identity collision",
+.agents/tests/test_sync_generated.py:265:            "Windows path identity collision",
+.agents/tests/test_sync_generated.py:277:            "Windows path identity collision",
+.agents/tests/test_sync_generated.py:280:    def test_build_accepts_valid_unicode_sibling_identities(self) -> None:
+.agents/tests/test_sync_generated.py:304:    @unittest.skipUnless(os.name == "nt", "requires Windows")
+.agents/tests/test_sync_generated.py:310:        uppercase = ntdll.RtlUpcaseUnicodeChar
+.agents/tests/test_sync_generated.py:323:    @unittest.skipUnless(os.name == "nt", "requires Windows")
+.agents/tests/test_sync_generated.py:354:            identities = sync_generated.package_identities
+.agents/tests/test_sync_generated.py:365:            with mock.patch.object(sync_generated, "package_identities", side_effect=record_identities), mock.patch.object(
+.agents/kit/utility/new-plugin\scripts\new_plugin.py:21:KIT_VERSION = re.compile(r'^KIT_VERSION = "(\d+\.\d+\.\d+)"$', re.MULTILINE)
+.agents/kit/utility/new-plugin\scripts\new_plugin.py:53:    match = KIT_VERSION.search(GENERATOR_TEMPLATE.read_text(encoding="utf-8"))
+.agents/kit/utility/new-plugin\scripts\new_plugin.py:55:        raise ValueError(f"{GENERATOR_TEMPLATE}: no KIT_VERSION")
+{
+  "schema_version": 1,
+  "kit": "1.4.1",
+  "repository": "tj-agents/kit",
+  "type": "utility"
+}
+Get-Content : Cannot find path 'C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2ea
+a065\checkout\.codex\plugin.json' because it does not exist.
+At line:2 char:407
++ ...  Get-Content .agents/plugins/kit.json; Get-Content .codex/plugin.json
++                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\TommyS...dex\plugin.json:String) [Get-Content], ItemNotFoundEx 
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+ 
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-Content .agents/sync_generated.py | Select-Object -First 330; Get-Content .agents/sync_generated.py | Select-Object -Skip 540; Get-Content .github/workflows/plugin-ci.yml; Get-Content .agents/tests/test_sync_generated.py | Select-Object -First 135; git show 7b6e4ca --stat; git tag --list' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 1212ms:
+#!/usr/bin/env python3
+"""Generate a plugin repository's host discovery entries, marketplaces and installable payloads.
+
+Vendored from the kit repository and pinned by `.agents/plugins/kit.json`: change it in kit, never here.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path, PurePosixPath
+import posixpath
+import re
+import shutil
+import stat
+
+
+KIT_VERSION = "1.4.1"
+FRONTMATTER = re.compile(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", re.DOTALL)
+NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+KIND = re.compile(r"^[a-z]+$")
+REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/([a-z][a-z0-9-]*)$")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+BARE_SKILL_REFERENCE = re.compile(r"`([a-z][a-z0-9-]+)`\s+skill(?:'s)?")
+MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
+SKILL_DIRECTORY_REFERENCE = re.compile(r"<skill-directory>/([^\s`'\")\]]+)")
+REQUIRED_METADATA = ("name", "description", "kind", "domain", "profile", "applicability", "requires", "provenance")
+REPOSITORY_TYPES = ("stack", "tool", "utility")
+RESERVED_AGENT_DIRS = {"continuation", "plugins", "tiers", "tests", "hooks"}
+IGNORED_PARTS = {"__pycache__"}
+IGNORED_SUFFIXES = {".pyc"}
+HOSTS = ("claude", "codex")
+ADAPTER_ROOTS = {"claude": ".claude/skills", "codex": ".codex/skills"}
+MANIFEST_ROOT = ".agents/plugins/manifests"
+MARKETPLACE_OUTPUTS = {"claude": ".claude-plugin/marketplace.json", "codex": ".agents/plugins/marketplace.json"}
+MARKETPLACE_FIELDS = {"claude": {"name", "description", "owner"}, "codex": {"name", "interface"}}
+CODEX_POLICY = {"installation": "INSTALLED_BY_DEFAULT", "authentication": "ON_INSTALL"}
+GENERATED_ROOTS = (
+    ".claude/skills",
+    ".codex/skills",
+    "plugins",
+    ".claude-plugin/marketplace.json",
+    ".agents/plugins/marketplace.json",
+    ".agents/INDEX.md",
+)
+TIER_MATCHERS = ("files", "globs", "content", "remote")
+PAYLOAD_FIELDS = {"payloads", "dependencies", "compatibilitySkillAliases"}
+
+WINDOWS_PATH_UPPERCASE_RANGES = (
+    (0x0061, 0x007A, 1, -32),
+    (0x00E0, 0x00F6, 1, -32),
+    (0x00F8, 0x00FE, 1, -32),
+    (0x00FF, 0x00FF, 1, 121),
+    (0x0101, 0x012F, 2, -1),
+    (0x0133, 0x0137, 2, -1),
+    (0x013A, 0x0148, 2, -1),
+    (0x014B, 0x0177, 2, -1),
+    (0x017A, 0x017E, 2, -1),
+    (0x0180, 0x0180, 1, 195),
+    (0x0183, 0x0185, 2, -1),
+    (0x0188, 0x0188, 1, -1),
+    (0x018C, 0x018C, 1, -1),
+    (0x0192, 0x0192, 1, -1),
+    (0x0195, 0x0195, 1, 97),
+    (0x0199, 0x0199, 1, -1),
+    (0x019A, 0x019A, 1, 163),
+    (0x019E, 0x019E, 1, 130),
+    (0x01A1, 0x01A5, 2, -1),
+    (0x01A8, 0x01A8, 1, -1),
+    (0x01AD, 0x01AD, 1, -1),
+    (0x01B0, 0x01B0, 1, -1),
+    (0x01B4, 0x01B6, 2, -1),
+    (0x01B9, 0x01B9, 1, -1),
+    (0x01BD, 0x01BD, 1, -1),
+    (0x01BF, 0x01BF, 1, 56),
+    (0x01C6, 0x01C6, 1, -2),
+    (0x01C9, 0x01C9, 1, -2),
+    (0x01CC, 0x01CC, 1, -2),
+    (0x01CE, 0x01DC, 2, -1),
+    (0x01DD, 0x01DD, 1, -79),
+    (0x01DF, 0x01EF, 2, -1),
+    (0x01F3, 0x01F3, 1, -2),
+    (0x01F5, 0x01F5, 1, -1),
+    (0x01F9, 0x021F, 2, -1),
+    (0x0223, 0x0233, 2, -1),
+    (0x023C, 0x023C, 1, -1),
+    (0x0242, 0x0242, 1, -1),
+    (0x0247, 0x024F, 2, -1),
+    (0x0250, 0x0250, 1, 10783),
+    (0x0251, 0x0251, 1, 10780),
+    (0x0253, 0x0253, 1, -210),
+    (0x0254, 0x0254, 1, -206),
+    (0x0256, 0x0257, 1, -205),
+    (0x0259, 0x0259, 1, -202),
+    (0x025B, 0x025B, 1, -203),
+    (0x0260, 0x0260, 1, -205),
+    (0x0263, 0x0263, 1, -207),
+    (0x0268, 0x0268, 1, -209),
+    (0x0269, 0x0269, 1, -211),
+    (0x026B, 0x026B, 1, 10743),
+    (0x026F, 0x026F, 1, -211),
+    (0x0271, 0x0271, 1, 10749),
+    (0x0272, 0x0272, 1, -213),
+    (0x0275, 0x0275, 1, -214),
+    (0x027D, 0x027D, 1, 10727),
+    (0x0280, 0x0280, 1, -218),
+    (0x0283, 0x0283, 1, -218),
+    (0x0288, 0x0288, 1, -218),
+    (0x0289, 0x0289, 1, -69),
+    (0x028A, 0x028B, 1, -217),
+    (0x028C, 0x028C, 1, -71),
+    (0x0292, 0x0292, 1, -219),
+    (0x0371, 0x0373, 2, -1),
+    (0x0377, 0x0377, 1, -1),
+    (0x037B, 0x037D, 1, 130),
+    (0x03AC, 0x03AC, 1, -38),
+    (0x03AD, 0x03AF, 1, -37),
+    (0x03B1, 0x03C1, 1, -32),
+    (0x03C3, 0x03CB, 1, -32),
+    (0x03CC, 0x03CC, 1, -64),
+    (0x03CD, 0x03CE, 1, -63),
+    (0x03D7, 0x03D7, 1, -8),
+    (0x03D9, 0x03EF, 2, -1),
+    (0x03F2, 0x03F2, 1, 7),
+    (0x03F8, 0x03F8, 1, -1),
+    (0x03FB, 0x03FB, 1, -1),
+    (0x0430, 0x044F, 1, -32),
+    (0x0450, 0x045F, 1, -80),
+    (0x0461, 0x0481, 2, -1),
+    (0x048B, 0x04BF, 2, -1),
+    (0x04C2, 0x04CE, 2, -1),
+    (0x04CF, 0x04CF, 1, -15),
+    (0x04D1, 0x0523, 2, -1),
+    (0x0561, 0x0586, 1, -48),
+    (0x1D79, 0x1D79, 1, 35332),
+    (0x1D7D, 0x1D7D, 1, 3814),
+    (0x1E01, 0x1E95, 2, -1),
+    (0x1EA1, 0x1EFF, 2, -1),
+    (0x1F00, 0x1F07, 1, 8),
+    (0x1F10, 0x1F15, 1, 8),
+    (0x1F20, 0x1F27, 1, 8),
+    (0x1F30, 0x1F37, 1, 8),
+    (0x1F40, 0x1F45, 1, 8),
+    (0x1F51, 0x1F57, 2, 8),
+    (0x1F60, 0x1F67, 1, 8),
+    (0x1F70, 0x1F71, 1, 74),
+    (0x1F72, 0x1F75, 1, 86),
+    (0x1F76, 0x1F77, 1, 100),
+    (0x1F78, 0x1F79, 1, 128),
+    (0x1F7A, 0x1F7B, 1, 112),
+    (0x1F7C, 0x1F7D, 1, 126),
+    (0x1F80, 0x1F87, 1, 8),
+    (0x1F90, 0x1F97, 1, 8),
+    (0x1FA0, 0x1FA7, 1, 8),
+    (0x1FB0, 0x1FB1, 1, 8),
+    (0x1FB3, 0x1FB3, 1, 9),
+    (0x1FC3, 0x1FC3, 1, 9),
+    (0x1FD0, 0x1FD1, 1, 8),
+    (0x1FE0, 0x1FE1, 1, 8),
+    (0x1FE5, 0x1FE5, 1, 7),
+    (0x1FF3, 0x1FF3, 1, 9),
+    (0x214E, 0x214E, 1, -28),
+    (0x2170, 0x217F, 1, -16),
+    (0x2184, 0x2184, 1, -1),
+    (0x24D0, 0x24E9, 1, -26),
+    (0x2C30, 0x2C5E, 1, -48),
+    (0x2C61, 0x2C61, 1, -1),
+    (0x2C65, 0x2C65, 1, -10795),
+    (0x2C66, 0x2C66, 1, -10792),
+    (0x2C68, 0x2C6C, 2, -1),
+    (0x2C73, 0x2C73, 1, -1),
+    (0x2C76, 0x2C76, 1, -1),
+    (0x2C81, 0x2CE3, 2, -1),
+    (0x2D00, 0x2D25, 1, -7264),
+    (0xA641, 0xA65F, 2, -1),
+    (0xA663, 0xA66D, 2, -1),
+    (0xA681, 0xA697, 2, -1),
+    (0xA723, 0xA72F, 2, -1),
+    (0xA733, 0xA76F, 2, -1),
+    (0xA77A, 0xA77C, 2, -1),
+    (0xA77F, 0xA787, 2, -1),
+    (0xA78C, 0xA78C, 1, -1),
+    (0xFF41, 0xFF5A, 1, -32),
+)
+WINDOWS_PATH_UPPERCASE = {
+    value: value + delta
+    for start, end, step, delta in WINDOWS_PATH_UPPERCASE_RANGES
+    for value in range(start, end + 1, step)
+}
+
+
+def package_component(value: str, where: str) -> None:
+    reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    reserved.update(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789\u00b9\u00b2\u00b3")
+    stem = value.split(".", 1)[0].rstrip(" ").upper()
+    if (
+        not value or value in (".", "..") or value.endswith((" ", "."))
+        or any(ord(character) < 32 or character in '<>:"\\|?*' for character in value)
+        or stem in reserved
+    ):
+        raise ValueError(f"{where}: Windows-unsafe path component {value!r}")
+
+def package_relative(value: str, where: str, *, native: bool = False) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{where}: expected a nonempty relative path")
+    relative = value
+    if native:
+        relative = relative.removeprefix("./").removesuffix("/")
+    path = PurePosixPath(relative)
+    if (
+        not relative or "\\" in relative or ":" in relative or "\x00" in relative
+        or path.is_absolute() or ".." in path.parts
+        or path.as_posix() != relative or relative == "."
+    ):
+        raise ValueError(f"{where}: unsafe relative path {value!r}")
+    for component in path.parts:
+        package_component(component, where)
+    return relative
+
+def package_identities(files: dict[str, bytes]) -> None:
+    identities: dict[bytes, tuple[str, bool]] = {}
+    for key, data in files.items():
+        package_relative(key, "shipped file map")
+        if not isinstance(data, bytes):
+            raise ValueError(f"{key}: shipped file contents must be bytes")
+        nodes = [(key, True)] + [
+            (ancestor.as_posix(), False) for ancestor in PurePosixPath(key).parents
+            if ancestor.as_posix() != "."
+        ]
+        for path, is_file in nodes:
+            identity = path.translate(WINDOWS_PATH_UPPERCASE).encode("utf-16-le", "surrogatepass")
+            previous = identities.get(identity)
+            if previous is not None:
+                spelling, previous_is_file = previous
+                if spelling != path:
+                    raise ValueError(f"{key}: Windows path identity collision: {spelling!r}, {path!r}")
+                if previous_is_file != is_file:
+                    raise ValueError(f"{key}: shipped file map contains a file/directory conflict")
+            identities[identity] = (path, is_file)
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def load(path: Path):
+    try:
+        return json.loads(read(path))
+    except FileNotFoundError:
+        raise ValueError(f"Missing {path.as_posix()}") from None
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{path.as_posix()}: invalid JSON ({error.msg})") from None
+
+
+def dump(value) -> str:
+    return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+
+
+def ignored(path: PurePosixPath | Path) -> bool:
+    return bool(IGNORED_PARTS.intersection(path.parts)) or path.suffix in IGNORED_SUFFIXES
+
+
+def is_link_or_junction(path: Path) -> bool:
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None and is_junction():
+        return True
+    if os.name != "nt":
+        return False
+    try:
+        attributes = path.lstat().st_file_attributes
+    except FileNotFoundError:
+        return False
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+
+
+def load_config(root: Path) -> dict:
+    config = load(root / ".agents/plugins/kit.json")
+    if not isinstance(config, dict):
+        raise ValueError(".agents/plugins/kit.json: must be a JSON object")
+    if config.get("schema_version") != 1:
+        raise ValueError(".agents/plugins/kit.json: schema_version must be 1")
+    if config.get("kit") != KIT_VERSION:
+        raise ValueError(
+            f".agents/plugins/kit.json pins kit {config.get('kit')} but this generator is kit {KIT_VERSION}; "
+            "run kit:update"
+        )
+    if config.get("type") not in REPOSITORY_TYPES:
+        raise ValueError(f".agents/plugins/kit.json: type must be one of {', '.join(REPOSITORY_TYPES)}")
+    match = REPOSITORY.fullmatch(str(config.get("repository", "")))
+    if match is None:
+        raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
+    unknown = set(config) - {"schema_version", "kit", "type", "repository"}
+    if unknown:
+        raise ValueError(f".agents/plugins/kit.json: unknown fields {sorted(unknown)}")
+    return {**config, "namespace": match.group(1)}
+
+
+def metadata(body: str, source: str) -> dict[str, str]:
+    match = FRONTMATTER.match(body)
+    if match is None:
+        raise ValueError(f"{source}: missing frontmatter")
+    values: dict[str, str] = {}
+    for line in match.group("header").splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            values[key.strip()] = value.strip()
+    for field in REQUIRED_METADATA:
+        if not values.get(field):
+            raise ValueError(f"{source}: missing {field}")
+    for field in ("name", "profile"):
+        if not NAME.fullmatch(values[field]):
+            raise ValueError(f"{source}: {field} must be a lowercase name")
+    if not KIND.fullmatch(values["kind"]):
+        raise ValueError(f"{source}: kind must be one lowercase word")
+    return values
+
+
+def is_skill_folder(path: Path) -> bool:
+    return path.is_dir() and not ignored(path) and not is_link_or_junction(path) and (path / "SKILL.md").is_file()
+
+
+def load_skill(root: Path, plugin: str, kind: str, directory: Path, name: str, namespace: str) -> dict:
+    path = directory / "SKILL.md"
+    relative = path.relative_to(root).as_posix()
+    raw = path.read_bytes()
+    if b"\xef\xbb\xbf" in raw:
+        if set(templates[host]) != MARKETPLACE_FIELDS[host]:
+            raise ValueError(
+                f"{MANIFEST_ROOT}/{host}/marketplace.json declares exactly {sorted(MARKETPLACE_FIELDS[host])}; "
+                "its plugin entries are generated"
+            )
+    if not NAME.fullmatch(str(templates["claude"]["name"])) or templates["claude"]["name"] != templates["codex"]["name"]:
+        raise ValueError("Claude and Codex marketplaces must share one lowercase name")
+    if not templates["codex"]["interface"].get("displayName") or not templates["claude"]["owner"].get("name"):
+        raise ValueError("Marketplaces need an owner name and a display name")
+    for plugin in plugins:
+        claude, codex = manifests["claude"][plugin], manifests["codex"][plugin]
+        for field in ("name", "description", "author", "repository", "skills", "keywords"):
+            if not codex.get(field) or codex.get(field) != claude.get(field):
+                raise ValueError(f"{plugin}: Claude and Codex manifests disagree on {field}")
+        if codex["name"] != plugin or codex["skills"] != "./skills/":
+            raise ValueError(f"{plugin}: manifests must keep the {plugin} identity and the ./skills/ path")
+        if codex["repository"] != f"https://github.com/{repository}":
+            raise ValueError(f"{plugin}: manifest repository must be https://github.com/{repository}")
+        if "version" in claude:
+            raise ValueError(f"{plugin}: the Claude manifest stays commit-versioned and omits version")
+        if not SEMVER.fullmatch(str(codex.get("version", ""))):
+            raise ValueError(f"{plugin}: the Codex manifest declares a semantic version")
+        interface = codex.get("interface") or {}
+        if not claude.get("displayName") or claude["displayName"] != interface.get("displayName"):
+            raise ValueError(f"{plugin}: Claude and Codex manifests disagree on display name")
+        if not interface.get("category"):
+            raise ValueError(f"{plugin}: the Codex manifest interface declares a category")
+    return manifests, templates
+
+
+def adapter_name(skill: dict, single_plugin: bool) -> str:
+    return skill["name"] if single_plugin else f"{skill['plugin']}-{skill['name']}"
+
+
+def adapter_body(skill: dict, adapter_dir: str, canonical_dir: str | None = None) -> str:
+    source = f"{canonical_dir or skill['directory']}/SKILL.md"
+    relative = posixpath.relpath(f"/{source}", f"/{adapter_dir}")
+    match = FRONTMATTER.match(skill["body"])
+    title = next((line for line in match.group("body").splitlines() if line.startswith("# ")), f"# {skill['name']}")
+    return (
+        f"---\n{match.group('header')}\n---\n\n{title}\n\n"
+        f"Read and follow the [canonical definition]({relative}) in full.\n"
+        "This discovery entry is generated; edit the referenced `.agents/` definition.\n"
+    )
+
+
+def references(body: str):
+    for target in MARKDOWN_LINK.findall(body):
+        if URL_SCHEME.match(target) or target.startswith(("#", "/")):
+            continue
+        target = target.split("#", 1)[0]
+        if target:
+            yield target
+    for target in SKILL_DIRECTORY_REFERENCE.findall(body):
+        yield target.rstrip(".,;:")
+
+
+def validate_skill_references(plugins: dict[str, dict[str, dict]]) -> None:
+    qualified = re.compile(
+        r"(?<![-/\w])(" + "|".join(re.escape(plugin) for plugin in sorted(plugins)) + r"):(?!:)([a-z][a-z0-9-]+)"
+    )
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            for namespace, name in qualified.findall(skill["body"]):
+                if name not in plugins[namespace]:
+                    raise ValueError(f"{plugin}:{skill['name']}: unknown skill reference {namespace}:{name}")
+            for name in BARE_SKILL_REFERENCE.findall(skill["body"]):
+                if name not in skills:
+                    raise ValueError(f"{plugin}:{skill['name']}: unknown skill reference `{name}` skill")
+
+
+def validate_file_references(
+    root: Path,
+    plugins: dict,
+    canonical_locations: dict[tuple[str, str], list[str]],
+    adapter_locations: list[tuple[dict, str, str, bool, bool]],
+    output: dict,
+) -> None:
+    def present(path: str) -> bool:
+        return path in output or any(key.startswith(path + "/") for key in output)
+
+    def validate(
+        plugin: str,
+        skill: dict,
+        body: str,
+        source_dir: str,
+        shipped_dir: str,
+        source_exists: bool,
+        generated_required: bool,
+    ) -> None:
+        for target in sorted(set(references(body))):
+            source = posixpath.normpath(posixpath.join(source_dir, target))
+            if source.startswith("../"):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            if source_exists and not (root / source).exists():
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from {source_dir}")
+            shipped = posixpath.normpath(posixpath.join(shipped_dir, target))
+            if generated_required and not present(shipped):
+                raise ValueError(f"{plugin}:{skill['name']}: {target} does not resolve from generated {shipped_dir}")
+
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            for directory in canonical_locations[(plugin, skill["name"])]:
+                validate(plugin, skill, skill["body"], skill["directory"], directory, True, True)
+    for skill, body, directory, source_exists, generated_required in adapter_locations:
+        validate(skill["plugin"], skill, body, directory, directory, source_exists, generated_required)
+
+
+def harness_body(root: Path, package: str, marketplace: str, output: dict[str, bytes]) -> str | None:
+    relative = f"{MANIFEST_ROOT}/harness/{package}.json"
+    path = root / relative
+    if not path.exists():
+        return None
+    try:
+        body = read(path)
+        manifest = json.loads(body)
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ValueError(f"{relative}: unreadable JSON ({error})") from None
+    if not isinstance(manifest, dict):
+        raise ValueError(f"{relative}: must be a JSON object")
+    if type(manifest.get("schema_version")) is not int or manifest["schema_version"] != 1:
+        raise ValueError(f"{relative}: schema_version must be 1")
+    if manifest.get("plugin") != f"{marketplace}/{package}":
+        raise ValueError(f"{relative}: plugin must be {marketplace}/{package}")
+    roots = manifest.get("source_roots")
+    if not isinstance(roots, list) or not roots or not all(isinstance(value, str) and value for value in roots):
+        raise ValueError(f"{relative}: source_roots must be a nonempty list of paths")
+    if len(roots) != len(set(roots)):
+        raise ValueError(f"{relative}: source_roots must be unique")
+    for value in roots:
+        source = PurePosixPath(value)
+        if (
+            "\\" in value or ":" in value or "\x00" in value
+            or source.is_absolute() or ".." in source.parts
+            or source.as_posix() != value or len(source.parts) < 2
+            or source.parts[0] != ".agents"
+        ):
+            raise ValueError(f"{relative}: unsafe canonical source root {value!r}")
+        target = f"plugins/{package}/{value}"
+        if target not in output and not any(name.startswith(target + "/") for name in output):
+            raise ValueError(f"{relative}: source root {value!r} is not shipped in {package}")
+    return body
+
+
+def build(root: Path) -> dict[str, bytes]:
+    config = load_config(root)
+    namespace, repository = config["namespace"], config["repository"]
+    plugins = discover(root, namespace)
+    payloads = load(root / ".agents/plugins/payloads.json")
+    publications = validate_payloads(payloads, plugins)
+    validate_tiers(root, plugins, repository)
+    manifests, templates = load_manifests(root, publications, repository)
+    validate_skill_references(plugins)
+    aliases = payloads.get("compatibilitySkillAliases", {})
+    dependencies = payloads.get("dependencies", {})
+    validate_publication_dependencies(publications, dependencies, templates["claude"]["name"])
+    single_plugin = len(plugins) == 1
+
+    output: dict[str, bytes] = {}
+    canonical_locations: dict[tuple[str, str], list[str]] = {}
+    adapter_locations: list[tuple[dict, str, str, bool, bool]] = []
+
+    def emit(relative: str, data: str | bytes) -> None:
+        key = PurePosixPath(relative).as_posix()
+        if key in output:
+            raise ValueError(f"Duplicate generated output: {key}")
+        output[key] = data.encode("utf-8") if isinstance(data, str) else data
+
+    def emit_skill(directory: str, skill: dict, body: str) -> None:
+        emit(f"{directory}/SKILL.md", body)
+        for file in skill["files"]:
+            emit(f"{directory}/{file}", (root / skill["directory"] / file).read_bytes())
+
+    repository_index = [
+        f"# {namespace} capabilities",
+        "",
+        "Generated from `.agents/<plugin>/<kind>/<family>/<member>/SKILL.md`; a skill's name is its folder path below "
+        "the kind folder joined by hyphens.",
+        "",
+    ]
+    for source, skills in plugins.items():
+        ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
+        for skill in ordered:
+            for adapter_root in ADAPTER_ROOTS.values():
+                adapter_dir = f"{adapter_root}/{adapter_name(skill, single_plugin)}"
+                host_adapter = adapter_body(skill, adapter_dir)
+                emit_skill(adapter_dir, skill, host_adapter)
+                adapter_locations.append((skill, host_adapter, adapter_dir, True, False))
+        entries = [f"- `{skill['name']}` â€” {skill['kind']} â€” {skill['metadata']['profile']}" for skill in ordered]
+        repository_index += [f"## {source}", ""]
+        repository_index += [f"{entry} â€” `{skill['directory']}/SKILL.md`" for entry, skill in zip(entries, ordered)]
+        repository_index.append("")
+
+    for package, source in publications.items():
+        skills = plugins[source]
+        ordered = sorted(skills.values(), key=lambda item: (item["kind"], item["name"]))
+        package_aliases = publication_aliases(package, aliases.get(source, {}))
+        for skill in ordered:
+            canonical_dir = f"plugins/{package}/{skill['directory']}"
+            package_adapter_dir = f"plugins/{package}/skills/{skill['name']}"
+            package_adapter = adapter_body(skill, package_adapter_dir, canonical_dir)
+            emit_skill(canonical_dir, skill, skill["body"])
+            emit_skill(package_adapter_dir, skill, package_adapter)
+            canonical_locations.setdefault((source, skill["name"]), []).append(canonical_dir)
+            adapter_locations.append((skill, package_adapter, package_adapter_dir, False, True))
+
+        entries = [f"- `{skill['name']}` â€” {skill['kind']} â€” {skill['metadata']['profile']}" for skill in ordered]
+        emit(f"plugins/{package}/INDEX.md", "\n".join([f"# {package} package capabilities", "", *entries, ""]))
+        profiles: dict[str, list[str]] = {}
+        for skill in ordered:
+            if skill["name"] not in package_aliases:
+                profiles.setdefault(skill["metadata"]["profile"], []).append(skill["name"])
+        selection = {
+            "plugin": package,
+            "dependencies": dependencies.get(source, []),
+            "profiles": {profile: sorted(names) for profile, names in sorted(profiles.items())},
+            "compatibilitySkillAliases": package_aliases,
+            "skills": [
+                {
+                    "name": skill["name"],
+                    "kind": skill["kind"],
+                    "profile": skill["metadata"]["profile"],
+                    "applicability": split_tags(skill["metadata"]["applicability"]),
+                    "requires": split_tags(skill["metadata"]["requires"]),
+                    "provenance": split_tags(skill["metadata"]["provenance"]),
+                }
+                for skill in sorted(ordered, key=lambda item: item["name"])
+            ],
+        }
+        emit(f"plugins/{package}/selection.json", dump(selection))
+        emit(f"plugins/{package}/tier.json", read(root / f".agents/tiers/{source}.json"))
+        harness = harness_body(root, package, templates["claude"]["name"], output)
+        if harness is not None:
+            emit(f"plugins/{package}/harness.json", harness)
+        for host in HOSTS:
+            emit(f"plugins/{package}/.{host}-plugin/plugin.json", read(root / MANIFEST_ROOT / host / f"{package}.json"))
+
+    emit(".agents/INDEX.md", "\n".join(repository_index))
+    claude_entries, codex_entries = [], []
+    for package in publications:
+        claude, codex = manifests["claude"][package], manifests["codex"][package]
+        category = codex["interface"]["category"]
+        claude_entries.append(
+            {
+                "name": package,
+                "source": f"./plugins/{package}",
+                "description": claude["description"],
+                "category": category,
+                "keywords": claude["keywords"],
+            }
+        )
+        codex_entries.append(
+            {
+                "name": package,
+                "source": {"source": "local", "path": f"./plugins/{package}"},
+                "policy": CODEX_POLICY,
+                "category": category,
+            }
+        )
+    emit(MARKETPLACE_OUTPUTS["claude"], dump({**templates["claude"], "plugins": claude_entries}))
+    emit(MARKETPLACE_OUTPUTS["codex"], dump({**templates["codex"], "plugins": codex_entries}))
+    package_identities(output)
+    validate_file_references(root, plugins, canonical_locations, adapter_locations, output)
+    return output
+
+
+def split_tags(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def generated_root_paths(root: Path) -> list[Path]:
+    resolved_root = root.resolve()
+    result: list[Path] = []
+    for value in GENERATED_ROOTS:
+        relative = PurePosixPath(value)
+        ancestor = resolved_root
+        for part in relative.parts:
+            ancestor = ancestor / part
+            if is_link_or_junction(ancestor):
+                raise ValueError(f"Generated root must not be or sit under a link or junction: {value}")
+        path = resolved_root.joinpath(*relative.parts).resolve()
+        if path == resolved_root or not path.is_relative_to(resolved_root):
+            raise ValueError(f"Generated root escapes the repository: {value}")
+        result.append(path)
+    return result
+
+
+def existing_files(root: Path) -> set[str]:
+    result: set[str] = set()
+    for value in GENERATED_ROOTS:
+        path = root / value
+        if path.is_dir():
+            result.update(
+                item.relative_to(root).as_posix()
+                for item in path.rglob("*")
+                if item.is_file() and not ignored(item.relative_to(root))
+            )
+        elif path.is_file():
+            result.add(value)
+    return result
+
+
+def synchronize(root: Path, check: bool) -> int:
+    output = build(root)
+    expected = set(output)
+    actual = existing_files(root)
+    if check:
+        stale = sorted(path for path in expected & actual if (root / path).read_bytes() != output[path])
+        problems = [("MISSING", sorted(expected - actual)), ("STALE", stale), ("EXTRA", sorted(actual - expected))]
+        for label, paths in problems:
+            for path in paths:
+                print(f"{label}: {path}")
+        if any(paths for _, paths in problems):
+            return 1
+        print(f"generated outputs current: {len(expected)} files")
+        return 0
+    for path in generated_root_paths(root):
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    for relative, data in output.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    print(f"generated {len(expected)} files")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    try:
+        return synchronize(args.root.resolve(), args.check)
+    except ValueError as error:
+        print(f"error: {error}")
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+name: plugin-ci
+
+on:
+  workflow_call:
+    inputs:
+      kit_ref:
+        description: The kit release the calling repository pins, such as v1.0.0.
+        required: true
+        type: string
+      generate_before_verify:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      read_token:
+        description: A token that can read the organization's kit and core repositories.
+        required: false
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/core
+          path: .core
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: tj-agents/react
+          path: .react
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: tj-agents/dotnet
+          path: .dotnet
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: repository tests
+        shell: pwsh
+        run: |
+          if (Test-Path .agents/tests/test_*.py) {
+            python -B -m unittest discover -s .agents/tests -p "test_*.py"
+            exit $LASTEXITCODE
+          }
+      - name: the repository conforms to its pinned kit release
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check.py --root .
+      - name: authored skill references resolve in the public corpus
+        shell: pwsh
+        run: python -B .kit/.agents/kit/utility/check/scripts/check_skill_references.py --root . --root .kit --root .core --root .react --root .dotnet --source-root .
+      - name: tier payloads conform to the shipped shape
+        shell: pwsh
+        run: python -B .core/plugins/base/hooks/check_tier_payload.py --root .
+
+  hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/kit
+          ref: ${{ inputs.kit_ref }}
+          path: .kit
+          token: ${{ secrets.read_token || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: regenerate generated files from authored sources
+        if: inputs.generate_before_verify
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: generated files are current
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install the pinned host CLIs
+        run: npm install --global @anthropic-ai/claude-code@2.1.282 @openai/codex@0.159.2
+      - name: Claude Code and Codex accept the marketplace and plugins
+        run: python -B .kit/.github/scripts/validate_hosts.py --root .
+from __future__ import annotations
+
+import contextlib
+import hashlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location("sync_generated", ROOT / ".agents" / "sync_generated.py")
+sync_generated = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(sync_generated)
+
+
+def skill_text(name: str, kind: str, body: str = "", domain: str = "demo", profile: str = "core") -> str:
+    return (
+        f"---\nname: {name}\ndescription: The {name} skill.\nkind: {kind}\ndomain: {domain}\nprofile: {profile}\n"
+        f"applicability: demo projects\nrequires: demo\nprovenance: house\n---\n\n# {name}\n\n{body}"
+    )
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def write_json(path: Path, value) -> None:
+    write(path, json.dumps(value, indent=2) + "\n")
+
+
+def make_repository(root: Path, plugins: tuple[str, ...] = ("demo",)) -> None:
+    write_json(root / ".agents/plugins/kit.json", {"schema_version": 1, "kit": sync_generated.KIT_VERSION, "repository": "owner/demo", "type": "stack"})
+    write_json(root / ".agents/plugins/payloads.json", {"payloads": {plugin: [plugin] for plugin in plugins}})
+    for host in ("claude", "codex"):
+        templates = {
+            "claude": {"name": "demo-agents", "description": "Demo.", "owner": {"name": "Owner"}},
+            "codex": {"name": "demo-agents", "interface": {"displayName": "Demo"}},
+        }
+        write_json(root / f".agents/plugins/manifests/{host}/marketplace.json", templates[host])
+    for plugin in plugins:
+        write_json(
+            root / f".agents/tiers/{plugin}.json",
+            {"schema_version": 1, "tier": plugin, "applies": "stack-present", "owner_repository": ["owner/demo"], "detect": {"files": ["demo.toml"]}},
+        )
+        common = {
+            "name": plugin,
+            "description": f"The {plugin} plugin.",
+            "author": {"name": "Owner"},
+            "repository": "https://github.com/owner/demo",
+            "skills": "./skills/",
+            "keywords": [plugin],
+        }
+        write_json(root / f".agents/plugins/manifests/claude/{plugin}.json", {**common, "displayName": plugin.title()})
+        write_json(
+            root / f".agents/plugins/manifests/codex/{plugin}.json",
+            {**common, "version": "0.1.0", "interface": {"displayName": plugin.title(), "category": "Productivity"}},
+        )
+        write(
+            root / f".agents/{plugin}/utility/tool/SKILL.md",
+            skill_text("tool", "utility", "Run `<skill-directory>/scripts/run.py`. See [the notes](templates/notes.md).\n"),
+        )
+        write(root / f".agents/{plugin}/utility/tool/scripts/run.py", "print('run')\n")
+        write(root / f".agents/{plugin}/utility/tool/templates/notes.md", "notes\n")
+        write(root / f".agents/{plugin}/contract/style/SKILL.md", skill_text("style", "contract", f"Pairs with `{plugin}:tool`.\n"))
+
+
+def add_publication(root: Path, package: str, source: str) -> None:
+    payload_path = root / ".agents/plugins/payloads.json"
+    payloads = json.loads(payload_path.read_text(encoding="utf-8"))
+    payloads["payloads"][package] = [source]
+    write_json(payload_path, payloads)
+    for host in ("claude", "codex"):
+        manifest_path = root / f".agents/plugins/manifests/{host}/{source}.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["name"] = package
+        if host == "claude":
+            manifest["displayName"] = package.title()
+        else:
+            manifest["interface"]["displayName"] = package.title()
+        write_json(root / f".agents/plugins/manifests/{host}/{package}.json", manifest)
+
+
+class GeneratorTestCase(unittest.TestCase):
+    def test_external_selection_dependency_is_preserved_and_shape_checked(self):
+        make_repository(self.root)
+        path = self.root / ".agents/plugins/payloads.json"
+        payloads = json.loads(path.read_text(encoding="utf-8"))
+        payloads["dependencies"] = {"demo": ["base-agents/machine"]}
+        write_json(path, payloads)
+        self.assertEqual(["base-agents/machine"], json.loads(self.build()["plugins/demo/selection.json"])["dependencies"])
+        for invalid in ("base-agents/*", "base-agents/machine/extra", "unknown", {}):
+            payloads["dependencies"] = {"demo": [invalid]}
+            write_json(path, payloads)
+            with self.assertRaises(ValueError):
+                self.build()
+
+    def test_optional_harness_is_shipped_without_requiring_migration(self):
+        make_repository(self.root)
+        self.assertNotIn("plugins/demo/harness.json", sync_generated.build(self.root))
+        manifest = {"schema_version": 1, "plugin": "demo-agents/demo", "source_roots": [".agents/demo"], "requires": {}}
+        write_json(self.root / ".agents/plugins/manifests/harness/demo.json", manifest)
+        self.assertEqual(json.loads(sync_generated.build(self.root)["plugins/demo/harness.json"]), manifest)
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.directory.name)
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def build(self) -> dict[str, bytes]:
+        return sync_generated.build(self.root)
+
+    def assert_rejected(self, message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+            self.build()
+
+    def synchronize(self, check: bool) -> tuple[int, str]:
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = sync_generated.synchronize(self.root, check)
+        return code, stream.getvalue()
+
+
+class PackageIdentityTests(unittest.TestCase):
+    def assert_rejected(self, files: dict[str, bytes], message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+commit 7b6e4caefb205eb7e7bfa0894121c77c6eb334d6
+Author: Tommy Seery <183629855+tomjseery@users.noreply.github.com>
+Date:   Mon Oct 12 03:05:57 2026 +0100
+
+    fix(generator): validate portable output identities
+
+ .../repository/.agents/sync_generated.py.in        | 52 ++++++++++++++-
+ .agents/plugins/kit.json                           |  2 +-
+ .agents/plugins/manifests/codex/kit.json           |  2 +-
+ .agents/plugins/manifests/codex/template.json      |  2 +-
+ .agents/sync_generated.py                          | 52 ++++++++++++++-
+ .agents/tests/test_check.py                        |  8 +--
+ .agents/tests/test_new_plugin.py                   |  4 +-
+ .agents/tests/test_sync_generated.py               | 74 ++++++++++++++++++++++
+ 8 files changed, 185 insertions(+), 11 deletions(-)
+v1.0.0
+v1.1.0
+v1.2.0
+v1.2.1
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "python -B -m unittest discover -s .agents/tests -p 'test_*.py'; pwsh -NoProfile -File .agents/sync-generated.ps1 -Check" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "@'
+import ctypes, importlib.util, tempfile, pathlib, os
+s=importlib.util.spec_from_file_location('sync','.agents/sync_generated.py')
+m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+u=ctypes.WinDLL('ntdll').RtlUpcaseUnicodeChar
+u.argtypes=[ctypes.c_ushort];u.restype=ctypes.c_ushort
+mismatches=[(hex(p),hex(m.WINDOWS_PATH_UPPERCASE.get(p,p)),hex(u(p))) for p in range(65536) if m.WINDOWS_PATH_UPPERCASE.get(p,p)"'!=u(p)]
+print('"'table mismatches:', mismatches[:25], 'total:',len(mismatches))
+pairs=[('\\u0131','I'),('\\u017f','S'),('\\u03c2','\\u03c3'),('\\u212a','K'),('\\u212b','\\u00c5'),('\\u00b5','\\u03bc'),('\\u1e9e','\\u00df'),('\\u03d1','\\u03b8'),('\\ua7c8','\\ua7c7'),('\\u2d27','\\u10c7'),('\\u1c90','\\u10d0')]
+with tempfile.TemporaryDirectory(dir='.') as d:
+    root=pathlib.Path(d)
+    for i,(a,b) in enumerate(pairs):
+        aa=root/(str(i)+a); bb=root/(str(i)+b)
+        aa.write_bytes(b'first')
+        bb.write_bytes(b'second')
+        print(ascii(a),ascii(b),'samefile:',os.path.samefile(aa,bb),'tablematch:',a.translate(m.WINDOWS_PATH_UPPERCASE)==b.translate(m.WINDOWS_PATH_UPPERCASE),'casefoldmatch:',a.casefold()==b.casefold())
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 956ms:
+table mismatches: [] total: 0
+'\u0131' 'I' samefile: False tablematch: False casefoldmatch: False
+'\u017f' 'S' samefile: False tablematch: False casefoldmatch: True
+'\u03c2' '\u03c3' samefile: False tablematch: False casefoldmatch: True
+'\u212a' 'K' samefile: False tablematch: False casefoldmatch: True
+'\u212b' '\xc5' samefile: False tablematch: False casefoldmatch: True
+'\xb5' '\u03bc' samefile: False tablematch: False casefoldmatch: True
+'\u1e9e' '\xdf' samefile: False tablematch: False casefoldmatch: True
+'\u03d1' '\u03b8' samefile: False tablematch: False casefoldmatch: True
+'\ua7c8' '\ua7c7' samefile: False tablematch: False casefoldmatch: True
+'\u2d27' '\u10c7' samefile: False tablematch: False casefoldmatch: True
+'\u1c90' '\u10d0' samefile: False tablematch: False casefoldmatch: True
+
+ exited 1 in 44690ms:
+...............................................................................F............FE.................................
+======================================================================
+ERROR: test_each_copied_package_runs_from_its_adapter_resources (test_sync_generated.PackagedScriptsTests.test_each_copied_package_runs_from_its_adapter_resources) (name='template')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\.agents\tests\test_sync_generated.py", line 748, in test_each_copied_package_runs_from_its_adapter_resources
+    shutil.copytree(ROOT / f"plugins/{name}", package)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\shutil.py", line 591, in copytree
+    with os.scandir(src) as itr:
+         ~~~~~~~~~~^^^^^
+FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\TommySeery\\AppData\\Local\\Temp\\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\\checkout\\plugins\\template'
+
+======================================================================
+FAIL: test_kit_generated_outputs_are_current (test_sync_generated.KitRepositoryTests.test_kit_generated_outputs_are_current)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\.agents\tests\test_sync_generated.py", line 816, in test_kit_generated_outputs_are_current
+    self.assertEqual(0, sync_generated.synchronize(ROOT, check=True))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_each_copied_package_runs_from_its_adapter_resources (test_sync_generated.PackagedScriptsTests.test_each_copied_package_runs_from_its_adapter_resources) (name='kit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout\.agents\tests\test_sync_generated.py", line 794, in test_each_copied_package_runs_from_its_adapter_resources
+    self.assertIn(".gitignore: differs from release", drifted.stderr)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '.gitignore: differs from release' not found in '.gitignore: differs from kit 1.2.2; change it in kit, then run kit:update\nexample does not conform to kit 1.2.2: 1 problem(s)\n'
+
+----------------------------------------------------------------------
+Ran 126 tests in 43.449s
+
+FAILED (failures=2, errors=1)
+Program 'pwsh.exe' failed to run: Access is deniedAt line:2 char:65
++ ...  'test_*.py'; pwsh -NoProfile -File .agents/sync-generated.ps1 -Check
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~.
+At line:2 char:65
++ ...  'test_*.py'; pwsh -NoProfile -File .agents/sync-generated.ps1 -Check
++                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ResourceUnavailable: (:) [], ApplicationFailedException
+    + FullyQualifiedErrorId : NativeCommandFailed
+ 
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-Content README.md; Get-ChildItem plans -File | Select-Object -ExpandProperty Name; Get-Content .gitignore; git show --format=fuller --no-patch HEAD; Get-ChildItem .github/workflows -File | Select-Object -ExpandProperty Name; Get-Content .github/workflows/ci.yml; Get-Content .agents/kit/utility/check/scripts/check.py | Select-Object -First 260; Get-Content .agents/kit/utility/update/scripts/update.py | Select-Object -First 220' in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 1352ms:
+# kit
+
+Meta-scaffolder for plugin repositories. Every stack, tool and utility plugin repository shares one layout, one
+vendored generator and one CI workflow, all owned here. Template is an additional installable package from the
+same `kit-agents` marketplace and ships the identical canonical `.agents/kit` procedures and resources.
+
+## Install
+
+Existing `kit@kit-agents` installations remain supported. Install `template@kit-agents` when the Template package
+name fits the consuming environment; both packages retain their own manifests and native adapters while using the
+same source procedures.
+
+## Skills
+
+- `kit:new-plugin` creates a stack, tool or utility plugin repository.
+- `kit:check` checks a plugin repository against the layout and the standard its type requires.
+- `kit:update` moves a plugin repository to this kit release.
+
+## Repository types
+
+| Type | Skills created | Tier |
+|---|---|---|
+| stack | `knowledge`, `direction` (knowledge); `learning` (policy); `style`, `structure`, `domain-design`, `errors`, `testing`, `build`, `libraries` (convention); `scaffold` (utility) | applies where the stack is detected |
+| tool | `knowledge`, `direction` (knowledge); `learning` (policy) | always |
+| utility | the utility skills it needs | always |
+
+## Shared CI
+
+A plugin repository's `.github/workflows/ci.yml` calls `.github/workflows/plugin-ci.yml` at the kit tag it pins.
+The workflow checks the generated outputs, runs the repository's own tests, `kit:check` and core's tier payload check, and
+installs the marketplace with the real Claude Code and Codex CLIs. It reads the organization's private `kit` and
+`core` repositories with the `TJ_AGENTS_READ_TOKEN` secret: a fine-grained token with read-only Contents access.
+
+## Authoring and verification
+
+```powershell
+pwsh .agents/sync-generated.ps1
+pwsh .agents/sync-generated.ps1 -Check
+python -B -m unittest discover -s .agents/tests -p "test_*.py"
+```
+
+Utility tiers default to `always`; an explicitly scoped utility may declare `stack-present`, including core's v3
+predicates. Core validates their detailed shape. New repositories include a self/dependency harness manifest under
+`.agents/plugins/manifests/harness/`; the generator ships any declared manifest as `plugins/<plugin>/harness.json`.
+Existing repositories can add one when needed. Selection dependencies accept local plugin names or exact
+`marketplace/plugin` identities; the generator preserves external identities for the consuming harness.
+
+`kit:check` also ships `scripts/check_skill_references.py`. Supply repeated `--root` arguments for the actual
+plugin corpus; add `--source-root` to scan selected repositories against that inventory. Exact external skill
+identities require a rationale in `.agents/plugins/skill-references.json`. Public CI checks the calling repository
+against kit, core, react and dotnet, using `GITHUB_TOKEN` unless an optional read token is supplied.
+*.credentials.json
+credentials.json
+auth.json
+*.local.json
+.env
+.env.*
+__pycache__/
+*.pyc
+.worktrees/
+commit a6f73ff05627929181d2eb43cce68cfbbd3d5422
+Author:     Tommy Seery <183629855+tomjseery@users.noreply.github.com>
+AuthorDate: Mon Oct 12 12:38:19 2026 +0100
+Commit:     Tommy Seery <183629855+tomjseery@users.noreply.github.com>
+CommitDate: Mon Oct 12 12:38:19 2026 +0100
+
+    Fix portable Windows output identities
+ci.yml
+plugin-ci.yml
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    uses: ./.github/workflows/plugin-ci.yml
+    with:
+      kit_ref: ${{ github.sha }}
+      generate_before_verify: true
+    secrets:
+      read_token: ${{ secrets.TJ_AGENTS_READ_TOKEN }}
+
+  regenerate:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: regenerate-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: regenerate committed packages from authored sources
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: verify the regenerated tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          ./.agents/sync-generated.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: commit and push the regeneration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .codex/skills .claude/skills .agents/INDEX.md .agents/plugins/marketplace.json .claude-plugin/marketplace.json plugins
+          $staged = git diff --cached --name-only
+          if ($staged) {
+            git commit -m "Regenerate packages for $env:GITHUB_SHA"
+            git push origin HEAD:main
+          } else {
+            "Generated output already current."
+          }
+#!/usr/bin/env python3
+"""Check a plugin repository against kit's layout and standard."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+from importlib.machinery import SourceFileLoader
+import json
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+
+SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
+NEW_PLUGIN = SKILL_DIRECTORY.parent / "new-plugin"
+STANDARD = json.loads((SKILL_DIRECTORY / "standard.json").read_text(encoding="utf-8"))
+
+
+def load_module(name: str, path: Path):
+    loader = SourceFileLoader(name, str(path))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader))
+    loader.exec_module(module)
+    return module
+
+
+new_plugin = load_module("kit_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
+generator = load_module("kit_generator", new_plugin.GENERATOR_TEMPLATE)
+
+
+def text(path: Path) -> str:
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def owns_templates(root: Path) -> bool:
+    return (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+
+
+def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
+    running = new_plugin.kit_version()
+    if pinned != running:
+        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
+    problems = []
+    for relative, expected in new_plugin.vendored_files(repository).items():
+        if relative == ".github/workflows/ci.yml" and owns_templates(root):
+            continue
+        path = root / relative
+        if not path.is_file():
+            problems.append(f"{relative}: missing; run update")
+        elif text(path) != expected:
+            problems.append(f"{relative}: differs from release {running}; change it in the source repository, then run update")
+    return problems
+
+
+def check_files(root: Path) -> list[str]:
+    problems = [f"{name}: required" for name in STANDARD["root_files"] if not (root / name).is_file()]
+    problems += [f"{name}: retired; kit documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
+    plugins_root = root / ".agents/plugins"
+    if not plugins_root.is_dir():
+        return [*problems, ".agents/plugins: required"]
+    for entry in sorted(plugins_root.iterdir()):
+        retired = f".agents/plugins/{entry.name}" in STANDARD["retired_files"]
+        if entry.name not in STANDARD["plugins_entries"] and not retired:
+            problems.append(f".agents/plugins/{entry.name}: not part of the plugin layout")
+    return problems
+
+
+def check_agents_entries(root: Path, plugins: set[str]) -> list[str]:
+    problems = []
+    agents_root = root / ".agents"
+    if not agents_root.is_dir():
+        return [".agents: required"]
+    for entry in sorted(agents_root.iterdir()):
+        if entry.name == "__pycache__":
+            continue
+        allowed = STANDARD["agents_folders"] + sorted(plugins) if entry.is_dir() else STANDARD["agents_files"]
+        if entry.name not in allowed:
+            problems.append(f".agents/{entry.name}: not part of the plugin layout")
+    return problems
+
+
+def headings(body: str) -> set[str]:
+    return {line.rstrip() for line in body.splitlines() if line.startswith("## ")}
+
+
+def opening(body: str) -> str:
+    lines = generator.FRONTMATTER.match(body).group("body").splitlines()
+    after_title = False
+    for line in lines:
+        if line.startswith("# "):
+            after_title = True
+        elif after_title and line.strip():
+            return line
+    return ""
+
+
+def skill_problems(skill: dict, name: str, rule: dict, namespace: str) -> list[str]:
+    problems = []
+    allowed_kinds = {rule["kind"], *rule.get("legacy_kinds", [])}
+    if skill["kind"] not in allowed_kinds or skill["metadata"]["profile"] != rule["profile"]:
+        problems.append(f"{skill['directory']}: {name} is kind {rule['kind']}, profile {rule['profile']}")
+    present = headings(skill["body"])
+    for heading in rule["sections"]:
+        heading = heading.replace("{namespace}", namespace)
+        if heading not in present:
+            problems.append(f"{skill['directory']}/SKILL.md: missing section {heading}")
+    return problems
+
+
+def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dict[str, dict]]) -> list[str]:
+    standard = STANDARD["types"][kind]
+    problems = []
+    if namespace not in plugins:
+        return [f".agents/{namespace}: a repository's main plugin folder is named after the repository"]
+    tier_path = root / f".agents/tiers/{namespace}.json"
+    if not tier_path.is_file():
+        problems.append(f".agents/tiers/{namespace}.json: required")
+    else:
+        try:
+            applies = json.loads(text(tier_path)).get("applies")
+        except (json.JSONDecodeError, AttributeError) as error:
+            problems.append(f".agents/tiers/{namespace}.json: not a JSON object ({error})")
+        else:
+            if applies not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
+                problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
+    for name, rule in standard["skills"].items():
+        owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
+        candidates = [skills[name] for skills in owners if name in skills]
+        if not candidates:
+            where = "any plugin" if rule.get("anywhere") else f"plugin {namespace}"
+            problems.append(f"{name}: a {kind} repository needs this {rule['kind']} skill in {where}")
+            continue
+        found = [skill_problems(skill, name, rule, namespace) for skill in candidates]
+        if all(found):
+            problems += [problem for skill_found in found for problem in skill_found]
+    for plugin, skills in plugins.items():
+        for skill in skills.values():
+            if "only_kinds" in standard and skill["kind"] not in standard["only_kinds"]:
+                problems.append(f"{skill['directory']}: a {kind} repository has only {', '.join(standard['only_kinds'])} skills")
+            if skill["kind"] in ("contract", "convention") and not opening(skill["body"]).startswith(STANDARD["convention_opening"]):
+                problems.append(f"{skill['directory']}/SKILL.md: a contract opens with an `Owns Ã¢â‚¬Â¦` line after its title")
+    return problems
+
+
+def check_names(plugins: dict[str, dict[str, dict]], aliases: dict[str, dict]) -> list[str]:
+    problems = []
+    for plugin, skills in plugins.items():
+        exempt = set(aliases.get(plugin, {}))
+        flat: dict[tuple[str, str], set[str]] = {}
+        families: set[tuple[str, str]] = set()
+        for skill in skills.values():
+            if skill["name"] in exempt:
+                continue
+            parts = skill["directory"].split("/")[3:]
+            if parts[0] == plugin or parts[0].startswith(f"{plugin}-"):
+                problems.append(f"{skill['directory']}: a skill name does not repeat its namespace {plugin}")
+            for index, part in enumerate(parts[1:], 1):
+                for family in parts[:index]:
+                    if part == family or part.startswith(f"{family}-") or part.endswith(f"-{family}"):
+                        problems.append(f"{skill['directory']}: {part} repeats its family {family}")
+            if len(parts) > 1:
+                families.add((skill["kind"], parts[0]))
+            elif "-" in parts[0]:
+                words = parts[0].split("-")
+                for word in {words[0], words[-1]}:
+                    flat.setdefault((skill["kind"], word), set()).add(parts[0])
+        for (kind, word), names in sorted(flat.items()):
+            if len(names) > 1 or (kind, word) in families:
+                problems.append(
+                    f".agents/{plugin}/{kind}: {', '.join(sorted(names))} share `{word}`; "
+                    f"fold them into the family folder {word}/<member>/"
+                )
+    return problems
+
+
+def check(root: Path) -> list[str]:
+    config_path = root / ".agents/plugins/kit.json"
+    if not config_path.is_file():
+        return [".agents/plugins/kit.json: missing; this is not a kit plugin repository"]
+    try:
+        config = json.loads(text(config_path))
+    except json.JSONDecodeError as error:
+        return [f".agents/plugins/kit.json: invalid JSON ({error})"]
+    if not isinstance(config, dict):
+        return [".agents/plugins/kit.json: must be a JSON object"]
+    match = generator.REPOSITORY.fullmatch(str(config.get("repository", "")))
+    if match is None:
+        return [".agents/plugins/kit.json: repository must be owner/name with a lowercase name"]
+    kind = config.get("type")
+    if kind not in STANDARD["types"]:
+        return [f".agents/plugins/kit.json: type must be one of {', '.join(STANDARD['types'])}"]
+    namespace = match.group(1)
+    problems = check_vendored(root, config["repository"], str(config.get("kit")))
+    problems += check_files(root)
+    try:
+        plugins = generator.discover(root, namespace)
+    except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
+        return problems + [str(error)]
+    problems += check_agents_entries(root, set(plugins))
+    problems += check_standard(root, kind, namespace, plugins)
+    try:
+        generator.build(root)
+    except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
+        return problems + [str(error)]
+    payloads_path = root / ".agents/plugins/payloads.json"
+    try:
+        aliases = json.loads(text(payloads_path)).get("compatibilitySkillAliases", {}) if payloads_path.is_file() else {}
+    except (json.JSONDecodeError, AttributeError) as error:
+        return problems + [f".agents/plugins/payloads.json: not a JSON object ({error})"]
+    problems += check_names(plugins, aliases)
+    return problems
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    root = parser.parse_args().root.resolve()
+    problems = check(root)
+    for problem in problems:
+        print(problem, file=sys.stderr)
+    if problems:
+        print(f"{root.name} does not conform to kit {new_plugin.kit_version()}: {len(problems)} problem(s)", file=sys.stderr)
+        return 1
+    print(f"{root.name} conforms to kit {new_plugin.kit_version()}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+#!/usr/bin/env python3
+"""Vendor this kit release's shared files into a plugin repository and pin the repository to it."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+from importlib.machinery import SourceFileLoader
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+sys.dont_write_bytecode = True
+
+NEW_PLUGIN = Path(__file__).resolve().parents[2] / "new-plugin"
+
+
+def load_new_plugin():
+    loader = SourceFileLoader("kit_new_plugin", str(NEW_PLUGIN / "scripts/new_plugin.py"))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader("kit_new_plugin", loader))
+    loader.exec_module(module)
+    return module
+
+
+def update(root: Path, dry_run: bool) -> list[str]:
+    new_plugin = load_new_plugin()
+    config_path = root / ".agents/plugins/kit.json"
+    if not config_path.is_file():
+        raise ValueError(f"{config_path}: missing; this is not a kit plugin repository")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    if not new_plugin.REPOSITORY.fullmatch(str(config.get("repository", ""))):
+        raise ValueError(".agents/plugins/kit.json: repository must be owner/name with a lowercase name")
+    owns_templates = (root / ".agents/kit/utility/new-plugin/templates/repository").is_dir()
+    changed: list[str] = []
+    for relative, expected in new_plugin.vendored_files(config["repository"]).items():
+        if relative == ".github/workflows/ci.yml" and owns_templates:
+            continue
+        path = root / relative
+        current = path.read_text(encoding="utf-8").replace("\r\n", "\n") if path.is_file() else None
+        if current != expected:
+            changed.append(relative)
+            if not dry_run:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(expected, encoding="utf-8", newline="\n")
+    version = new_plugin.kit_version()
+    if config.get("kit") != version:
+        changed.append(".agents/plugins/kit.json")
+        if not dry_run:
+            config["kit"] = version
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+    return changed
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--dry-run", action="store_true")
+    arguments = parser.parse_args()
+    root = arguments.root.resolve()
+    try:
+        changed = update(root, arguments.dry_run)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    for relative in changed:
+        print(f"{'would update' if arguments.dry_run else 'updated'} {relative}")
+    if arguments.dry_run or not changed:
+        print("already current" if not changed else "dry run: nothing written")
+        return 0
+    return subprocess.run([sys.executable, "-B", str(root / ".agents/sync_generated.py"), "--root", str(root)], check=False).returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Command python,python3,py -ErrorAction SilentlyContinue | Select-Object Name,Source; py -0p; Get-Content .agents/sync_generated.py | Select-Object -Skip 320 -First 112; Get-ChildItem 'C:\\' -Directory -Filter 'Python*'; Get-ChildItem 'C:\\Users\\TommySeery\\AppData\\Local\\Programs\\Python' -ErrorAction SilentlyContinue; git status --short; Get-Content .agents/tests/test_sync_generated.py | Select-Object -Skip 800" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 5402ms:
+
+ -V:3.13 *        C:\Python313\python.exe
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+Name       Source                 
+----       ------                 
+python.exe C:\Python313\python.exe
+py.exe     C:\Windows\py.exe      
+
+def is_skill_folder(path: Path) -> bool:
+    return path.is_dir() and not ignored(path) and not is_link_or_junction(path) and (path / "SKILL.md").is_file()
+
+
+def load_skill(root: Path, plugin: str, kind: str, directory: Path, name: str, namespace: str) -> dict:
+    path = directory / "SKILL.md"
+    relative = path.relative_to(root).as_posix()
+    raw = path.read_bytes()
+    if b"\xef\xbb\xbf" in raw:
+        raise ValueError(f"{relative}: embedded UTF-8 BOM")
+    body = raw.decode("utf-8").replace("\r\n", "\n")
+    values = metadata(body, relative)
+    if values["name"] != name:
+        raise ValueError(f"{relative}: name must be {name}, its folder path below the kind folder joined by hyphens")
+    if values["kind"] != kind:
+        raise ValueError(f"{relative}: kind must equal its kind folder")
+    if values["domain"] != namespace:
+        raise ValueError(f"{relative}: domain must be {namespace}")
+    members = {item.name for item in directory.iterdir() if is_skill_folder(item)}
+    files: list[str] = []
+    for item in sorted(directory.rglob("*")):
+        part = item.relative_to(directory)
+        if ignored(part) or part.parts[0] in members:
+            continue
+        if is_link_or_junction(item):
+            raise ValueError(f"{item.relative_to(root).as_posix()}: links are not shipped")
+        if item.is_file() and item != path:
+            files.append(part.as_posix())
+    return {
+        "plugin": plugin,
+        "name": values["name"],
+        "kind": kind,
+        "body": body,
+        "metadata": values,
+        "directory": directory.relative_to(root).as_posix(),
+        "files": files,
+    }
+
+
+def collect_skills(
+    root: Path, plugin: str, kind: str, directory: Path, family: tuple[str, ...], namespace: str, skills: dict[str, dict]
+) -> None:
+    location = directory.relative_to(root).as_posix()
+    if is_link_or_junction(directory):
+        raise ValueError(f"{location}: links are not shipped")
+    if not directory.is_dir() or not NAME.fullmatch(directory.name):
+        raise ValueError(f"{location}: kind and family folders hold only skill folders and family folders")
+    parts = (*family, directory.name)
+    if (directory / "SKILL.md").is_file():
+        skill = load_skill(root, plugin, kind, directory, "-".join(parts), namespace)
+        if skill["name"] in skills:
+            raise ValueError(f"{plugin}: duplicate skill {skill['name']}")
+        skills[skill["name"]] = skill
+        members = [item for item in sorted(directory.iterdir()) if is_skill_folder(item)]
+    else:
+        members = sorted(path for path in directory.iterdir() if not ignored(path))
+        if not members:
+            raise ValueError(f"{location}: a family folder holds skill folders")
+    for member in members:
+        collect_skills(root, plugin, kind, member, parts, namespace, skills)
+
+
+def discover(root: Path, namespace: str) -> dict[str, dict[str, dict]]:
+    agents = root / ".agents"
+    plugins: dict[str, dict[str, dict]] = {}
+    for plugin_dir in sorted(path for path in agents.iterdir() if path.is_dir() and not ignored(path)):
+        if plugin_dir.name in RESERVED_AGENT_DIRS:
+            continue
+        plugin = plugin_dir.name
+        if not NAME.fullmatch(plugin):
+            raise ValueError(f".agents/{plugin}: a plugin folder must be a lowercase name")
+        skills: dict[str, dict] = {}
+        for kind_dir in sorted(path for path in plugin_dir.iterdir() if not ignored(path)):
+            if not kind_dir.is_dir() or not NAME.fullmatch(kind_dir.name):
+                raise ValueError(f".agents/{plugin}/{kind_dir.name}: only kind folders belong in a plugin folder")
+            for entry in sorted(path for path in kind_dir.iterdir() if not ignored(path)):
+                collect_skills(root, plugin, kind_dir.name, entry, (), namespace, skills)
+        if not skills:
+            raise ValueError(f".agents/{plugin}: a plugin folder needs at least one skill")
+        plugins[plugin] = skills
+    if not plugins:
+        raise ValueError("No plugin folder with skills under .agents/")
+    return plugins
+
+
+def validate_payloads(payloads: dict, plugins: dict[str, dict[str, dict]]) -> dict[str, str]:
+    if not isinstance(payloads, dict):
+        raise ValueError(".agents/plugins/payloads.json: must be a JSON object")
+    unknown = set(payloads) - PAYLOAD_FIELDS
+    if unknown:
+        raise ValueError(f".agents/plugins/payloads.json: unknown fields {sorted(unknown)}")
+    declarations = payloads.get("payloads")
+    if not isinstance(declarations, dict) or not declarations:
+        raise ValueError(".agents/plugins/payloads.json: payloads must be a nonempty object")
+    publications = {}
+    for package, owners in sorted(declarations.items()):
+        if not isinstance(package, str) or not NAME.fullmatch(package):
+            raise ValueError(f".agents/plugins/payloads.json: invalid package {package!r}")
+        if (
+            not isinstance(owners, list)
+            or len(owners) != 1
+            or not isinstance(owners[0], str)
+            or owners[0] not in plugins
+        ):
+            raise ValueError(f".agents/plugins/payloads.json: {package} must select exactly one canonical source")
+        publications[package] = owners[0]
+    for source in plugins:
+        if publications.get(source) != source:
+            raise ValueError(f".agents/plugins/payloads.json: {source} must retain its identity publication")
+    dependencies = payloads.get("dependencies", {})
+    if not isinstance(dependencies, dict):
+Python313                         
+                )
+                self.assertEqual(0, update.returncode, update.stdout + update.stderr)
+                canonical = subprocess.run(
+                    [sys.executable, "-B", str(canonical_check), "--root", str(example)],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    check=False,
+                )
+                self.assertEqual(0, canonical.returncode, canonical.stdout + canonical.stderr)
+
+
+class KitRepositoryTests(unittest.TestCase):
+    def test_kit_generated_outputs_are_current(self) -> None:
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, sync_generated.synchronize(ROOT, check=True))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$paths = @('"'C:\\hostedtoolcache\\windows\\Python','C:\\Users\\TommySeery\\AppData\\Roaming\\uv\\python','C:\\Users\\TommySeery\\AppData\\Local\\uv\\python','C:\\Users\\TommySeery\\.pyenv','C:\\Program Files\\Python312','C:\\Users\\TommySeery\\AppData\\Local\\Programs\\Python'); foreach ("'$p in $paths) { if (Test-Path -LiteralPath $p) { Get-ChildItem -LiteralPath $p -Force | Select-Object FullName } }; Get-Command uv -ErrorAction SilentlyContinue | Select-Object Source; @'"'
+from pathlib import PureWindowsPath
+for a,b in [('\\u1e9e.md','\\u00df.md'),('\\U00010400.md','\\U00010428.md')]:
+ print(ascii(a),ascii(b), PureWindowsPath(a)==PureWindowsPath(b))
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 9259ms:
+'\u1e9e.md' '\xdf.md' True
+'\U00010400.md' '\U00010428.md' True
+
+mcp: codex_apps/github.fetch started
+mcp: codex_apps/github.fetch (completed)
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "@'
+import importlib.util, pathlib, shutil, subprocess, sys, tempfile
+source=pathlib.Path.cwd()
+with tempfile.TemporaryDirectory(prefix='kit-review-') as directory:
+    root=pathlib.Path(directory).resolve()
+    def ignore(folder,names):
+        excluded={'.git','__pycache__'}
+        if pathlib.Path(folder)==source:
+            excluded.update({'.codex','.claude','plugins'})
+        return excluded.intersection(names)
+    shutil.copytree(source,root,ignore=ignore,dirs_exist_ok=True)
+    spec=importlib.util.spec_from_file_location('review_sync',root/'.agents/sync_generated.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    for name,data in module.build(root).items():
+        target=root/name
+        assert target.resolve().is_relative_to(root)
+        target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_bytes(data)
+    p=subprocess.run([sys.executable,'-B','-m','unittest','discover','-s','.agents/tests','-p','test_*.py'],cwd=root)
+    print('regenerated disposable checkout tests:',p.returncode)
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git diff --check 7b6e4caefb205eb7e7bfa0894121c77c6eb334d6; @'
+from pathlib import Path
+import importlib.util, subprocess
+base={}
+exec(compile(subprocess.check_output(['git','show','7b6e4caefb205eb7e7bfa0894121c77c6eb334d6:.agents/sync_generated.py']).decode('utf-8'),'base_sync_generated.py','exec'),base)
+root=Path.cwd()
+output=base['build'](root)
+missing=sum(not (root/key).exists() for key in output)
+stale=sum((root/key).exists() and (root/key).read_bytes()"'!=value for key,value in output.items())
+print('"'Base generator with present authored tree: missing',missing,'stale',stale)
+print('Vendored/template byte equality:',(root/'.agents/sync_generated.py').read_bytes()==(root/'.agents/kit/utility/new-plugin/templates/repository/.agents/sync_generated.py.in').read_bytes())
+'@ | python -B -" in C:\Users\TommySeery\AppData\Local\Temp\kit-portable-native-d5f6072fa9e14a5fa139a3a1d2eaa065\checkout
+ succeeded in 1490ms:
+warning: unable to access 'C:\Users\TommySeery/.config/git/ignore': Permission denied
+Base generator with present authored tree: missing 109 stale 18
+Vendored/template byte equality: True
+
+ succeeded in 58010ms:
+..............................................................................................................................
+----------------------------------------------------------------------
+Ran 126 tests in 54.238s
+
+OK
+regenerated disposable checkout tests: 0
+
+codex
+No actionable regressions were found. All 126 tests pass after regenerating outputs in a disposable checkout, and the uppercase table matches the native Windows mapping.
+No actionable regressions were found. All 126 tests pass after regenerating outputs in a disposable checkout, and the uppercase table matches the native Windows mapping.
