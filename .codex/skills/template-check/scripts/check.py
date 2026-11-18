@@ -422,10 +422,8 @@ def check_marketplace_identity(root: Path) -> list[str]:
 
 
 def check_effective_dependency_projection(
-    root: Path, config: JSONObject, generated: dict[str, bytes]
+    root: Path, generated: dict[str, bytes]
 ) -> list[str]:
-    if config["type"] not in ("stack", "profile"):
-        return []
     paths = [
         path
         for path in generated
@@ -569,7 +567,7 @@ def check(
             f".agents/plugins/payloads.json: not a JSON object ({error})",
         ]
     problems += check_names(plugins, aliases)
-    problems += check_effective_dependency_projection(root, config, generated)
+    problems += check_effective_dependency_projection(root, generated)
     try:
         problems += check_skill_examples(root, plugins, base, head, merge_base)
     except ValueError as error:

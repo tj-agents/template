@@ -1,6 +1,7 @@
 {
   "plugin": "template",
   "dependencies": [
+    "tj-agents/base",
     "tj-agents/engineering",
     "skill"
   ],
