@@ -1,4 +1,19 @@
 {
+  "permissions": {
+    "allow": []
+  },
+  "enabledPlugins": {
+    "agent-store@tj-agents": true,
+    "agent@tj-agents": true,
+    "base@tj-agents": true,
+    "cli@tj-agents": true,
+    "engineering@tj-agents": true,
+    "personal@tj-agents": true,
+    "python@tj-agents": true,
+    "template@tj-agents": true,
+    "workflow@tj-agents": true,
+    "skill@tj-agents": true
+  },
   "extraKnownMarketplaces": {
     "tj-agents": {
       "source": {
@@ -7,20 +22,5 @@
       },
       "autoUpdate": true
     }
-  },
-  "enabledPlugins": {
-    "agent-store@tj-agents": true,
-    "agent@tj-agents": true,
-    "base@tj-agents": true,
-    "cli@tj-agents": true,
-    "engineering@tj-agents": true,
-    "machine@tj-agents": true,
-    "personal@tj-agents": true,
-    "python@tj-agents": true,
-    "template@tj-agents": true,
-    "workflow@tj-agents": true
-  },
-  "permissions": {
-    "allow": []
   }
 }
