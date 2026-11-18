@@ -39,23 +39,26 @@ def owns_templates(root: Path) -> bool:
 def check_vendored(root: Path, repository: str, pinned: str) -> list[str]:
     running = new_plugin.kit_version()
     if pinned != running:
-        return [f".agents/plugins/kit.json pins kit {pinned}; this check is kit {running}: run kit:update"]
+        return [f".agents/plugins/kit.json pins kit {pinned}; this check is {running}: run update"]
     problems = []
     for relative, expected in new_plugin.vendored_files(repository).items():
         if relative == ".github/workflows/ci.yml" and owns_templates(root):
             continue
         path = root / relative
         if not path.is_file():
-            problems.append(f"{relative}: missing; run kit:update")
+            problems.append(f"{relative}: missing; run update")
         elif text(path) != expected:
-            problems.append(f"{relative}: differs from kit {running}; change it in kit, then run kit:update")
+            problems.append(f"{relative}: differs from release {running}; change it in the source repository, then run update")
     return problems
 
 
 def check_files(root: Path) -> list[str]:
     problems = [f"{name}: required" for name in STANDARD["root_files"] if not (root / name).is_file()]
     problems += [f"{name}: retired; kit documents the layout" for name in STANDARD["retired_files"] if (root / name).exists()]
-    for entry in sorted((root / ".agents/plugins").iterdir()):
+    plugins_root = root / ".agents/plugins"
+    if not plugins_root.is_dir():
+        return [*problems, ".agents/plugins: required"]
+    for entry in sorted(plugins_root.iterdir()):
         retired = f".agents/plugins/{entry.name}" in STANDARD["retired_files"]
         if entry.name not in STANDARD["plugins_entries"] and not retired:
             problems.append(f".agents/plugins/{entry.name}: not part of the plugin layout")
@@ -64,7 +67,10 @@ def check_files(root: Path) -> list[str]:
 
 def check_agents_entries(root: Path, plugins: set[str]) -> list[str]:
     problems = []
-    for entry in sorted((root / ".agents").iterdir()):
+    agents_root = root / ".agents"
+    if not agents_root.is_dir():
+        return [".agents: required"]
+    for entry in sorted(agents_root.iterdir()):
         if entry.name == "__pycache__":
             continue
         allowed = STANDARD["agents_folders"] + sorted(plugins) if entry.is_dir() else STANDARD["agents_files"]
@@ -109,8 +115,14 @@ def check_standard(root: Path, kind: str, namespace: str, plugins: dict[str, dic
     tier_path = root / f".agents/tiers/{namespace}.json"
     if not tier_path.is_file():
         problems.append(f".agents/tiers/{namespace}.json: required")
-    elif json.loads(text(tier_path)).get("applies") not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
-        problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
+    else:
+        try:
+            applies = json.loads(text(tier_path)).get("applies")
+        except (json.JSONDecodeError, AttributeError) as error:
+            problems.append(f".agents/tiers/{namespace}.json: not a JSON object ({error})")
+        else:
+            if applies not in (standard["applies"] if isinstance(standard["applies"], list) else [standard["applies"]]):
+                problems.append(f".agents/tiers/{namespace}.json: a {kind} repository applies {standard['applies']}")
     for name, rule in standard["skills"].items():
         owners = plugins.values() if rule.get("anywhere") else [plugins[namespace]]
         candidates = [skills[name] for skills in owners if name in skills]
@@ -165,7 +177,12 @@ def check(root: Path) -> list[str]:
     config_path = root / ".agents/plugins/kit.json"
     if not config_path.is_file():
         return [".agents/plugins/kit.json: missing; this is not a kit plugin repository"]
-    config = json.loads(text(config_path))
+    try:
+        config = json.loads(text(config_path))
+    except json.JSONDecodeError as error:
+        return [f".agents/plugins/kit.json: invalid JSON ({error})"]
+    if not isinstance(config, dict):
+        return [".agents/plugins/kit.json: must be a JSON object"]
     match = generator.REPOSITORY.fullmatch(str(config.get("repository", "")))
     if match is None:
         return [".agents/plugins/kit.json: repository must be owner/name with a lowercase name"]
@@ -177,10 +194,14 @@ def check(root: Path) -> list[str]:
     problems += check_files(root)
     try:
         plugins = generator.discover(root, namespace)
-    except ValueError as error:
+    except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
         return problems + [str(error)]
     problems += check_agents_entries(root, set(plugins))
     problems += check_standard(root, kind, namespace, plugins)
+    try:
+        generator.build(root)
+    except (ValueError, json.JSONDecodeError, OSError, TypeError, AttributeError) as error:
+        return problems + [str(error)]
     payloads_path = root / ".agents/plugins/payloads.json"
     try:
         aliases = json.loads(text(payloads_path)).get("compatibilitySkillAliases", {}) if payloads_path.is_file() else {}
