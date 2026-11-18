@@ -35,7 +35,9 @@ source discovery before replacing vendored files, so a retired-layout consumer r
 ## Delivery slice
 
 Branch: `Refactor/SubjectSkillLayout` in the normal Template checkout. Base:
-`772a05cf83c58e160afd3bdb33f8ece545410d45` (`origin/main` fetched 2026-10-29). PR: not opened.
+`772a05cf83c58e160afd3bdb33f8ece545410d45` (`origin/main` fetched 2026-10-29).
+Reviewed head: `9a8c457fc2a54be56ca8bc603d1b2e44ff60ff31`.
+PR: [#56](https://github.com/tj-agents/template/pull/56), draft pending coordinated consumers.
 
 Scope: generator template and its vendored root, checker/standard, scaffold/update, source moves,
 native projections, directly affected tests, workflow command paths and owning documentation.
@@ -74,9 +76,10 @@ Stop publication on a failing required check, conflicting repair owner, or unmet
 cutover. Continue independent local implementation and diagnostics within this same goal.
 
 Execution uses specified implementation with the parent retaining architecture, acceptance and diagnosis.
-The source implementation is ready for validation; this is not a verdict that the global rollout is ready
-to land. Exact next action: finish integration tests, commit the coherent candidate, freeze its review,
-resolve findings, then prepare dependent consumer candidates before producer landing.
+The source implementation is committed, pushed and reviewed; exact-head Windows/Linux and native-host
+CI passed. This does not establish that the global rollout is ready to land. Exact next action: prepare
+Core's consumer candidate after the native directory transfer, then qualify dependent publishers before
+producer landing. The directory-cleanup follow-up remains recorded in the shared rollout plan.
 
 ```agent-host-coverage
 {
@@ -88,14 +91,14 @@ resolve findings, then prepare dependent consumer candidates before producer lan
       "behavior": "discovers stable public skills from the new subject layout",
       "source": ".agents/template/skills/new/plugin/templates/repository/.agents/sync_generated.py.in",
       "mapping": "canonical source to .claude/skills and plugins/template/skills",
-      "verification": {"level": "installed", "result": "passed", "evidence": "python -B .github/scripts/validate_hosts.py --root .; installed Claude native strict validation on Windows; Linux CI pending"}
+      "verification": {"level": "installed", "result": "passed", "evidence": "python -B .github/scripts/validate_hosts.py --root .; installed Claude native strict validation on Windows; exact-head Windows/Linux and pinned-host CI passed in run 40883476543"}
     },
     {
       "host": "codex",
       "behavior": "discovers stable public skills with supported native metadata",
       "source": ".agents/template/skills/new/plugin/templates/repository/.agents/sync_generated.py.in",
       "mapping": "canonical source to .codex/skills and the declared Codex package skill root",
-      "verification": {"level": "installed", "result": "passed", "evidence": "native quick_validate.py plus validate_hosts.py isolated marketplace add, package add and enabled listing on Windows; Linux CI pending"}
+      "verification": {"level": "installed", "result": "passed", "evidence": "native quick_validate.py plus validate_hosts.py isolated marketplace add, package add and enabled listing on Windows; exact-head Windows/Linux and pinned-host CI passed in run 40883476543"}
     }
   ]
 }

@@ -1,0 +1,36 @@
+--- a/.agents/base/policy/cd/SKILL.md
++++ b/.agents/base/policy/cd/SKILL.md
+@@ -6,6 +6,20 @@
+ ---
+ 
+ # Keep the session in the working repository
++
++Before invoking `/cd` or asking the user to enter it, resolve background command handles opened by
++this task and its subagents. Wait for useful work to finish; terminate only verified obsolete commands
++owned by this task. Consume their completion and release their handles. A completed subagent must
++resolve its outstanding commands before handing work back. When the native host terminal list is
++accessible, confirm it has no active terminals before requesting the directory change. Never send the
++user to `/cd` with known active task-owned terminals.
++
++An unknown command handle or an empty OS process scan does not prove the native terminal list is empty;
++a directory guard error alone does not prove a live process remains. If native controls are unavailable
++or the guard fails, explain the exact gap. Use the host's supported `/ps` to inspect the current session
++and `/stop` only when its remaining commands are verified obsolete and task-owned; when agent access
++is unavailable, give the user that native recovery step before retrying `/cd`. Do not claim cleanup
++without completion evidence, restart the host, or stop another session's commands.
+ 
+ When the task moves to a different repository or worktree, invoke the host's native
+ `/cd <absolute-path>` command immediately after the target directory exists and before continuing
+@@ -35,8 +49,10 @@
+ for this existing conversation; do not create or fork another conversation.
+ 
+ ```text
+-Task moves to C:/work/meal-estimator; the agent has no native directory-control tool.
+-Reply: Enter /cd C:/work/meal-estimator in Codex, then say continue.
++Task moves to C:/work/meal-estimator; an owned test command is still running.
++Wait for the test, consume its completion, and confirm the native terminal list is empty.
++Then, if directory control is unavailable: Enter /cd C:/work/meal-estimator in Codex, then say continue.
++If the guard fails, inspect native /ps and resolve verified obsolete owned commands with /stop.
+ Keep this conversation open. Resume after the host reports C:/work/meal-estimator.
+ ```
+ 
