@@ -328,7 +328,7 @@ def test_checkout_does_not_persist_the_publication_token(plugin_ci: str) -> None
     assert "token: ${{ steps.app-token.outputs.token }}" in publication
     assert (
         "uses: tj-agents/github-actions/.github/actions/publish-generated@"
-        "1a8099ab95aaf609704f892087081c35d15b331a" in publication
+        "dde479d5035cc9ccca009e2038812781e7fa5686" in publication
     )
     assert "source-sha: ${{ github.sha }}" in publication
     assert "permissions: {}" in job("hosts", plugin_ci, "regeneration-unconfigured")
@@ -361,7 +361,7 @@ def test_verify_provisions_the_pinned_tj_hook_candidate(plugin_ci: str) -> None:
     inputs = plugin_ci[: plugin_ci.index("    secrets:")]
     verify = job("verify", plugin_ci, "hosts")
     provision = step(verify, "Build the pinned tj_hook candidate")
-    assert "default: 92e29a7589a5dcf462af36d960684e49146d9d3b" in inputs
+    assert "default: fb0a914250d3725d631124d1be44b1234945422a" in inputs
     assert "repository: tj-agents/cli" in verify
     assert "ref: ${{ inputs.cli_ref }}" in verify
     assert "path: .tj-cli" in verify

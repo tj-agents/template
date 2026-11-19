@@ -2,7 +2,7 @@
 
 Status: implementation-ready successor design, 2026-10-11.
 Owner: plans/template-structure/GOAL.md in the Refactor-TemplateStructureContract checkout. This reference owns no separate goal or ledger.
-Parent artifact: 88c2c25fc763539a230561ed57b2c701e261e2f1, source version 1.3.0, draft PR #8. Parent CI 38182114392 passed Windows, Linux and native acceptance.
+Parent artifact: 6620371b341e261b9f93f13685a2fea5825f21a9, source version 1.3.0, draft PR #8. Parent CI 38182114392 passed Windows, Linux and native acceptance.
 Successor: Refactor/TemplatePublication, source version 1.4.0, immediate PR base Refactor/TemplateStructureContract. Delivery is gated on PR #4, then PR #8, their generated publication and release consequences. The exact producer artifact is available now, so implementation and cumulative verification can proceed without taking the taxonomy owner's work.
 Expected scope: generator/template and focused tests, paired Template manifests/harness, payload declaration, namespace-neutral canonical utility references, public README and .github/scripts/validate_hosts.py isolated native acceptance. Approximately 600?850 substantive lines; assess and split again if the scope exceeds that estimate. Generated outputs remain uncommitted.
 

@@ -6,7 +6,7 @@ on:
       cli_ref:
         description: CLI source ref used to build tj_hook for hook execution tests.
         required: false
-        default: 92e29a7589a5dcf462af36d960684e49146d9d3b
+        default: fb0a914250d3725d631124d1be44b1234945422a
         type: string
       template_ref:
         description: Template source ref; defaults to main and may be overridden for candidate checks.
@@ -375,7 +375,7 @@ jobs:
           permission-workflows: write
       - name: Publish generated files
         if: steps.credentials.outputs.present == 'true'
-        uses: tj-agents/github-actions/.github/actions/publish-generated@1a8099ab95aaf609704f892087081c35d15b331a
+        uses: tj-agents/github-actions/.github/actions/publish-generated@dde479d5035cc9ccca009e2038812781e7fa5686
         with:
           token: ${{ steps.app-token.outputs.token }}
           source-sha: ${{ github.sha }}
