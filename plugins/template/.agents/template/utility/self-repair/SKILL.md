@@ -44,6 +44,7 @@ hook, work item or blocker to satisfy this workflow.
 ```text
 Personal task exposes a reproducible Core handoff defect; Core is explicitly adopted personal tooling:
 establish eligible source authority, then apply Workflow's active-goal decision before repair.
+Employer task exposes the same defect: correct the active task where authorized and propose a separate
 source repair; no employer tracker item or cross-repository repair follows automatically.
 Agent skipped a clear testing instruction: run the required checks and correct the task; an adequate
 instruction needs no source edit.
