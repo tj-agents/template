@@ -6,6 +6,12 @@ resolution-markers = [
     "python_full_version < '3.15'",
 ]
 
+[manifest]
+members = [
+    "template",
+    "tj-template",
+]
+
 [[package]]
 name = "ast-serialize"
 version = "0.13.1"
@@ -333,6 +339,9 @@ wheels = [
 name = "template"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "tj-template" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -342,6 +351,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "tj-template", editable = "packages/tj-template" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -349,6 +359,11 @@ dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.17.1" },
 ]
+
+[[package]]
+name = "tj-template"
+version = "0.1.0"
+source = { editable = "packages/tj-template" }
 
 [[package]]
 name = "typing-extensions"

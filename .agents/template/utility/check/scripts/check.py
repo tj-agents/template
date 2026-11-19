@@ -11,6 +11,8 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any, TypedDict
 
+from tj_template.plugins import generation as generator
+
 sys.dont_write_bytecode = True
 
 SKILL_DIRECTORY = Path(__file__).resolve().parents[1]
@@ -58,7 +60,6 @@ def load_module(name: str, path: Path) -> Any:
 
 
 new_plugin = load_module("template_new_plugin", NEW_PLUGIN / "scripts/new_plugin.py")
-generator = load_module("template_generator", new_plugin.GENERATOR_TEMPLATE)
 examples = load_module(
     "template_check_examples", SKILL_DIRECTORY / "scripts/check_examples.py"
 )
@@ -237,7 +238,9 @@ def headings(body: str) -> set[str]:
 
 
 def opening(body: str) -> str:
-    lines: list[str] = generator.FRONTMATTER.match(body).group("body").splitlines()
+    match = generator.FRONTMATTER.match(body)
+    assert match is not None
+    lines = match.group("body").splitlines()
     after_title = False
     for line in lines:
         if line.startswith("# "):
@@ -332,7 +335,7 @@ def check_standard(
             ).startswith(STANDARD["convention_opening"]):
                 problems.append(
                     f"{skill['directory']}/SKILL.md: a contract opens with "
-                    "an `Owns â€¦` line after its title"
+                    "an `Owns …` line after its title"
                 )
     return problems
 

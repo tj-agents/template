@@ -66,14 +66,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1 -Check
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root . --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: repository tests
         shell: pwsh
@@ -99,7 +99,7 @@ jobs:
           if ($env:GUIDANCE_EXAMPLES_MERGE_BASE) {
             $checkArguments += $env:GUIDANCE_EXAMPLES_MERGE_BASE
           }
-          python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
+          uv run --locked --project .template python -B .template/.agents/template/utility/check/scripts/check.py @checkArguments
       - name: authored skill references resolve in the public corpus
         shell: pwsh
         env:
@@ -126,14 +126,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: generated files are current
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          ./.agents/sync-generated.ps1 -Check
+          uv run --locked --no-editable --project .template python -I -B .template/.github/scripts/run_generation.py --root . --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-node@v4
         with:

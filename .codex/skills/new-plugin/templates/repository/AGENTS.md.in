@@ -3,7 +3,7 @@
 This repository uses the plugin layout `template:check` documents and enforces
 (https://github.com/{{owner}}/template). Authored skills live once under `.agents/<plugin>/<kind>/<name>/SKILL.md`,
 with each skill's scripts and templates beside it; related skills share a family folder, family first
-(`state/client/` publishes `state-client`). `.agents/sync_generated.py`, `.agents/sync-generated.ps1`,
+(`state/client/` publishes `state-client`). Plugin generation uses the installed `tj-template` package.
 `.gitattributes`, `.gitignore`, `CLAUDE.md` and `.github/workflows/ci.yml` are vendored from Template's main branch.
 Change them in Template, then run `template:update` to refresh the exact vendored content.
 
@@ -15,12 +15,12 @@ extensions live only at the exact `.agents/plugins/adapters/<host>/<plugin>/<ski
 `skills/` and gets `codex-skills/`, selected by its generated Codex manifest.
 
 `.codex/skills/`, `.claude/skills/`, `.agents/INDEX.md`, both marketplace files and `plugins/*` are generated. Run
-`pwsh .agents/sync-generated.ps1` after authored changes and require `pwsh .agents/sync-generated.ps1 -Check`
+`uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template generate` after authored changes and require `uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check`
 before delivery.
 
 ```powershell
-pwsh .agents/sync-generated.ps1
-pwsh .agents/sync-generated.ps1 -Check
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template generate
+uv run --locked --no-default-groups --group dev --project tools/plugin-generation tj-template check
 ```
 
 For skill creation, splitting, renaming or consolidation, load `template:new-skill` before the native creator.

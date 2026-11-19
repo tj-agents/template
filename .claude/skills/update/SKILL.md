@@ -1,6 +1,6 @@
 ---
 name: update
-description: Refresh a plugin repository from Template's main branch — re-vendor the generator, sync-generated.ps1, .gitattributes, .gitignore, CLAUDE.md and the ci.yml caller, remove legacy version metadata, and regenerate. Use when check reports drifted vendored files or when adopting current Template content.
+description: Refresh a plugin repository's installed generator and shared root files from Template's main branch, remove superseded generator copies and legacy version metadata, and regenerate. Use when adopting current Template content or repairing dependency and vendored-file drift.
 kind: utility
 domain: template
 profile: core

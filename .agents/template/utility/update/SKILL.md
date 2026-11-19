@@ -1,6 +1,6 @@
 ---
 name: update
-description: Refresh a plugin repository from Template's main branch — re-vendor the generator, sync-generated.ps1, .gitattributes, .gitignore, CLAUDE.md and the ci.yml caller, remove legacy version metadata, and regenerate. Use when check reports drifted vendored files or when adopting current Template content.
+description: Refresh a plugin repository's installed generator and shared root files from Template's main branch, remove superseded generator copies and legacy version metadata, and regenerate. Use when adopting current Template content or repairing dependency and vendored-file drift.
 kind: utility
 domain: template
 profile: core
@@ -15,8 +15,17 @@ provenance: house
 python <skill-directory>/scripts/update.py --root <repository> [--dry-run]
 ```
 
-It overwrites each vendored file that differs from the current Template source, removes a legacy config pin and top-level
-manifest versions, then runs the repository's generator. --dry-run lists every change without writing. Make changes to
-vendored files in Template.
+It pins `tj-template` to the selected immutable Template commit and updates the consumer's uv lockfile.
+An existing Python project owns that dependency; other repositories keep a tool-only project in
+`tools/plugin-generation`. New scaffolds create and lock the tool project before generating their first outputs. `--template-ref <full-commit>` selects an explicit candidate; otherwise the updater resolves main.
+
+The updater refreshes vendored root files, removes copied generators, a legacy config pin and top-level
+manifest versions, then generates through the installed package. `--dry-run` lists changes without writing.
+It migrates known PowerShell generation commands in authored Markdown. An unresolved source-code or
+configuration caller stops the update before script removal and names the paths to migrate. Matching
+dependency declarations still require a current lockfile; generation executes the consumer's selected
+package revision, rather than the updater skill's bundled version.
+Authored generator code belongs only to Template's package. Source changes to other vendored files belong
+in Template's repository templates.
 
 Afterwards run `check`, review the diff and commit it as one change.
